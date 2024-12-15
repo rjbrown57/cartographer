@@ -1,0 +1,34 @@
+version: 2
+before:
+  hooks:
+    - go get
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-X cmd.version={{.Version}}"
+dockers:
+  - image_templates:
+    - ghcr.io/rjbrown57/cartographer
+archives:
+  - format: binary
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  github:
+    owner: rjbrown57
+    name: cartographer

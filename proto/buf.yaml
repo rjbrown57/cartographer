@@ -1,0 +1,16 @@
+# https://buf.build/docs/best-practices/style-guide/#files-and-packages
+version: v2
+deps:
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - STANDARD
+  except:
+    - ENUM_VALUE_PREFIX
+    - PACKAGE_DIRECTORY_MATCH
+    - PACKAGE_VERSION_SUFFIX
+    - SERVICE_SUFFIX
+    - ENUM_VALUE_PREFIX
+breaking:
+  use:
+    - FILE

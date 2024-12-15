@@ -1,0 +1,82 @@
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/rjbrown57/cartographer/pkg/proto";
+option java_multiple_files = true;
+option java_package = "io.grpc.rjbrown57.cartographer";
+option java_outer_classname = "cartographerProto";
+
+package cartographer.v1;
+
+service Cartographer {
+  // Connectivity Test
+  rpc Ping (PingRequest) returns (PingResponse) {}
+  rpc Get (CartographerRequest) returns (CartographerResponse) {}
+  rpc Add (CartographerRequest) returns (CartographerResponse) {}
+  rpc Delete (CartographerRequest) returns (CartographerResponse) {}
+  rpc StreamGet (CartographerRequest) returns (stream CartographerResponse) {}
+
+}
+
+// Ping Method used for health check
+message PingRequest {
+  string name = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}
+
+enum RequestType {
+  DATA = 0; // requests that will include links
+  GROUP = 1; // group creation/querying for existing groups
+  TAG = 2; // tag creations/queriying for existing groups
+}
+
+message Link {
+  string url = 1;
+  string displayname = 2;
+  string description = 3;
+  repeated string tags = 4; // need to fix this to use repeated Tag tags
+}
+
+message Tag {
+  string name = 1;
+  string description = 2;
+}
+
+message Group {
+  string name = 1;
+  string description = 2;
+  repeated string tags = 3;
+}
+
+// Generic request message re-used in get/delete/add
+message CartographerRequest {
+  repeated Tag tags = 1;
+  repeated Group groups = 2;
+  repeated Link links = 3;
+  RequestType type = 4;
+}
+
+// The response message 
+message CartographerResponse {
+  repeated string msg = 1;
+  repeated string tags = 2;
+  repeated string groups = 3;
+  repeated Link links = 4;
+  RequestType type = 5;
+}

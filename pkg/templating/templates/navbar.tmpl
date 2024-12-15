@@ -1,0 +1,47 @@
+{{- define "navbar" }}
+	<!-- Navbar -->
+	<nav class="bg-gray-800 p-4 rounded-full">
+		<div class="container mx-auto">
+			<div class="flex items-center justify-between">
+				<div id="home">
+				<a class="active text-white" href="/"><i class="fa fa-home"></i> {{ .SiteName }}</a> 
+				</div>
+				<div class="relative">
+					<button class="text-gray-300 hover:text-white focus:outline-none flex items-center" onclick="toggleDropdown()">
+						<i class="fa fa-caret-down mr-2"></i>
+						Groups
+					</button>
+					<div id="dropdown" class="hidden absolute bg-gray-800 text-white rounded shadow-lg mt-2 w-48 right-0">
+						<input type="text" placeholder="Filter groups..." class="w-full p-2 bg-gray-700 text-white" onkeyup="filterGroups()">
+						<div id="groupList" class="max-h-48 overflow-y-auto">
+							{{- range $index, $group := .Groups }}
+								<a href="/groups/{{ $group }}" class="block px-4 py-2 hover:bg-gray-700">{{ $group }}</a>
+							{{- end }}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</nav>
+	<script>
+		function toggleDropdown() {
+			document.getElementById('dropdown').classList.toggle('hidden');
+		}
+
+		function filterGroups() {
+			var input, filter, groupList, a, i;
+			input = document.querySelector('#dropdown input');
+			filter = input.value.toUpperCase();
+			groupList = document.getElementById("groupList");
+			a = groupList.getElementsByTagName('a');
+			for (i = 0; i < a.length; i++) {
+				txtValue = a[i].textContent || a[i].innerText;
+				if (txtValue.toUpperCase().indexOf(filter) > -1) {
+					a[i].style.display = "";
+				} else {
+					a[i].style.display = "none";
+				}
+			}
+		}
+	</script>
+{{- end }}

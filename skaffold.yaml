@@ -1,0 +1,20 @@
+apiVersion: skaffold/v4beta9
+kind: Config
+metadata:
+  name: cartographer
+build:
+  artifacts:
+    - image: ghcr.io/rjbrown57/cartographer
+      ko: {}
+      #docker:
+      #  dockerfile: Dockerfile
+deploy:
+  helm:
+    releases:
+      - name: cartographer
+        chartPath: charts/cartographer
+        valuesFiles:
+          - charts/cartographer/values.yaml
+        version: 0.1.0
+        setValueTemplates:
+          image.tag: "{{.IMAGE_TAG_ghcr_io_rjbrown57_cartographer}}"
