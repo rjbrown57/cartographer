@@ -1,0 +1,15 @@
+{{- define "navbar" }}
+	<!-- Navbar -->
+	<nav class="bg-gray-800 p-4">
+		<div class="container mx-auto">
+			<div class="flex items-center justify-between">
+				<a href="/" class="text-white text-lg font-bold mr-4">{{ .SiteName }}</a>
+				<div class="flex flex-wrap space-x-4">
+					{{- range .Groups }}
+					<a href="/groups/{{.}}" class="text-gray-300 hover:text-white">{{.}}</a>
+					{{- end }}
+				</div>
+			</div>
+		</div>
+	</nav>
+{{- end }}

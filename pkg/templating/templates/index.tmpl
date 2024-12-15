@@ -1,0 +1,30 @@
+{{ template "common" . }}
+	{{ template "navbar" . }}
+	<div class="flex justify-center mt-4">
+		<!-- Main Content -->
+		<div class="w-3/4 p-4">
+			<!-- Links -->
+			<div class="links mb-4">
+				<div class="grid grid-cols-3 gap-4">
+				{{- range .Links }}
+				<div class="link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5">
+					<div class="body">
+						<a href="{{ .URL }}" target="_blank" class="text-blue-500 underline text-lg break-words">{{ .Displayname }}</a>
+						<p class="text-gray-700 text-sm mt-2 break-words">{{ .Description }}</p>
+					</div>
+					<div class="footer mt-2">
+						<ul class="flex flex-wrap space-x-2">
+							{{- range .Tags }}
+							<li class="bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700">
+							<a href="/tags/{{.}}" class="text-black-500 break-words">{{.}}</a>
+							</li>
+							{{- end }}
+						</ul>
+					</div>
+				</div>
+				{{- end }}
+				</div>
+			</div>
+		</div>
+	</div>
+{{ template "commonEnd" }}

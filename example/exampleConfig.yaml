@@ -1,0 +1,39 @@
+apiVersion: v1beta
+cartographer:
+  address: 0.0.0.0
+  port: 8080
+  web:
+    address: 0.0.0.0
+    port: 8081
+    siteName: "cartographer"
+  backup:
+    enabled: true
+    path: /tmp/cartographer.backup
+groups:
+  - name: example
+    tags: ["tools","k8s"]
+links: 
+  - url: https://github.com/kubernetes/kubernetes
+    displayname: "kubernetes github"
+    description: "kubernetes main github repo"
+    tags: ["k8s"]
+  - url: https://github.com/goharbor/harbor
+    tags: ["oci", "k8s"]
+  - url: https://github.com/sigstore/cosign
+    tags: ["oci"]
+  - url: https://github.com/google/go-containerregistry/
+    tags: ["oci"]
+  - url: https://github.com/anchore/syft
+    tags: ["k8s"]
+  - url: https://github.com/anchore/grype
+    tags: ["k8s"]
+  - url: https://github.com/google/ko
+    tags: ["build","k8s"]
+  - url: https://github.com/rjbrown57/binman
+    tags: ["github","tools"]
+  - url: https://github.com/grafana/grafana
+    tags: ["k8s", "metrics"]
+  - url: https://github.com/prometheus
+    tags: ["k8s", "metrics"]
+  - url: https://kernel.org/
+    tags: ["linux"]
