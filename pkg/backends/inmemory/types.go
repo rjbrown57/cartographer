@@ -10,18 +10,20 @@ import (
 )
 
 type InMemoryBackend struct {
-	Groups GroupMap
-	Tags   TagMap
-	Links  LinkMap
+	Groups   GroupMap
+	Tags     TagMap
+	Links    LinkMap
+	Notifier *Notifier
 
 	backupConfig *config.BackupConfig
 }
 
 func NewInMemoryBackend(c *config.BackupConfig) *InMemoryBackend {
 	i := &InMemoryBackend{
-		Groups: make(GroupMap),
-		Tags:   make(TagMap),
-		Links:  make(LinkMap),
+		Groups:   make(GroupMap),
+		Tags:     make(TagMap),
+		Links:    make(LinkMap),
+		Notifier: NewNotifier(),
 	}
 
 	if c.Enabled && c.BackupPath != "" {
