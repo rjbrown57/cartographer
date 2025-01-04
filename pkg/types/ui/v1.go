@@ -45,6 +45,8 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		htmltpl := "group.tmpl"
+
 		cr := &proto.CartographerRequest{
 			Type: proto.RequestType_GROUP,
 		}
@@ -53,6 +55,7 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			g := make([]*proto.Group, 0)
 			cr.Groups = append(g, &proto.Group{Name: c.Param("group")})
 			cr.Type = proto.RequestType_DATA
+			htmltpl = "index.tmpl"
 		}
 
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
@@ -66,12 +69,15 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			return
 		}
 
-		c.HTML(http.StatusOK, "group.tmpl", NewTemplatingHeaders(c, pr))
+		c.HTML(http.StatusOK, htmltpl, NewTemplatingHeaders(c, pr))
 	}
 }
 
 func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		htmltpl := "tag.tmpl"
+
 		cr := &proto.CartographerRequest{
 			Type: proto.RequestType_TAG,
 		}
@@ -80,6 +86,7 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			t := make([]*proto.Tag, 0)
 			cr.Tags = append(t, &proto.Tag{Name: c.Param("tag")})
 			cr.Type = proto.RequestType_DATA
+			htmltpl = "index.tmpl"
 		}
 
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
@@ -94,6 +101,6 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			return
 		}
 
-		c.HTML(http.StatusOK, "tag.tmpl", NewTemplatingHeaders(c, pr))
+		c.HTML(http.StatusOK, htmltpl, NewTemplatingHeaders(c, pr))
 	}
 }
