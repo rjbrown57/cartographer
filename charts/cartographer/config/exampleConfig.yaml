@@ -7,7 +7,7 @@ cartographer:
     port: 8081
     siteName: "Cartographer"
   backup:
-    enabled: true
+    enabled: false
     path: /tmp/cartographer.backup
 groups:
   - name: example
@@ -44,6 +44,6 @@ links:
   - url: https://github.com/prometheus/prometheus
     description: "Metrics collection"
     tags: ["k8s", "metrics"]
-  - url: https://kernel.org/
+  - url: https://kernel.org
     description: "kubernetes main github repo"
     tags: ["linux"]

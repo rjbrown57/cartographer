@@ -7,7 +7,7 @@ cartographer:
     port: 8081
     siteName: "Cartographer"
   backup:
-    enabled: true
+    enabled: false # If using a persistent volume enable this
     path: /tmp/cartographer.backup
 groups:
   - name: example
