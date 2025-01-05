@@ -21,15 +21,16 @@ type InMemoryBackend struct {
 
 func NewInMemoryBackend(c *config.BackupConfig) *InMemoryBackend {
 	i := &InMemoryBackend{
-		Groups: make(GroupMap),
-		Tags:   make(TagMap),
-		Links:  make(LinkMap),
-		mu:     &sync.Mutex{},
+		Groups:       make(GroupMap),
+		Tags:         make(TagMap),
+		Links:        make(LinkMap),
+		mu:           &sync.Mutex{},
+		backupConfig: c,
 	}
 
+	// TODO validate backup path / content
 	if c.Enabled && c.BackupPath != "" {
 		log.Printf("Backup enabled, using %s", c.BackupPath)
-		i.backupConfig = c
 	}
 
 	return i
