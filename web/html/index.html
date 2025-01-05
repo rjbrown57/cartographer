@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<script src="scripts/cartographer.js"></script>
+<style>
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.link-card {
+	animation: fadeIn 0.5s ease-in-out;
+}
+</style>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{{.sitename}}</title>
+	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+	<!-- Navbar -->
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex items-center">
+            <div id="home" class="mr-4">
+                <a class="active text-white" href="/"><i class="fa fa-home p-2"></i>{{ .sitename }}</a> 
+            </div>
+            <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
+            <div id="searchBar" class="flex-grow mr-4">
+                <input type="text" placeholder="Filter.." class="w-full p-2 rounded" onkeyup="searchData()">
+            </div>
+            <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
+            <div class="relative flex-grow">
+                <button class="text-gray-300 hover:text-white focus:outline-none flex items-center" onclick="toggleDropdown('groupdropdown')">
+                    <i class="fa fa-caret-down mr-2"></i>
+                    Groups
+                </button>
+                <div id="groupdropdown" class="hidden absolute bg-gray-700 text-white rounded shadow-lg mt-2 w-48">
+                    <div id="groupList" class="max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+	<div class="flex justify-center mt-4">
+		<div class="w-3/4 p-4">
+			<div id="link" class="links mb-4">
+				<div id="linkgrid" class="grid grid-cols-3 gap-4">
+</div>
+</body>
+</html>

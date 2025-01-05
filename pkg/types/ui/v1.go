@@ -2,7 +2,6 @@ package ui
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -32,20 +31,12 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			return
 		}
 
-		if strings.HasPrefix(c.FullPath(), "/v1") {
-			c.JSON(http.StatusOK, pr)
-			return
-		}
-
-		c.HTML(http.StatusOK, "index.tmpl", NewTemplatingHeaders(c, pr))
-
+		c.JSON(http.StatusOK, pr)
 	}
 }
 
 func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		htmltpl := "group.tmpl"
 
 		cr := &proto.CartographerRequest{
 			Type: proto.RequestType_GROUP,
@@ -55,7 +46,6 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			g := make([]*proto.Group, 0)
 			cr.Groups = append(g, &proto.Group{Name: c.Param("group")})
 			cr.Type = proto.RequestType_DATA
-			htmltpl = "index.tmpl"
 		}
 
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
@@ -64,19 +54,12 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			return
 		}
 
-		if strings.HasPrefix(c.FullPath(), "/v1") {
-			c.JSON(http.StatusOK, pr)
-			return
-		}
-
-		c.HTML(http.StatusOK, htmltpl, NewTemplatingHeaders(c, pr))
+		c.JSON(http.StatusOK, pr)
 	}
 }
 
 func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		htmltpl := "tag.tmpl"
 
 		cr := &proto.CartographerRequest{
 			Type: proto.RequestType_TAG,
@@ -86,7 +69,6 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			t := make([]*proto.Tag, 0)
 			cr.Tags = append(t, &proto.Tag{Name: c.Param("tag")})
 			cr.Type = proto.RequestType_DATA
-			htmltpl = "index.tmpl"
 		}
 
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
@@ -96,11 +78,12 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			return
 		}
 
-		if strings.HasPrefix(c.FullPath(), "/v1") {
-			c.JSON(http.StatusOK, pr)
-			return
-		}
+		c.JSON(http.StatusOK, pr)
+	}
+}
 
-		c.HTML(http.StatusOK, htmltpl, NewTemplatingHeaders(c, pr))
+func indexFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{"sitename": name})
 	}
 }
