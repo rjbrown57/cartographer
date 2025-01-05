@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rjbrown57/cartographer/pkg/templating"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
+	"github.com/rjbrown57/cartographer/web"
 )
 
 func prometheusHandler() gin.HandlerFunc {
@@ -37,9 +38,10 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 		PopulateGroups(carto),
 	)
 
-	g.Use(gin.Recovery())
+	g.Use(gin.Recovery(), gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping", "/"})))
 
-	g.SetHTMLTemplate(template.Must(template.ParseFS(templating.TemplatesFS, "templates/*")))
+	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
+	g.StaticFileFS("scripts/cartographer.js", "js/cartographer.js", http.FS(web.JsFS))
 
 	// https://github.com/gin-gonic/gin/issues/2809
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies
@@ -61,11 +63,6 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/v1/get/groups", getGroupFunc(carto))
 
 	// HTML Endpoints
-	g.GET("/", getFunc(carto))
-	g.GET("/tags/", getTagFunc(carto))
-	g.GET("/tags/:tag", getTagFunc(carto))
-	g.GET("/groups/", getGroupFunc(carto))
-	g.GET("/groups/:group", getGroupFunc(carto))
-
+	g.GET("/", indexFunc(o.SiteName))
 	return g
 }
