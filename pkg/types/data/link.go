@@ -32,8 +32,14 @@ func NewFromProtoLink(l *proto.Link) (*Link, error) {
 		return nil, err
 	}
 	d.Description = l.Description
+
+	// If no display name was set, set the generic display name
+	if l.Displayname == "" {
+		d.SetDisplayName()
+		return d, nil
+	}
+
 	d.DisplayName = l.Displayname
-	d.DisplayName = d.SetDisplayName()
 
 	return d, nil
 }
@@ -53,11 +59,8 @@ func (l *Link) GetProtoLink() *proto.Link {
 	return proto.NewProtoLink(l.Link.String(), l.Description, l.DisplayName, l.GetTagNames())
 }
 
-func (l *Link) SetDisplayName() string {
-
+func (l *Link) SetDisplayName() {
 	if s, cut := strings.CutPrefix(l.Link.String(), fmt.Sprintf("%s://", l.Link.Scheme)); cut {
-		return s
+		l.DisplayName = s
 	}
-
-	return l.DisplayName
 }
