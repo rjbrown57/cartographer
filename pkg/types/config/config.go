@@ -1,7 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/utils"
@@ -36,7 +40,20 @@ type CartographerConfig struct {
 
 func NewCartographerConfig(configPath string) *CartographerConfig {
 	c := CartographerConfig{}
-	err := utils.UnmarshalYaml(configPath, &c)
+
+	info, err := os.Stat(configPath)
+	if err != nil {
+		log.Fatalf("error reading config path: %v", err)
+	}
+
+	// If a directory was supplied we will merge all *.yaml files found
+	if info.IsDir() {
+		c.MergeConfigDir(configPath)
+		return &c
+	}
+
+	// Otherwise we will read the single file
+	err = utils.UnmarshalYaml(configPath, &c)
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
@@ -49,5 +66,46 @@ func NewCartographerConfig(configPath string) *CartographerConfig {
 func (c *CartographerConfig) SetApi() {
 	if c.ApiVersion == "" {
 		c.ApiVersion = ApiVersion
+	}
+}
+
+func (c *CartographerConfig) MergeConfigDir(dirpath string) {
+
+	files, err := os.ReadDir(dirpath)
+	if err != nil {
+		log.Fatalf("error reading directory: %v", err)
+	}
+
+	for _, file := range files {
+		switch {
+		// If the file is a directory recursively merge the config
+		case file.IsDir():
+			c.MergeConfigDir(fmt.Sprintf("%s/%s", dirpath, file.Name()))
+		// Skip non yaml files
+		case !strings.HasSuffix(file.Name(), ".yaml"):
+			continue
+		default:
+			// Read the config file and merge the groups and links
+			mc := NewCartographerConfig(filepath.Join(dirpath, file.Name()))
+			c.MergeConfig(mc)
+		}
+	}
+}
+
+func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
+
+	// Typically these values are set only in 1 file
+	// But if they are set in multiple files we will use the last value
+	if (ServerConfig{}) == c.ServerConfig {
+		c.ServerConfig = mc.ServerConfig
+		mc.SetApi()
+	}
+
+	for _, group := range mc.Groups {
+		c.Groups = append(c.Groups, group)
+	}
+
+	for _, link := range mc.Links {
+		c.Links = append(c.Links, link)
 	}
 }
