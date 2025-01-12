@@ -1,0 +1,4 @@
+links: 
+  - url: https://gitlab.com/gitlab-org/cli
+    description: "cli for gitlab"
+    tags: ["tools","gitlab"]

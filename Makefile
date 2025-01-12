@@ -17,4 +17,4 @@ build:
 	@goreleaser release --snapshot --clean
 
 serve:
-	@cartographer serve -c example/exampleConfig.yaml
+	@cartographer serve -c example

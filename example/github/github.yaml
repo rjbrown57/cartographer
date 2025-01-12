@@ -1,0 +1,28 @@
+links: 
+  - url: https://github.com/kubernetes/kubernetes
+    description: "kubernetes main github repo"
+    tags: ["k8s","github"]
+  - url: https://github.com/goharbor/harbor
+    description: "kubernetes main github repo"
+    tags: ["oci", "k8s","github"]
+  - url: https://github.com/sigstore/cosign
+    description: "CNCF graduated OCI registry"
+    tags: ["oci"]
+  - url: https://github.com/google/go-containerregistry/
+    description: "excellent OCI tooling"
+    tags: ["oci"]
+  - url: https://github.com/anchore/syft
+    description: "SBOM generation"
+    tags: ["k8s"]
+  - url: https://github.com/anchore/grype
+    description: "SBOM scanner"
+    tags: ["k8s"]
+  - url: https://github.com/google/ko
+    description: "k8s oci image building"
+    tags: ["build","k8s"]
+  - url: https://github.com/grafana/grafana
+    description: "Metrics dashboard"
+    tags: ["k8s", "metrics"]
+  - url: https://github.com/prometheus/prometheus
+    description: "Metrics collection"
+    tags: ["k8s", "metrics"]
