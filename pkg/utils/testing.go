@@ -34,6 +34,22 @@ links:
     tags: ["oci", "k8s"]
 `
 
+var LinkOnly1Config string = `
+  - url: https://github.com/rjbrown57/cartographer
+    tags: ["k8s"]
+    description: |-
+      description
+    displayname: cartographer 
+`
+
+var LinkOnly2Config string = `
+  - url: https://github.com/rjbrown57/binman
+    tags: ["k8s"]
+    description: |-
+      binman repository
+    displayname: binman
+`
+
 func GetTestFile() (*os.File, error) {
 	f, err := os.CreateTemp("", "*test.yaml")
 	if err != nil {
@@ -57,9 +73,56 @@ func WriteTestConfig() (*os.File, error) {
 	return f, nil
 }
 
+func WriteTestDir() (string, error) {
+	rootDir, err := os.MkdirTemp("", "*test")
+	if err != nil {
+		return "", err
+	}
+
+	// Write TestFullConfig at the root
+	rootFile, err := os.CreateTemp(rootDir, "*.yaml")
+	if err != nil {
+		return "", err
+	}
+	_, err = rootFile.Write([]byte(TestFullConfig))
+	if err != nil {
+		return "", err
+	}
+
+	// Create first subdirectory and write LinkOnly1Config
+	subDir1, err := os.MkdirTemp(rootDir, "*subdir1")
+	if err != nil {
+		return "", err
+	}
+	subFile1, err := os.CreateTemp(subDir1, "*.yaml")
+	if err != nil {
+		return "", err
+	}
+	_, err = subFile1.Write([]byte(fmt.Sprintf("links:\n%s", LinkOnly1Config)))
+	if err != nil {
+		return "", err
+	}
+
+	// Create second subdirectory and write LinkOnly2Config
+	subDir2, err := os.MkdirTemp(rootDir, "*subdir2")
+	if err != nil {
+		return "", err
+	}
+	subFile2, err := os.CreateTemp(subDir2, "*.yaml")
+	if err != nil {
+		return "", err
+	}
+	_, err = subFile2.Write([]byte(fmt.Sprintf("links:\n%s", LinkOnly2Config)))
+	if err != nil {
+		return "", err
+	}
+
+	return rootDir, nil
+}
+
 func AssertDeepEqual(t *testing.T, got, expected interface{}) {
 	if !reflect.DeepEqual(got, expected) {
-		t.Fatalf("%+v is not equal to control %+v", got, expected)
+		t.Fatalf("%+v\n is not equal to control %+v\n", got, expected)
 	}
 }
 

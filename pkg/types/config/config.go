@@ -49,6 +49,7 @@ func NewCartographerConfig(configPath string) *CartographerConfig {
 	// If a directory was supplied we will merge all *.yaml files found
 	if info.IsDir() {
 		c.MergeConfigDir(configPath)
+		c.SetApi()
 		return &c
 	}
 
