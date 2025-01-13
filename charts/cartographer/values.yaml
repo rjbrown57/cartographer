@@ -5,6 +5,25 @@
 # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
+cartographer:
+  args: ["serve","-c","/config"]
+
+volumes: 
+ - name: data
+   emptypDir: {}
+ - name: config
+   configMap:
+     name: cartographer
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+- name: config
+  mountPath: "/config"
+  readOnly: true
+- name: data
+  mountPath: "/data/"
+  readOnly: false
+
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 # # ghcr.io/rjbrown57/cartographer:latest
 image:
@@ -33,7 +52,7 @@ securityContext:
   capabilities:
     drop:
     - ALL
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
 
@@ -64,25 +83,17 @@ ingress:
 resources: {}
 
 # Needs GRPC implementation and research into best practice
-livenessProbe: {}
-readinessProbe: {}
-
-volumes: 
- - name: data
-   emptypDir: {}
- - name: config
-   configMap:
-     name: cartographer
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts:
-- name: config
-  mountPath: "/config"
-  readOnly: true
-- name: data
-  mountPath: "/data/"
-  readOnly: false
-
+livenessProbe: 
+  httpGet:
+    path: /healthz
+    port: 8081
+  initialDelaySeconds: 10
+    
+readinessProbe: 
+  httpGet:
+    path: /v1/ping
+    port: 8081
+  initialDelaySeconds: 10
 nodeSelector: {}
 
 tolerations: []
