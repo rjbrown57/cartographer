@@ -35,10 +35,9 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		SkipPaths: []string{"/healthz", "/metrics"},
 	}), SiteNameMiddleware(o.SiteName),
-		PopulateGroups(carto),
-	)
-
-	g.Use(gin.Recovery(), gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping", "/"})))
+		gin.Recovery(),
+		gzip.Gzip(gzip.DefaultCompression,
+			gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping", "/"})))
 
 	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
 	g.StaticFileFS("scripts/cartographer.js", "js/cartographer.js", http.FS(web.JsFS))
@@ -56,7 +55,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 
 	// Json Endpoints
 	g.GET("/v1/ping", pingFunc(carto))
-	g.GET("/v1/get/", getFunc(carto))
+	g.GET("/v1/get", getFunc(carto))
 	g.GET("/v1/get/tags/:tag", getTagFunc(carto))
 	g.GET("/v1/get/groups/:group", getGroupFunc(carto))
 	g.GET("/v1/get/tags", getTagFunc(carto))
