@@ -37,7 +37,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	}), SiteNameMiddleware(o.SiteName),
 		gin.Recovery(),
 		gzip.Gzip(gzip.DefaultCompression,
-			gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping", "/"})))
+			gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping"})))
 
 	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
 	g.StaticFileFS("scripts/cartographer.js", "js/cartographer.js", http.FS(web.JsFS))
