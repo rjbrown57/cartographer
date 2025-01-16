@@ -65,8 +65,15 @@ function CreateCards(data) {
 function searchData() {
     var input, filter;
     input = document.querySelector('#searchBar input');
+   
+    // https://www.w3schools.com/jsref/jsref_touppercase.asp
     filter = input.value.toUpperCase();
-    filterCards(filter);
+    
+    // https://www.w3schools.com/jsref/jsref_split.asp
+    const filterArray = filter.split(" ");
+    filterArray.forEach(filter => {
+        filterCards(filter);
+    });
 }
 
 function filterCards(filter) {
