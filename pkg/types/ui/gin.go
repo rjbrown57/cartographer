@@ -33,7 +33,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g := gin.New()
 
 	g.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		SkipPaths: []string{"/healthz", "/metrics"},
+		SkipPaths: []string{"/healthz", "/metrics", "/v1/ping"},
 	}), SiteNameMiddleware(o.SiteName),
 		gin.Recovery(),
 		gzip.Gzip(gzip.DefaultCompression,
