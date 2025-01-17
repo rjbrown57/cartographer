@@ -161,6 +161,11 @@ function toggleDropdown(dropdownId) {
 function populateDropDown(stringList, elementTarget) {
     dropDown = document.getElementById(elementTarget);
 
+    // If we have only a single group we need to convert it to a list
+    if (typeof stringList === 'string') {
+        stringList = [stringList];
+    }
+
     for (const item of stringList) {
 
         const barLink = document.createElement('div');
