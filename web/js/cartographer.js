@@ -1,14 +1,25 @@
 
 let CartographerData = null;
+let GroupData = null;
 
 window.onload = function() {
     Query().then(() => {
         CreateCards(CartographerData);
-        populateDropDown(CartographerData.groups, "groupList");
+        populateDropDown(GroupData, "groupList");
     });
 };
 
 function Query() {
+
+    // We always full group data to allow filter by group 
+    fetch("v1/get/groups")
+        .then(response => response.json())
+        .then(data => {
+            GroupData = data["groups"];
+            console.log(GroupData);
+        })
+        .catch(err => console.error(err));
+
     return fetch(GetQueryPath(), {
                     headers: {
                         'Accept-Encoding': 'gzip'
