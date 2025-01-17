@@ -35,19 +35,19 @@ function Query() {
             }
 
 function GetQueryPath() {
-   let queryUrl = "/v1/get/";
+   let queryUrl = "/v1/get";
 
     const urlParams = new URLSearchParams(window.location.search);
     const tag = urlParams.get('tag');
     const group = urlParams.get('group');
 
     if (tag) {
-        queryUrl += "tags/" + tag;
+        queryUrl += "/tags/" + tag;
         return queryUrl
     }  
         
     if (group) {
-        queryUrl += "groups/" + group;
+        queryUrl += "/groups/" + group;
         return queryUrl
     }
 
