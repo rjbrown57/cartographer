@@ -71,6 +71,8 @@ function CreateCards(data) {
         const container = document.getElementById("linkgrid");
 
         let count = 0;
+        // we can eventually do something more meaningful here, but to help deal with an overwhelming amount of links, we can shuffle them
+        data.links = data.links.sort(() => Math.random() - 0.5);
         for (const item of data.links) {
             if (count >= 100) {
                 const card = createCard(item);
@@ -162,7 +164,7 @@ function createCard(link) {
 
     link.tags.forEach(tag => {
         const li = document.createElement('li');
-        li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 mt-1';
+        li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-400 mt-1';
 
         const tagLink = document.createElement('a');
         tagLink.href = "#";
