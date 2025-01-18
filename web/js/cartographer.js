@@ -1,38 +1,50 @@
 
 let CartographerData = null;
 let GroupData = null;
+let EncodingHeader = {
+    headers: {
+        'Accept-Encoding': 'gzip'
+    }
+}
 
-window.onload = function() {
-    Query().then(() => {
-        CreateCards(CartographerData);
+window.onload = LoadCartographerData();
+
+function LoadCartographerData() {
+    GetGroups().then(() => {
         populateDropDown(GroupData, "groupList");
-    });
-};
+    }, (error) => {
+        console.error(error);
+    },
+    QueryMainData().then(() => {
+        CreateCards(CartographerData);
+    }, (error) => {
+        console.error(error);
+    }));
+}
 
-function Query() {
+async function GetGroups() {
+   try {
+        const response = await fetch("v1/get/groups", EncodingHeader);
+        const data = await response.json();
+        GroupData = data;
+        console.log(GroupData);
+    } catch (err) {
+        return console.error(err);
+    }
+}
 
-    // We always full group data to allow filter by group 
-    fetch("v1/get/groups")
-        .then(response => response.json())
-        .then(data => {
-            GroupData = data["groups"];
-            console.log(GroupData);
-        })
-        .catch(err => console.error(err));
+async function QueryMainData() {
 
-    return fetch(GetQueryPath(), {
-                    headers: {
-                        'Accept-Encoding': 'gzip'
-                    }
-                }) 
-                .then(response => response.json())
-                .then(data => {
-                    CartographerData = data;
-                    
-                    console.log(CartographerData);
-                })
-                .catch(err => console.error(err));
-            }
+    try {
+        const response = await fetch(GetQueryPath(), EncodingHeader);
+        const data = await response.json();
+        CartographerData = data;
+
+        console.log(CartographerData);
+    } catch (err) {
+        return console.error(err);
+    }
+}
 
 function GetQueryPath() {
    let queryUrl = "/v1/get";
@@ -158,22 +170,20 @@ function toggleDropdown(dropdownId) {
     document.getElementById(dropdownId).classList.toggle('hidden');
 }
 
-function populateDropDown(stringList, elementTarget) {
+function AddDropDownElement(href, item) {
+    const barLink = document.createElement('div');
+    const barItem = document.createElement('a');
+    barItem.className = 'block px-4 py-2 text-sm text-white hover:bg-gray-600';
+    barItem.href = href;
+    barItem.textContent = item;
+    barLink.appendChild(barItem);
+    dropDown.appendChild(barLink);
+}
+
+function populateDropDown(data, elementTarget) {
     dropDown = document.getElementById(elementTarget);
 
-    // If we have only a single group we need to convert it to a list
-    if (typeof stringList === 'string') {
-        stringList = [stringList];
-    }
-
-    for (const item of stringList) {
-
-        const barLink = document.createElement('div');
-        const barItem = document.createElement('a');
-        barItem.className = 'block px-4 py-2 text-sm text-white hover:bg-gray-600';
-        barItem.href = '/?group=' + item
-        barItem.textContent = item
-        barLink.appendChild(barItem);
-        dropDown.appendChild(barLink);
-    }
+    for (const item of data.groups) {
+        AddDropDownElement('/?group=' + item, item);
+    };
 }
