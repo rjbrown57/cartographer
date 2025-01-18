@@ -86,17 +86,33 @@ function CreateCards(data) {
 }
 
 function searchData() {
-    var input, filter;
     input = document.querySelector('#searchBar input');
+
+    if (input.value.trim() === "") {
+        filterCards("");
+        return;
+    }
    
     // https://www.w3schools.com/jsref/jsref_touppercase.asp
     filter = input.value.toUpperCase();
     
     // https://www.w3schools.com/jsref/jsref_split.asp
-    const filterArray = filter.split(" ");
+    const filterArray = PrepareTerms(filter);
+    console.log("Search Terms: " + filterArray);
+
+    // Filterting Algorithm
+    // The user supplies space seperated terms
+    // These terms can be present in the display name or the tags attached to the link
+    // If the display name or tags contain the term, the card is displayed
+    // If the display name or tags do not contain the term, the card is hidden
     filterArray.forEach(filter => {
         filterCards(filter);
     });
+}
+
+function PrepareTerms(filter) {
+    const filterArray = filter.split(" ");
+    return filterArray.filter(term => term.trim() !== "");
 }
 
 function filterCards(filter) {
