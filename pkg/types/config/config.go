@@ -80,10 +80,10 @@ func (c *CartographerConfig) MergeConfigDir(dirpath string) {
 	for _, file := range files {
 		switch {
 		// If the file is a directory recursively merge the config
-		case file.IsDir():
+		case file.IsDir() && !strings.HasPrefix(file.Name(), "."):
 			c.MergeConfigDir(fmt.Sprintf("%s/%s", dirpath, file.Name()))
-		// Skip non yaml files
-		case !strings.HasSuffix(file.Name(), ".yaml"):
+		// Skip non yaml files, and dot files
+		case !strings.HasSuffix(file.Name(), ".yaml") || strings.HasPrefix(file.Name(), "."):
 			continue
 		default:
 			// Read the config file and merge the groups and links
