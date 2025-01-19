@@ -34,38 +34,25 @@ func (i *InMemoryBackend) Get(r *proto.CartographerRequest) (*proto.Cartographer
 
 // StreamGet is a server side streaming RPC that sends multiple responses to a client as changes occur
 func (i *InMemoryBackend) StreamGet(pr *proto.CartographerRequest, stream grpc.ServerStreamingServer[proto.CartographerResponse]) error {
-	log.Printf("StreamGet Request %+v", pr)
 
-	// Send first response and wait for more
+	// Send first response
 	resp, err := i.Get(pr)
-	// TODO re-think this
 	if err != nil {
 		log.Printf("Error getting data: %s", err)
 	}
+
 	if err := stream.Send(resp); err != nil {
 		return err
 	}
 
 	c := i.Notifier.Subscribe(pr.Type)
 
-	// This is not being run on control-c of watcher
+	// this will unregister if the context is cancelled
 	go i.Notifier.Unsubscribe(stream.Context(), c.Id)
 
-	// This is working but is still dumb
-	// We should use request type to choose when to send updates
-	// If passed notification shows the correct requesttype we should send an update
-	// We likely need to add new RequestTypes to the proto file
 	for {
 		prr := <-c.Channel
-		// Send first response and wait for more
-		resp, err := i.Get(pr)
-		// TODO re-think this
-		if err != nil {
-			log.Printf("Error getting data: %s", err)
-		}
-
-		resp.Msg = prr.Msg
-		if err := stream.Send(resp); err != nil {
+		if err := stream.Send(&prr); err != nil {
 			return err
 		}
 	}
