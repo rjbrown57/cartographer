@@ -164,7 +164,7 @@ function createCard(link) {
 
     link.tags.forEach(tag => {
         const li = document.createElement('li');
-        li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-400 mt-1';
+        li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100 mt-1';
 
         const tagLink = document.createElement('a');
         tagLink.href = "#";
