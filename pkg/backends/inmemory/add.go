@@ -66,6 +66,9 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 		resp.Msg = append(resp.Msg, fmt.Sprintf("Adding %s", link.Link.String()))
 	}
 
+	// Send notification
+	i.Notifier.Publish(resp)
+
 	// This should happen asynchronously and not block the add response
 	// This doesn't seem to have any impact to add/delete performance at 5000 links.
 	// For basic human usage our initial use case this is fine.
