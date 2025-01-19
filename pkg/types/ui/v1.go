@@ -14,7 +14,7 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		pr, err := carto.Client.Ping(*carto.Ctx, &proto.PingRequest{Name: c.ClientIP()})
 
 		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.tmpl", NewErrorHeaders(c, http.StatusInternalServerError, err))
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
@@ -27,7 +27,7 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		pr, err := carto.Client.Get(*carto.Ctx, &proto.CartographerRequest{})
 
 		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.tmpl", NewErrorHeaders(c, http.StatusInternalServerError, err))
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
@@ -50,7 +50,7 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
 		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.tmpl", NewErrorHeaders(c, http.StatusInternalServerError, err))
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
@@ -74,7 +74,7 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		pr, err := carto.Client.Get(*carto.Ctx, cr)
 
 		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.tmpl", NewErrorHeaders(c, http.StatusInternalServerError, err))
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
