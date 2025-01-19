@@ -8,13 +8,14 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/pkg/types/data"
+	"github.com/rjbrown57/cartographer/pkg/types/notifier"
 )
 
 type InMemoryBackend struct {
 	Groups   GroupMap
 	Tags     TagMap
 	Links    LinkMap
-	Notifier *Notifier
+	Notifier *notifier.Notifier
 
 	backupConfig *config.BackupConfig
 	mu           *sync.Mutex
@@ -27,7 +28,7 @@ func NewInMemoryBackend(c *config.BackupConfig) *InMemoryBackend {
 		Links:        make(LinkMap),
 		mu:           &sync.Mutex{},
 		backupConfig: c,
-		Notifier:     NewNotifier(),
+		Notifier:     notifier.NewNotifier(),
 	}
 
 	// TODO validate backup path / content
