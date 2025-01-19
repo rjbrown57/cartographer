@@ -42,7 +42,7 @@ var DeleteCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		response, err := c.Client.Delete(*c.Ctx, proto.NewProtoCartographerRequest(links, tags, groups, proto.RequestType_DATA))
+		response, err := c.Client.Delete(c.Ctx, proto.NewProtoCartographerRequest(links, tags, groups, proto.RequestType_DATA))
 		if err != nil {
 			log.Fatalf("Failed to Add links %s", err)
 		}
