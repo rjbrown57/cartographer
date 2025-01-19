@@ -1,6 +1,7 @@
 package getcmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -48,29 +49,11 @@ var GetCmd = &cobra.Command{
 
 		// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
 		if watch {
-			r, err := c.Client.StreamGet(*c.Ctx, pr)
-			if err != nil {
-				log.Fatalf("Failed to open stream to %s:%d - %s", addr, port, err)
-			}
-			for {
-				msg, err := r.Recv()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					log.Fatalf("Error receiving message from stream: %s", err)
-				}
-				out, err := yaml.Marshal(msg)
-				if err != nil {
-					log.Fatalf("Unable to marshal message %s", err)
-				}
-				fmt.Printf("%s\n", out)
-			}
-			log.Println("Stream closed")
+			streamGet(c, pr)
 			return
 		}
 
-		response, err := c.Client.Get(*c.Ctx, pr)
+		response, err := c.Client.Get(c.Ctx, pr)
 		if err != nil {
 			log.Fatalf("Failed to get links %s", err)
 		}

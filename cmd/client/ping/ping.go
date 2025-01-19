@@ -36,7 +36,7 @@ var PingCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("%s", err)
 		}
-		pr, err := c.Client.Ping(*c.Ctx, &proto.PingRequest{Name: h})
+		pr, err := c.Client.Ping(c.Ctx, &proto.PingRequest{Name: h})
 		if err != nil {
 			log.Fatalf("Error sending ping %s", err)
 		}

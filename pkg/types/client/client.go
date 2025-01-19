@@ -14,7 +14,7 @@ import (
 type CartographerClient struct {
 	Client     proto.CartographerClient
 	ClientConn *grpc.ClientConn
-	Ctx        *context.Context
+	Ctx        context.Context
 	Options    *CartographerClientOptions
 }
 
@@ -35,9 +35,7 @@ func NewCartographerClient(o *CartographerClientOptions) *CartographerClient {
 	}
 
 	// TODO make this meaningful :)
-	ctx := context.TODO()
-
-	c.Ctx = &ctx
+	c.Ctx = context.TODO()
 
 	c.ClientConn, err = grpc.NewClient(o.GetAddr(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
