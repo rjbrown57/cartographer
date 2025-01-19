@@ -11,9 +11,10 @@ import (
 )
 
 type InMemoryBackend struct {
-	Groups GroupMap
-	Tags   TagMap
-	Links  LinkMap
+	Groups   GroupMap
+	Tags     TagMap
+	Links    LinkMap
+	Notifier *Notifier
 
 	backupConfig *config.BackupConfig
 	mu           *sync.Mutex
@@ -26,6 +27,7 @@ func NewInMemoryBackend(c *config.BackupConfig) *InMemoryBackend {
 		Links:        make(LinkMap),
 		mu:           &sync.Mutex{},
 		backupConfig: c,
+		Notifier:     NewNotifier(),
 	}
 
 	// TODO validate backup path / content

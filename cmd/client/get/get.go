@@ -45,6 +45,7 @@ var GetCmd = &cobra.Command{
 		}
 
 		// Need to get smart about this
+		// and choose RequestType based on flags
 		pr := proto.NewProtoCartographerRequest(nil, tags, groups, proto.RequestType_DATA)
 
 		// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
@@ -67,6 +68,32 @@ var GetCmd = &cobra.Command{
 
 		fmt.Printf("%s", out)
 	},
+}
+
+func streamGet(c *client.CartographerClient, pr *proto.CartographerRequest) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	c.Ctx = ctx
+
+	r, err := c.Client.StreamGet(c.Ctx, pr)
+	if err != nil {
+		log.Fatalf("Failed to open stream to %s:%d - %s", c.Options.Address, c.Options.Port, err)
+	}
+	for {
+		msg, err := r.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("Error receiving message from stream: %s", err)
+		}
+		out, err := yaml.Marshal(msg)
+		if err != nil {
+			log.Fatalf("Unable to marshal message %s", err)
+		}
+		fmt.Printf("%s\n", out)
+	}
+	cancelFunc()
+	log.Println("Stream closed")
 }
 
 func init() {
