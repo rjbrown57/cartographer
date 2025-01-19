@@ -24,13 +24,24 @@ func NewProtoTag(tagName, description string) *Tag {
 
 func NewProtoCartographerRequest(links, tags, groups []string, requestType RequestType) *CartographerRequest {
 	newlinks := make([]*Link, 0)
+
+	deDupMap := make(map[string]bool)
+
 	for _, link := range links {
-		newlinks = append(newlinks, NewProtoLink(link, "", "", tags))
+		if _, ok := deDupMap[link]; !ok {
+			newlinks = append(newlinks, NewProtoLink(link, "", "", tags))
+		}
+		deDupMap[link] = true
 	}
+
+	deDupMap = make(map[string]bool)
 
 	newTags := make([]*Tag, 0)
 	for _, tag := range tags {
-		newTags = append(newTags, NewProtoTag(tag, ""))
+		if _, ok := deDupMap[tag]; !ok {
+			newTags = append(newTags, NewProtoTag(tag, ""))
+		}
+		deDupMap[tag] = true
 	}
 
 	newGroups := make([]*Group, 0)
