@@ -49,6 +49,9 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 		log.Fatal(err)
 	}
 
+	// handle unknown routes with 404
+	g.NoRoute(NoRouteFunc())
+
 	// Healthz and Metrics
 	g.GET("/healthz", healthzFunc())
 	g.GET("/metrics", prometheusHandler())
@@ -64,4 +67,10 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	// HTML Endpoints
 	g.GET("/", indexFunc(o.SiteName))
 	return g
+}
+
+func NoRouteFunc() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Page not found"})
+	}
 }
