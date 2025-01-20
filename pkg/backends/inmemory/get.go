@@ -36,12 +36,6 @@ func (i *InMemoryBackend) Get(r *proto.CartographerGetRequest) (*proto.Cartograp
 	return resp, nil
 }
 
-// StreamGet is a server side streaming RPC that sends multiple responses to a client as changes occur
-func (i *InMemoryBackend) StreamGet(pr *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
-	return nil
-}
-
-/*
 func (i *InMemoryBackend) StreamGet(pr *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
 
 	s := proto.CartographerStreamGetResponse{
@@ -60,22 +54,40 @@ func (i *InMemoryBackend) StreamGet(pr *proto.CartographerStreamGetRequest, stre
 		return err
 	}
 
-	c := i.Notifier.Subscribe(pr.Type)
+	c := i.Notifier.Subscribe()
 
 	// this will unregister if the context is cancelled
 	go i.Notifier.Unsubscribe(stream.Context(), c.Id)
 
 	for {
 		prr := <-c.Channel
-		s := proto.CartographerStreamGetResponse{
-			Response: &prr,
-		}
-		if err := stream.Send(&s); err != nil {
-			return err
+
+		switch v := prr.(type) {
+		case *proto.CartographerResponse:
+			// currently this will send the same query on change
+			// so if a change occurs that does not have anything meaningful to this request
+			// we will notify anyways but without anything useful for the consumer
+			// the main usecase for watch at this time is query for all data
+			// so this problem is not a big deal right now
+			gr, err := i.Get(proto.GetRequestFromStream(pr))
+			if err != nil {
+				log.Printf("Error getting data: %s", err)
+				return err
+			}
+
+			gr.Response.Msg = v.Msg
+
+			s := proto.CartographerStreamGetResponse{
+				Response: gr.Response,
+			}
+			if err := stream.Send(&s); err != nil {
+				return err
+			}
+		default:
+			return nil
 		}
 	}
 }
-*/
 
 func (i *InMemoryBackend) ProcessDataRequest(r *proto.CartographerRequest) (*proto.CartographerResponse, error) {
 

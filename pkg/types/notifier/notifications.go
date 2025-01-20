@@ -3,8 +3,6 @@ package notifier
 import (
 	"context"
 	"log"
-
-	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
 /* this implemenation should move to it's own package outisde of the backend implementation */
@@ -14,9 +12,8 @@ type Notifier struct {
 }
 
 type Subscriber struct {
-	Id          int
-	Channel     chan proto.CartographerResponse
-	RequestType proto.RequestType
+	Id      int
+	Channel chan interface{}
 }
 
 func NewNotifier() *Notifier {
@@ -25,21 +22,18 @@ func NewNotifier() *Notifier {
 	}
 }
 
-func (n *Notifier) Subscribe(requestType proto.RequestType) *Subscriber {
-	s := &Subscriber{Id: len(n.Subscribers), Channel: make(chan proto.CartographerResponse), RequestType: requestType}
-	log.Printf("Add Subscriber for %s to notifications %d", requestType, s.Id)
+func (n *Notifier) Subscribe() *Subscriber {
+	s := &Subscriber{Id: len(n.Subscribers), Channel: make(chan interface{})}
+	log.Printf("Add Subscriber %d to notifications", s.Id)
 	n.Subscribers[s.Id] = s
 	return s
 }
 
 // Publish to all known channels
-func (n *Notifier) Publish(pr proto.CartographerResponse) {
+func (n *Notifier) Publish(pr interface{}) {
 	// Update to only publish to type matched channels
 	for _, s := range n.Subscribers {
-		if s.RequestType == pr.Type {
-			s.Channel <- pr
-		}
-
+		s.Channel <- pr
 	}
 }
 

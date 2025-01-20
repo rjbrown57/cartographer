@@ -20,13 +20,9 @@ func TestNewNotifier(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 	notifier := NewNotifier()
-	requestType := proto.RequestType_DATA
-	subscriber := notifier.Subscribe(requestType)
+	subscriber := notifier.Subscribe()
 	if subscriber == nil {
 		t.Fatal("Expected subscriber to be non-nil")
-	}
-	if subscriber.RequestType != requestType {
-		t.Fatalf("Expected request type %v, got %v", requestType, subscriber.RequestType)
 	}
 	if len(notifier.Subscribers) != 1 {
 		t.Fatalf("Expected 1 subscriber, got %d", len(notifier.Subscribers))
@@ -35,16 +31,20 @@ func TestSubscribe(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 	notifier := NewNotifier()
-	requestType := proto.RequestType_DATA
-	subscriber := notifier.Subscribe(requestType)
+	subscriber := notifier.Subscribe()
 
-	response := proto.CartographerResponse{Type: requestType}
+	response := proto.CartographerResponse{
+		Msg: []string{"test"},
+	}
 	go notifier.Publish(response)
 
 	select {
 	case res := <-subscriber.Channel:
-		if res.Type != requestType {
-			t.Fatalf("Expected response type %v, got %v", requestType, res.Type)
+		if _, ok := res.(proto.CartographerResponse); !ok {
+			t.Fatalf("Expected response to be of type proto.CartographerResponse, got %T", res)
+		}
+		if res.(proto.CartographerResponse).Msg[0] != "test" {
+			t.Fatalf("Expected response to contain 'test', got %s", res.(proto.CartographerResponse).Msg[0])
 		}
 	case <-time.After(time.Second):
 		t.Fatal("Expected to receive a response, but timed out")
@@ -53,8 +53,7 @@ func TestPublish(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	notifier := NewNotifier()
-	requestType := proto.RequestType_DATA
-	subscriber := notifier.Subscribe(requestType)
+	subscriber := notifier.Subscribe()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go notifier.Unsubscribe(ctx, subscriber.Id)
