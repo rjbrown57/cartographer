@@ -24,7 +24,11 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		pr, err := carto.Client.Get(carto.Ctx, &proto.CartographerRequest{})
+		gr := &proto.CartographerGetRequest{
+			Request: &proto.CartographerRequest{},
+			Type:    proto.RequestType_REQUEST_TYPE_DATA,
+		}
+		pr, err := carto.Client.Get(carto.Ctx, gr)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
@@ -38,14 +42,15 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		cr := &proto.CartographerRequest{
-			Type: proto.RequestType_GROUP,
+		cr := &proto.CartographerGetRequest{
+			Request: &proto.CartographerRequest{},
+			Type:    proto.RequestType_REQUEST_TYPE_GROUP,
 		}
 
 		if c.Param("group") != "" {
 			g := make([]*proto.Group, 0)
-			cr.Groups = append(g, &proto.Group{Name: c.Param("group")})
-			cr.Type = proto.RequestType_DATA
+			cr.Request.Groups = append(g, &proto.Group{Name: c.Param("group")})
+			cr.Type = proto.RequestType_REQUEST_TYPE_GROUP
 		}
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)
@@ -61,14 +66,15 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		cr := &proto.CartographerRequest{
-			Type: proto.RequestType_TAG,
+		cr := &proto.CartographerGetRequest{
+			Request: &proto.CartographerRequest{},
+			Type:    proto.RequestType_REQUEST_TYPE_TAG,
 		}
 
 		if c.Param("tag") != "" {
 			t := make([]*proto.Tag, 0)
-			cr.Tags = append(t, &proto.Tag{Name: c.Param("tag")})
-			cr.Type = proto.RequestType_DATA
+			cr.Request.Tags = append(t, &proto.Tag{Name: c.Param("tag")})
+			cr.Type = proto.RequestType_REQUEST_TYPE_DATA
 		}
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)

@@ -26,7 +26,7 @@ async function GetGroups() {
    try {
         const response = await fetch("v1/get/groups", EncodingHeader);
         const data = await response.json();
-        GroupData = data;
+        GroupData = data.response;
         console.log(GroupData);
     } catch (err) {
         return console.error(err);
@@ -38,7 +38,7 @@ async function QueryMainData() {
     try {
         const response = await fetch(GetQueryPath(), EncodingHeader);
         const data = await response.json();
-        CartographerData = data;
+        CartographerData = data.response;
 
         console.log(CartographerData);
     } catch (err) {
