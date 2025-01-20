@@ -20,8 +20,9 @@ func (i *InMemoryBackend) Delete(r *proto.CartographerDeleteRequest) (*proto.Car
 	// Process Links
 	for _, link := range r.Request.Links {
 		if _, exists := i.Links[link.Url]; exists {
-			// this will not remove from lgs/tags objects that are related to this
+			// TODO this will not remove from tags objects that contain this
 			delete(i.Links, link.Url)
+			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("removed link %s", link.Url))
 			log.Printf("deleting %s", link)
 		}
 	}
@@ -30,7 +31,7 @@ func (i *InMemoryBackend) Delete(r *proto.CartographerDeleteRequest) (*proto.Car
 	for _, tag := range r.Request.Tags {
 		if _, exists := i.Tags[tag.Name]; exists {
 			delete(i.Tags, tag.Name)
-			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("removed %s", tag))
+			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("removed tag %s", tag.Name))
 			log.Printf("deleting %s", tag)
 		}
 	}
@@ -38,9 +39,14 @@ func (i *InMemoryBackend) Delete(r *proto.CartographerDeleteRequest) (*proto.Car
 	for _, group := range r.Request.Groups {
 		if _, exists := i.Groups[group.Name]; exists {
 			delete(i.Groups, group.Name)
-			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("removed %s", group))
+			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("removed group %s", group.Name))
 			log.Printf("deleting %s", group)
 		}
+	}
+
+	// Send notification on change
+	if len(resp.Response.Msg) > 0 {
+		i.Notifier.Publish(resp.Response)
 	}
 
 	err := i.Backup()
