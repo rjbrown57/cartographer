@@ -7,10 +7,10 @@ import (
 
 // Backends are used to for cartographer to work with different data stores.
 type Backend interface {
-	Add(r *proto.CartographerRequest) (*proto.CartographerResponse, error)
-	Delete(r *proto.CartographerRequest) (*proto.CartographerResponse, error)
-	Get(r *proto.CartographerRequest) (*proto.CartographerResponse, error)
-	StreamGet(r *proto.CartographerRequest, stream proto.Cartographer_StreamGetServer) error
+	Add(r *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error)
+	Delete(r *proto.CartographerDeleteRequest) (*proto.CartographerDeleteResponse, error)
+	Get(r *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error)
+	StreamGet(r *proto.CartographerStreamGetRequest, stream proto.Cartographer_StreamGetServer) error
 	Initialize(c *config.CartographerConfig) error
 	Backup() error
 }
