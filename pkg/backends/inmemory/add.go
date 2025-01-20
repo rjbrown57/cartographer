@@ -9,9 +9,11 @@ import (
 )
 
 // TODO I hate this function
-func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.CartographerResponse, error) {
+func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
 
-	resp := proto.CartographerResponse{Type: r.Type}
+	resp := proto.CartographerAddResponse{
+		Response: proto.NewCartographerResponse(),
+	}
 
 	newLinks := []*data.Link{}
 
@@ -19,7 +21,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 	defer i.mu.Unlock()
 
 	// Process Links
-	for _, link := range r.Links {
+	for _, link := range r.Request.Links {
 		if _, exists := i.Links[link.Url]; !exists {
 			l, err := data.NewFromProtoLink(link)
 			if err == nil {
@@ -35,7 +37,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 	}
 
 	// Process any tags
-	for _, tag := range r.Tags {
+	for _, tag := range r.Request.Tags {
 		_ = i.Tags.NewTag(tag.Name)
 		// Add links to tag
 		i.Tags[tag.Name].Links = append(i.Tags[tag.Name].Links, newLinks...)
@@ -46,7 +48,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 		}
 	}
 
-	for _, group := range r.Groups {
+	for _, group := range r.Request.Groups {
 		// Create group if it doesn't exist
 		if g := i.Groups.GetGroup(group.Name); g == nil {
 			log.Printf("Adding Groups %s", group.Name)
@@ -54,8 +56,8 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 		}
 
 		// Add all tags to group
-		for _, tag := range r.Tags {
-			log.Printf("Adding Tags to group %s %s", group.Name, r.Tags)
+		for _, tag := range r.Request.Tags {
+			log.Printf("Adding Tags to group %s %s", group.Name, r.Request.Tags)
 			i.Groups[group.Name].GroupTags = append(i.Groups[group.Name].GroupTags, i.Tags[tag.Name])
 		}
 	}
@@ -63,11 +65,12 @@ func (i *InMemoryBackend) Add(r *proto.CartographerRequest) (*proto.Cartographer
 	// Add links to map, and response
 	for _, link := range newLinks {
 		i.Links[link.Link.String()] = link
-		resp.Msg = append(resp.Msg, fmt.Sprintf("Adding %s", link.Link.String()))
+		resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("Adding %s", link.Link.String()))
 	}
 
 	// Send notification
-	i.Notifier.Publish(resp)
+	// TODO fix
+	//i.Notifier.Publish(resp.Response)
 
 	// This should happen asynchronously and not block the add response
 	// This doesn't seem to have any impact to add/delete performance at 5000 links.

@@ -23,15 +23,17 @@ func TestInMemoryBackend_Delete(t *testing.T) {
 	backend.Groups["group1"] = data.NewGroup("group1")
 
 	// Create a request to delete the data
-	request := &proto.CartographerRequest{
-		Links: []*proto.Link{
-			{Url: "http://example.com"},
-		},
-		Tags: []*proto.Tag{
-			{Name: "example"},
-		},
-		Groups: []*proto.Group{
-			{Name: "group1"},
+	request := &proto.CartographerDeleteRequest{
+		Request: &proto.CartographerRequest{
+			Links: []*proto.Link{
+				{Url: "http://example.com"},
+			},
+			Tags: []*proto.Tag{
+				{Name: "example"},
+			},
+			Groups: []*proto.Group{
+				{Name: "group1"},
+			},
 		},
 	}
 

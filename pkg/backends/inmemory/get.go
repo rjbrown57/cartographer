@@ -8,22 +8,26 @@ import (
 )
 
 // TODO I hate this function
-func (i *InMemoryBackend) Get(r *proto.CartographerRequest) (*proto.CartographerResponse, error) {
+func (i *InMemoryBackend) Get(r *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error) {
 
 	log.Printf("Get Request %s", r.Type.String())
 
 	var err error
-	resp := &proto.CartographerResponse{}
+	resp := &proto.CartographerGetResponse{
+		Response: proto.NewCartographerResponse(),
+	}
 
 	switch r.Type {
 	// return all known groups
-	case proto.RequestType_GROUP:
-		resp.Groups = append(resp.Groups, i.Groups.GetGroupNames()...)
+	case proto.RequestType_REQUEST_TYPE_GROUP:
+		resp.Response.Groups = append(resp.Response.Groups, i.Groups.GetGroupNames()...)
 	// return all known tags
-	case proto.RequestType_TAG:
-		resp.Tags = append(resp.Tags, i.Tags.GetTagsNames()...)
-	case proto.RequestType_DATA:
-		resp, err = i.ProcessDataRequest(r)
+	case proto.RequestType_REQUEST_TYPE_TAG:
+		resp.Response.Tags = append(resp.Response.Tags, i.Tags.GetTagsNames()...)
+	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
+		fallthrough
+	case proto.RequestType_REQUEST_TYPE_DATA:
+		resp.Response, err = i.ProcessDataRequest(r.Request)
 		if err != nil {
 			return nil, err
 		}
@@ -33,15 +37,26 @@ func (i *InMemoryBackend) Get(r *proto.CartographerRequest) (*proto.Cartographer
 }
 
 // StreamGet is a server side streaming RPC that sends multiple responses to a client as changes occur
-func (i *InMemoryBackend) StreamGet(pr *proto.CartographerRequest, stream grpc.ServerStreamingServer[proto.CartographerResponse]) error {
+func (i *InMemoryBackend) StreamGet(pr *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
+	return nil
+}
+
+/*
+func (i *InMemoryBackend) StreamGet(pr *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
+
+	s := proto.CartographerStreamGetResponse{
+		Response: proto.NewCartographerResponse(),
+	}
 
 	// Send first response
-	resp, err := i.Get(pr)
+	resp, err := i.Get(proto.GetRequestFromStream(pr))
 	if err != nil {
 		log.Printf("Error getting data: %s", err)
 	}
 
-	if err := stream.Send(resp); err != nil {
+	s.Response = resp.Response
+
+	if err := stream.Send(&s); err != nil {
 		return err
 	}
 
@@ -52,11 +67,15 @@ func (i *InMemoryBackend) StreamGet(pr *proto.CartographerRequest, stream grpc.S
 
 	for {
 		prr := <-c.Channel
-		if err := stream.Send(&prr); err != nil {
+		s := proto.CartographerStreamGetResponse{
+			Response: &prr,
+		}
+		if err := stream.Send(&s); err != nil {
 			return err
 		}
 	}
 }
+*/
 
 func (i *InMemoryBackend) ProcessDataRequest(r *proto.CartographerRequest) (*proto.CartographerResponse, error) {
 
@@ -101,7 +120,6 @@ func (i *InMemoryBackend) ProcessDataRequest(r *proto.CartographerRequest) (*pro
 						resp.Tags = append(resp.Tags, t.Name)
 						for _, link := range t.Links {
 							lm[link.Link.String()] = link.GetProtoLink()
-							//responseLinks = append(responseLinks, link.GetProtoLink())
 						}
 						for _, link := range lm {
 							responseLinks = append(responseLinks, link)
