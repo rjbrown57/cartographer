@@ -49,14 +49,14 @@ var AddCmd = &cobra.Command{
 			return
 		}
 
-		r := proto.NewProtoCartographerRequest(links, tags, group, proto.RequestType_DATA)
+		r := proto.NewCartographerAddRequest(links, tags, group)
 
 		response, err := c.Client.Add(c.Ctx, r)
 		if err != nil {
 			log.Fatalf("Failed to Add links %s", err)
 		}
 
-		OutputResponse(response)
+		OutputResponse(response.Response)
 	},
 }
 
@@ -76,13 +76,13 @@ func init() {
 func HandleConfig(c *client.CartographerClient, file string) {
 	config := config.NewCartographerConfig(file)
 	for _, link := range config.Links {
-		r := proto.NewProtoCartographerRequest([]string{link.Url}, link.Tags, nil, proto.RequestType_DATA)
+		r := proto.NewCartographerAddRequest([]string{link.Url}, link.Tags, nil)
 		response, err := c.Client.Add(c.Ctx, r)
 		if err != nil {
 			log.Fatalf("Failed to Add links %s", err)
 		}
 
-		OutputResponse(response)
+		OutputResponse(response.Response)
 	}
 
 }
