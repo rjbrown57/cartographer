@@ -22,7 +22,7 @@ func NewProtoTag(tagName, description string) *Tag {
 	return &t
 }
 
-func NewProtoCartographerRequest(links, tags, groups []string, requestType RequestType) *CartographerRequest {
+func NewCartographerRequest(links, tags, groups []string) *CartographerRequest {
 	newlinks := make([]*Link, 0)
 
 	deDupMap := make(map[string]bool)
@@ -53,8 +53,40 @@ func NewProtoCartographerRequest(links, tags, groups []string, requestType Reque
 		Tags:   newTags,
 		Links:  newlinks,
 		Groups: newGroups,
-		Type:   requestType,
 	}
 
 	return &r
+}
+
+func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetRequest {
+	return &CartographerGetRequest{
+		Request: &CartographerRequest{
+			Tags:   c.Request.GetTags(),
+			Links:  c.Request.GetLinks(),
+			Groups: c.Request.GetGroups(),
+		},
+		Type: c.Type,
+	}
+}
+
+func NewCartographerGetRequest(links, tags, groups []string) *CartographerGetRequest {
+	return &CartographerGetRequest{
+		Request: NewCartographerRequest(links, tags, groups),
+	}
+}
+
+func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddRequest {
+	return &CartographerAddRequest{
+		Request: NewCartographerRequest(links, tags, groups),
+	}
+}
+
+func NewCartographerDeleteRequest(links, tags, groups []string) *CartographerDeleteRequest {
+	return &CartographerDeleteRequest{
+		Request: NewCartographerRequest(links, tags, groups),
+	}
+}
+
+func NewCartographerResponse() *CartographerResponse {
+	return &CartographerResponse{}
 }
