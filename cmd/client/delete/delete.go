@@ -42,12 +42,12 @@ var DeleteCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		response, err := c.Client.Delete(c.Ctx, proto.NewProtoCartographerRequest(links, tags, groups, proto.RequestType_DATA))
+		r, err := c.Client.Delete(c.Ctx, proto.NewCartographerDeleteRequest(links, tags, groups))
 		if err != nil {
 			log.Fatalf("Failed to Add links %s", err)
 		}
 
-		out, err := yaml.Marshal(response.Msg)
+		out, err := yaml.Marshal(r.Response.Msg)
 		if err != nil {
 			log.Fatalf("Unable to marshal response %s", err)
 		}

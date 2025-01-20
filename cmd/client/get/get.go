@@ -46,11 +46,16 @@ var GetCmd = &cobra.Command{
 
 		// Need to get smart about this
 		// and choose RequestType based on flags
-		pr := proto.NewProtoCartographerRequest(nil, tags, groups, proto.RequestType_DATA)
+		pr := proto.NewCartographerGetRequest(nil, tags, groups)
+		pr.Type = proto.RequestType_REQUEST_TYPE_DATA
 
 		// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
 		if watch {
-			streamGet(c, pr)
+			sr := proto.CartographerStreamGetRequest{
+				Request: pr.Request,
+				Type:    proto.RequestType_REQUEST_TYPE_DATA,
+			}
+			streamGet(c, &sr)
 			return
 		}
 
@@ -70,7 +75,7 @@ var GetCmd = &cobra.Command{
 	},
 }
 
-func streamGet(c *client.CartographerClient, pr *proto.CartographerRequest) {
+func streamGet(c *client.CartographerClient, pr *proto.CartographerStreamGetRequest) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	c.Ctx = ctx
 
