@@ -46,10 +46,10 @@ const (
 type CartographerClient interface {
 	// Connectivity Test
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
-	Get(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error)
-	Add(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error)
-	Delete(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error)
-	StreamGet(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CartographerResponse], error)
+	Get(ctx context.Context, in *CartographerGetRequest, opts ...grpc.CallOption) (*CartographerGetResponse, error)
+	Add(ctx context.Context, in *CartographerAddRequest, opts ...grpc.CallOption) (*CartographerAddResponse, error)
+	Delete(ctx context.Context, in *CartographerDeleteRequest, opts ...grpc.CallOption) (*CartographerDeleteResponse, error)
+	StreamGet(ctx context.Context, in *CartographerStreamGetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CartographerStreamGetResponse], error)
 }
 
 type cartographerClient struct {
@@ -70,9 +70,9 @@ func (c *cartographerClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	return out, nil
 }
 
-func (c *cartographerClient) Get(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error) {
+func (c *cartographerClient) Get(ctx context.Context, in *CartographerGetRequest, opts ...grpc.CallOption) (*CartographerGetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CartographerResponse)
+	out := new(CartographerGetResponse)
 	err := c.cc.Invoke(ctx, Cartographer_Get_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -80,9 +80,9 @@ func (c *cartographerClient) Get(ctx context.Context, in *CartographerRequest, o
 	return out, nil
 }
 
-func (c *cartographerClient) Add(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error) {
+func (c *cartographerClient) Add(ctx context.Context, in *CartographerAddRequest, opts ...grpc.CallOption) (*CartographerAddResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CartographerResponse)
+	out := new(CartographerAddResponse)
 	err := c.cc.Invoke(ctx, Cartographer_Add_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -90,9 +90,9 @@ func (c *cartographerClient) Add(ctx context.Context, in *CartographerRequest, o
 	return out, nil
 }
 
-func (c *cartographerClient) Delete(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (*CartographerResponse, error) {
+func (c *cartographerClient) Delete(ctx context.Context, in *CartographerDeleteRequest, opts ...grpc.CallOption) (*CartographerDeleteResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CartographerResponse)
+	out := new(CartographerDeleteResponse)
 	err := c.cc.Invoke(ctx, Cartographer_Delete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -100,13 +100,13 @@ func (c *cartographerClient) Delete(ctx context.Context, in *CartographerRequest
 	return out, nil
 }
 
-func (c *cartographerClient) StreamGet(ctx context.Context, in *CartographerRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CartographerResponse], error) {
+func (c *cartographerClient) StreamGet(ctx context.Context, in *CartographerStreamGetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CartographerStreamGetResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &Cartographer_ServiceDesc.Streams[0], Cartographer_StreamGet_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[CartographerRequest, CartographerResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[CartographerStreamGetRequest, CartographerStreamGetResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (c *cartographerClient) StreamGet(ctx context.Context, in *CartographerRequ
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Cartographer_StreamGetClient = grpc.ServerStreamingClient[CartographerResponse]
+type Cartographer_StreamGetClient = grpc.ServerStreamingClient[CartographerStreamGetResponse]
 
 // CartographerServer is the server API for Cartographer service.
 // All implementations must embed UnimplementedCartographerServer
@@ -125,10 +125,10 @@ type Cartographer_StreamGetClient = grpc.ServerStreamingClient[CartographerRespo
 type CartographerServer interface {
 	// Connectivity Test
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
-	Get(context.Context, *CartographerRequest) (*CartographerResponse, error)
-	Add(context.Context, *CartographerRequest) (*CartographerResponse, error)
-	Delete(context.Context, *CartographerRequest) (*CartographerResponse, error)
-	StreamGet(*CartographerRequest, grpc.ServerStreamingServer[CartographerResponse]) error
+	Get(context.Context, *CartographerGetRequest) (*CartographerGetResponse, error)
+	Add(context.Context, *CartographerAddRequest) (*CartographerAddResponse, error)
+	Delete(context.Context, *CartographerDeleteRequest) (*CartographerDeleteResponse, error)
+	StreamGet(*CartographerStreamGetRequest, grpc.ServerStreamingServer[CartographerStreamGetResponse]) error
 	mustEmbedUnimplementedCartographerServer()
 }
 
@@ -142,16 +142,16 @@ type UnimplementedCartographerServer struct{}
 func (UnimplementedCartographerServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedCartographerServer) Get(context.Context, *CartographerRequest) (*CartographerResponse, error) {
+func (UnimplementedCartographerServer) Get(context.Context, *CartographerGetRequest) (*CartographerGetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedCartographerServer) Add(context.Context, *CartographerRequest) (*CartographerResponse, error) {
+func (UnimplementedCartographerServer) Add(context.Context, *CartographerAddRequest) (*CartographerAddResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Add not implemented")
 }
-func (UnimplementedCartographerServer) Delete(context.Context, *CartographerRequest) (*CartographerResponse, error) {
+func (UnimplementedCartographerServer) Delete(context.Context, *CartographerDeleteRequest) (*CartographerDeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedCartographerServer) StreamGet(*CartographerRequest, grpc.ServerStreamingServer[CartographerResponse]) error {
+func (UnimplementedCartographerServer) StreamGet(*CartographerStreamGetRequest, grpc.ServerStreamingServer[CartographerStreamGetResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamGet not implemented")
 }
 func (UnimplementedCartographerServer) mustEmbedUnimplementedCartographerServer() {}
@@ -194,7 +194,7 @@ func _Cartographer_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _Cartographer_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CartographerRequest)
+	in := new(CartographerGetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -206,13 +206,13 @@ func _Cartographer_Get_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: Cartographer_Get_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CartographerServer).Get(ctx, req.(*CartographerRequest))
+		return srv.(CartographerServer).Get(ctx, req.(*CartographerGetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Cartographer_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CartographerRequest)
+	in := new(CartographerAddRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -224,13 +224,13 @@ func _Cartographer_Add_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: Cartographer_Add_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CartographerServer).Add(ctx, req.(*CartographerRequest))
+		return srv.(CartographerServer).Add(ctx, req.(*CartographerAddRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Cartographer_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CartographerRequest)
+	in := new(CartographerDeleteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -242,21 +242,21 @@ func _Cartographer_Delete_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: Cartographer_Delete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CartographerServer).Delete(ctx, req.(*CartographerRequest))
+		return srv.(CartographerServer).Delete(ctx, req.(*CartographerDeleteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Cartographer_StreamGet_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CartographerRequest)
+	m := new(CartographerStreamGetRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(CartographerServer).StreamGet(m, &grpc.GenericServerStream[CartographerRequest, CartographerResponse]{ServerStream: stream})
+	return srv.(CartographerServer).StreamGet(m, &grpc.GenericServerStream[CartographerStreamGetRequest, CartographerStreamGetResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Cartographer_StreamGetServer = grpc.ServerStreamingServer[CartographerResponse]
+type Cartographer_StreamGetServer = grpc.ServerStreamingServer[CartographerStreamGetResponse]
 
 // Cartographer_ServiceDesc is the grpc.ServiceDesc for Cartographer service.
 // It's only intended for direct use with grpc.RegisterService,

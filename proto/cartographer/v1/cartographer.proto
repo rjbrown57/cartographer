@@ -24,11 +24,10 @@ package cartographer.v1;
 service Cartographer {
   // Connectivity Test
   rpc Ping (PingRequest) returns (PingResponse) {}
-  rpc Get (CartographerRequest) returns (CartographerResponse) {}
-  rpc Add (CartographerRequest) returns (CartographerResponse) {}
-  rpc Delete (CartographerRequest) returns (CartographerResponse) {}
-  rpc StreamGet (CartographerRequest) returns (stream CartographerResponse) {}
-
+  rpc Get (CartographerGetRequest) returns (CartographerGetResponse) {}
+  rpc Add (CartographerAddRequest) returns (CartographerAddResponse) {}
+  rpc Delete (CartographerDeleteRequest) returns (CartographerDeleteResponse) {}
+  rpc StreamGet (CartographerStreamGetRequest) returns (stream CartographerStreamGetResponse) {}
 }
 
 // Ping Method used for health check
@@ -38,12 +37,6 @@ message PingRequest {
 
 message PingResponse {
   string message = 1;
-}
-
-enum RequestType {
-  DATA = 0; // requests that will include links
-  GROUP = 1; // group creation/querying for existing groups
-  TAG = 2; // tag creations/queriying for existing groups
 }
 
 message Link {
@@ -64,12 +57,18 @@ message Group {
   repeated string tags = 3;
 }
 
+enum RequestType {
+  REQUEST_TYPE_UNSPECIFIED = 0;
+  REQUEST_TYPE_DATA = 1; // requests that will include links
+  REQUEST_TYPE_GROUP = 2; // group creation/querying for existing groups
+  REQUEST_TYPE_TAG = 3; // tag creations/queriying for existing groups
+}
+
 // Generic request message re-used in get/delete/add
 message CartographerRequest {
   repeated Tag tags = 1;
   repeated Group groups = 2;
   repeated Link links = 3;
-  RequestType type = 4;
 }
 
 // The response message 
@@ -78,5 +77,38 @@ message CartographerResponse {
   repeated string tags = 2;
   repeated string groups = 3;
   repeated Link links = 4;
-  RequestType type = 5;
+}
+
+message CartographerGetRequest {
+  CartographerRequest request = 1;
+  RequestType type = 2;
+}
+
+message CartographerGetResponse {
+  CartographerResponse response = 1;
+}
+
+message CartographerStreamGetRequest {
+  CartographerRequest request = 1;
+  RequestType type = 2;
+}
+
+message CartographerStreamGetResponse {
+  CartographerResponse response = 1;
+}
+
+message CartographerAddRequest {
+  CartographerRequest request = 1;
+}
+
+message CartographerAddResponse {
+  CartographerResponse response = 1;
+}
+
+message CartographerDeleteRequest {
+  CartographerRequest request = 1;
+}
+
+message CartographerDeleteResponse {
+  CartographerResponse response = 1;
 }
