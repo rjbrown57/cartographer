@@ -100,7 +100,6 @@ function searchData() {
     
     // https://www.w3schools.com/jsref/jsref_split.asp
     const filterArray = PrepareTerms(filter);
-    console.log("Search Terms: " + filterArray);
 
     // Filterting Algorithm
     // The user supplies space seperated terms

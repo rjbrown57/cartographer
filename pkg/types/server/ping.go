@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
@@ -10,7 +9,6 @@ import (
 // this should also live in it's own package to allow versioning since this is the real response api
 
 func (c CartographerServer) Ping(_ context.Context, in *proto.PingRequest) (*proto.PingResponse, error) {
-	log.Printf("Received Ping from %s", in.GetName())
 	return &proto.PingResponse{
 		Message: "Pong",
 	}, nil
