@@ -22,14 +22,11 @@ A [helm chart](charts/cartographer/values.yaml)  is provided for running in kube
 
 See the [makefile](Makefile) for basic steps and required tools.
 
-To run use `make serve` or `./cartographer -c example/exampleConfig.yaml`
+To run use `make serve` or `./cartographer -c example`
 
 ## TODO
 
 * GRPC refactors
   * Auth for GRPC
-  * Address best practices from `buf lint`
 * Form for adding new links via web UI
-* Full Link search on the homepage.
-* Better implementation of streams 
 * Docs
