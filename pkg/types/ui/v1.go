@@ -50,7 +50,7 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		if c.Param("group") != "" {
 			g := make([]*proto.Group, 0)
 			cr.Request.Groups = append(g, &proto.Group{Name: c.Param("group")})
-			cr.Type = proto.RequestType_REQUEST_TYPE_GROUP
+			cr.Type = proto.RequestType_REQUEST_TYPE_DATA
 		}
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)
