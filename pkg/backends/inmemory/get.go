@@ -114,6 +114,7 @@ func (i *InMemoryBackend) ProcessDataRequest(r *proto.CartographerRequest) (*pro
 					lm[link.Link.String()] = link.GetProtoLink()
 					//responseLinks = append(responseLinks, link.GetProtoLink())
 				}
+
 				for _, link := range lm {
 					responseLinks = append(responseLinks, link)
 				}
@@ -125,14 +126,15 @@ func (i *InMemoryBackend) ProcessDataRequest(r *proto.CartographerRequest) (*pro
 				resp.Groups = append(resp.Groups, g.Name)
 				for _, tag := range g.GroupTags {
 					resp.Tags = append(resp.Tags, tag.Name)
+
 					// TODO refine this
 					// this is duplicating links that are in multiple tags
 					lm := make(map[string]*proto.Link, 0)
 					if t, exists := i.Tags[tag.Name]; exists {
-						resp.Tags = append(resp.Tags, t.Name)
 						for _, link := range t.Links {
 							lm[link.Link.String()] = link.GetProtoLink()
 						}
+
 						for _, link := range lm {
 							responseLinks = append(responseLinks, link)
 						}
