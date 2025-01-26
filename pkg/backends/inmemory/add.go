@@ -29,6 +29,16 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 
 			l, err := data.NewFromProtoLink(link)
 			if err == nil {
+				for _, tag := range link.Tags {
+					// If tag doesn't exist, create it
+					if _, exists := i.Tags[tag]; !exists {
+						i.Tags[tag] = data.NewTag(tag)
+					}
+					// Add link to tag, and tag to link
+					i.Tags[tag].Links = append(i.Tags[tag].Links, l)
+					l.Tags = append(l.Tags, i.Tags[tag])
+				}
+
 				log.Printf("adding %s", l.Link.String())
 				newLinks = append(newLinks, l)
 				continue
@@ -38,18 +48,6 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 		}
 
 		log.Printf("Skipping known link %s", link)
-	}
-
-	// Process any tags
-	for _, tag := range r.Request.Tags {
-		_ = i.Tags.NewTag(tag.Name)
-		// Add links to tag
-		i.Tags[tag.Name].Links = append(i.Tags[tag.Name].Links, newLinks...)
-
-		// Add tag to links
-		for _, link := range newLinks {
-			link.AddTag(i.Tags[tag.Name])
-		}
 	}
 
 	for _, group := range r.Request.Groups {
