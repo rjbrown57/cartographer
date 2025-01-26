@@ -64,3 +64,16 @@ func (l *Link) SetDisplayName() {
 		l.DisplayName = s
 	}
 }
+
+func (l *Link) AddTag(tag *Tag) {
+
+	tm := make(map[string]bool)
+
+	for _, t := range l.Tags {
+		tm[t.Name] = true
+	}
+
+	if _, exists := tm[tag.Name]; !exists {
+		l.Tags = append(l.Tags, tag)
+	}
+}

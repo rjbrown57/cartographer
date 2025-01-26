@@ -9,6 +9,9 @@ import (
 )
 
 // TODO I hate this function
+// This should be refactored to be more efficient and less complex
+// We should accept multiple links in a single request, and the tags sent along with the link should be honored
+// We should not allow sending of tags outside of them being added to the link
 func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
 
 	resp := proto.CartographerAddResponse{
@@ -23,6 +26,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 	// Process Links
 	for _, link := range r.Request.Links {
 		if _, exists := i.Links[link.Url]; !exists {
+
 			l, err := data.NewFromProtoLink(link)
 			if err == nil {
 				log.Printf("adding %s", l.Link.String())
@@ -44,7 +48,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 
 		// Add tag to links
 		for _, link := range newLinks {
-			link.Tags = append(link.Tags, i.Tags[tag.Name])
+			link.AddTag(i.Tags[tag.Name])
 		}
 	}
 

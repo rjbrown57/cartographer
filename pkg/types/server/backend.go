@@ -4,10 +4,15 @@ import (
 	"context"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
+	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"google.golang.org/grpc"
 )
 
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
+	for _, link := range in.Request.GetLinks() {
+		auto.ProcessAutoTags(link, c.config.AutoTags)
+	}
+
 	return c.Backend.Add(in)
 }
 

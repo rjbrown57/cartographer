@@ -49,6 +49,8 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		Options:   o,
 		Backend:   inmemory.NewInMemoryBackend(&conf.ServerConfig.BackupConfig),
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
+
+		config: conf,
 	}
 
 	err = c.Backend.Initialize(conf)

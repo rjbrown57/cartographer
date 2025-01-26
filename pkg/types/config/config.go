@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
+	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
@@ -32,10 +33,11 @@ type WebConfig struct {
 }
 
 type CartographerConfig struct {
-	ApiVersion   string         `yaml:"apiVersion,omitempty"`
-	ServerConfig ServerConfig   `yaml:"cartographer,omitempty"`
-	Groups       []*proto.Group `yaml:"groups,omitempty"`
-	Links        []*proto.Link  `yaml:"links,omitempty"`
+	ApiVersion   string          `yaml:"apiVersion,omitempty"`
+	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
+	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
+	Groups       []*proto.Group  `yaml:"groups,omitempty"`
+	Links        []*proto.Link   `yaml:"links,omitempty"`
 }
 
 func NewCartographerConfig(configPath string) *CartographerConfig {
@@ -60,6 +62,10 @@ func NewCartographerConfig(configPath string) *CartographerConfig {
 	}
 
 	c.SetApi()
+
+	for _, a := range c.AutoTags {
+		a.Configure()
+	}
 
 	return &c
 }
@@ -100,6 +106,10 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 	if (ServerConfig{}) == c.ServerConfig {
 		c.ServerConfig = mc.ServerConfig
 		mc.SetApi()
+	}
+
+	for _, autoTag := range mc.AutoTags {
+		c.AutoTags = append(c.AutoTags, autoTag)
 	}
 
 	for _, group := range mc.Groups {
