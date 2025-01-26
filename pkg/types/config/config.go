@@ -9,6 +9,7 @@ import (
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
+	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
@@ -119,4 +120,31 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 	for _, link := range mc.Links {
 		c.Links = append(c.Links, link)
 	}
+}
+
+func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) ([]*proto.CartographerAddResponse, error) {
+
+	responses := []*proto.CartographerAddResponse{}
+
+	// Add all new links
+	for _, link := range c.Links {
+		r := proto.NewCartographerAddRequest([]string{link.GetUrl()}, link.GetTags(), nil)
+		resp, err := client.Client.Add(client.Ctx, r)
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, resp)
+	}
+
+	// Add all new groups
+	for _, group := range c.Groups {
+		r := proto.NewCartographerAddRequest(nil, group.GetTags(), []string{group.Name})
+		resp, err := client.Client.Add(client.Ctx, r)
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, resp)
+	}
+
+	return responses, nil
 }

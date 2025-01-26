@@ -25,6 +25,8 @@ var AddCmd = &cobra.Command{
 	Long:  `add to cartographer server`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		validate()
+
 		addr, err := cmd.Flags().GetString("address")
 		if err != nil {
 			log.Fatalf("Unable to get address in cmd")
@@ -60,31 +62,42 @@ var AddCmd = &cobra.Command{
 	},
 }
 
+func validate() {
+	// If file is unset we expect at least one of the other options to be set
+	if file == "" {
+		// We only allow a single group to be added
+		// The nil default stops bogus groups with "" being added
+		if len(group) > 1 {
+			log.Fatal("Only one group can be added at a time")
+		}
+
+		if len(group) == 0 && len(links) == 0 {
+			log.Fatal("Either a group or link(s) must be supplied")
+		}
+	}
+}
+
 func init() {
 	AddCmd.Flags().StringSliceVarP(&links, "links", "l", nil, "link to add to cartographer serer e.g -l=https://github.com,https://gitlab.com")
 	AddCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to add to the supplied links -t=git,k8s`)
 	AddCmd.Flags().StringSliceVarP(&group, "group", "g", nil, "Group To add")
 	AddCmd.Flags().StringVarP(&file, "file", "f", "", "file config to add")
 
-	// We only allow a single group to be added
-	// The nil default stops bogus groups with "" being added
-	if len(group) > 1 {
-		log.Fatal("Only one group can be added at a time")
-	}
 }
 
+// TODO refactor to do one request not 3 :)
 func HandleConfig(c *client.CartographerClient, file string) {
-	config := config.NewCartographerConfig(file)
-	for _, link := range config.Links {
-		r := proto.NewCartographerAddRequest([]string{link.Url}, link.Tags, nil)
-		response, err := c.Client.Add(c.Ctx, r)
-		if err != nil {
-			log.Fatalf("Failed to Add links %s", err)
-		}
 
-		OutputResponse(response.Response)
+	config := config.NewCartographerConfig(file)
+
+	responses, err := config.AddToBackend(c)
+	if err != nil {
+		log.Fatalf("Unable to add config to backend %s", err)
 	}
 
+	for _, response := range responses {
+		OutputResponse(response.Response)
+	}
 }
 
 func OutputResponse(r *proto.CartographerResponse) {
