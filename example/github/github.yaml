@@ -1,10 +1,13 @@
+autotags:
+  - regex: ".*github.*"
+    tags: ["github"]
 links: 
   - url: https://github.com/kubernetes/kubernetes
     description: "kubernetes main github repo"
-    tags: ["k8s","github"]
+    tags: ["k8s"]
   - url: https://github.com/goharbor/harbor
     description: "kubernetes main github repo"
-    tags: ["oci", "k8s","github"]
+    tags: ["oci", "k8s"]
   - url: https://github.com/sigstore/cosign
     description: "CNCF graduated OCI registry"
     tags: ["oci"]

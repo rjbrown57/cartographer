@@ -3,21 +3,25 @@ package inmemory
 import (
 	"log"
 
+	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/pkg/types/data"
 )
 
 // Needs to refactored to use Group/Tag/Link methods
-func (i *InMemoryBackend) Initialize(config *config.CartographerConfig) error {
+func (i *InMemoryBackend) Initialize(c *config.CartographerConfig) error {
 
 	// Create all Groups
 	// Create all Tags
 	// Create all Links
 
-	log.Printf("Initializing inmemory backend with %d links", len(config.Links))
+	log.Printf("Initializing inmemory backend with %d links", len(c.Links))
 
 	// Process all links
-	for _, link := range config.Links {
+	for _, link := range c.Links {
+
+		auto.ProcessAutoTags(link, c.AutoTags)
+
 		d, err := data.NewFromProtoLink(link)
 
 		if err != nil {
@@ -36,7 +40,7 @@ func (i *InMemoryBackend) Initialize(config *config.CartographerConfig) error {
 	}
 
 	// Process Groups
-	for _, group := range config.Groups {
+	for _, group := range c.Groups {
 		d := data.NewGroup(group.Name)
 		for _, tagName := range group.Tags {
 			if tag, exists := i.Tags[tagName]; exists {
