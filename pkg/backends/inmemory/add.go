@@ -55,6 +55,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 		if g := i.Groups.GetGroup(group.Name); g == nil {
 			log.Printf("Adding Groups %s", group.Name)
 			i.Groups[group.Name] = data.NewGroup(group.Name)
+			resp.Response.Msg = append(resp.Response.Msg, fmt.Sprintf("Adding Group %s", group.Name))
 		}
 
 		// Add all tags to group
