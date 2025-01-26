@@ -14,19 +14,23 @@ func TestInMemoryBackend_Add(t *testing.T) {
 	req := &proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
 			Links: []*proto.Link{
-				{Url: "http://example.com"},
+				{
+					Url:  "http://example.com",
+					Tags: []string{"example"},
+				},
 			},
 			Tags: []*proto.Tag{
 				{Name: "example"},
 			},
 			Groups: []*proto.Group{
-				{Name: "exampleGroup"},
+				{Name: "exampleGroup", Tags: []string{"example"}},
 			},
 		},
 	}
 
 	resp, err := backend.Add(req)
 	assert.NoError(t, err)
+
 	assert.NotNil(t, resp)
 	assert.Contains(t, resp.Response.Msg, "Adding http://example.com")
 

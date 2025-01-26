@@ -33,6 +33,7 @@ func (i *InMemoryBackend) Export() *config.CartographerConfig {
 	for _, group := range i.Groups {
 		g := proto.Group{
 			Name: group.Name,
+			Tags: make([]string, 0),
 		}
 
 		for _, tag := range group.GroupTags {
