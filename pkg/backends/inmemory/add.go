@@ -61,7 +61,7 @@ func (i *InMemoryBackend) Add(r *proto.CartographerAddRequest) (*proto.Cartograp
 		// Add all tags to group
 		for _, tag := range r.Request.Tags {
 			log.Printf("Adding Tags to group %s %s", group.Name, r.Request.Tags)
-			i.Groups[group.Name].GroupTags = append(i.Groups[group.Name].GroupTags, i.Tags[tag.Name])
+			i.Groups[group.Name].AddTag(i.Tags[tag.Name])
 		}
 	}
 
