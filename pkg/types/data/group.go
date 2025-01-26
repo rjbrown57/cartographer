@@ -22,3 +22,16 @@ func (lg *Group) GetBytes() []byte {
 	}
 	return nil
 }
+
+func (lg *Group) AddTag(tag *Tag) {
+
+	tm := make(map[string]struct{})
+
+	for _, t := range lg.GroupTags {
+		tm[t.Name] = struct{}{}
+	}
+
+	if _, exists := tm[tag.Name]; !exists {
+		lg.GroupTags = append(lg.GroupTags, tag)
+	}
+}

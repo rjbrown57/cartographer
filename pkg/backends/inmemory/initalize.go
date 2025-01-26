@@ -44,7 +44,7 @@ func (i *InMemoryBackend) Initialize(c *config.CartographerConfig) error {
 		d := data.NewGroup(group.Name)
 		for _, tagName := range group.Tags {
 			if tag, exists := i.Tags[tagName]; exists {
-				d.GroupTags = append(d.GroupTags, tag)
+				d.AddTag(tag)
 				d.Links = append(d.Links, tag.Links...)
 			}
 		}
