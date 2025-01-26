@@ -67,10 +67,10 @@ func (l *Link) SetDisplayName() {
 
 func (l *Link) AddTag(tag *Tag) {
 
-	tm := make(map[string]bool)
+	tm := make(map[string]struct{})
 
 	for _, t := range l.Tags {
-		tm[t.Name] = true
+		tm[t.Name] = struct{}{}
 	}
 
 	if _, exists := tm[tag.Name]; !exists {
