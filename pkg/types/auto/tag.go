@@ -16,7 +16,7 @@ type AutoTag struct {
 // ProcessAutoTags will process the auto tags for a link
 func ProcessAutoTags(link *proto.Link, at []*AutoTag) {
 
-	autoTags := make(map[string]bool)
+	autoTags := make(map[string]struct{})
 
 	// Add initial tags so we can dedup
 	for _, tag := range link.Tags {
@@ -27,7 +27,7 @@ func ProcessAutoTags(link *proto.Link, at []*AutoTag) {
 		// if the tag matches, add to the tagMap
 		if autoTag.Regex.MatchString(link.Url) {
 			for _, tag := range autoTag.Tags {
-				autoTags[tag] = true
+				autoTags[tag] = struct{}{}
 			}
 		}
 	}
