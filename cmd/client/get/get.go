@@ -44,10 +44,20 @@ var GetCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		// Need to get smart about this
 		// and choose RequestType based on flags
 		pr := proto.NewCartographerGetRequest(nil, tags, groups)
-		pr.Type = proto.RequestType_REQUEST_TYPE_DATA
+
+		// Set the request type based on flags
+		switch {
+		case len(groups) > 0:
+			pr.Type = proto.RequestType_REQUEST_TYPE_GROUP
+		case len(tags) > 0:
+			pr.Type = proto.RequestType_REQUEST_TYPE_TAG
+		case watch:
+			fallthrough
+		default:
+			pr.Type = proto.RequestType_REQUEST_TYPE_DATA
+		}
 
 		// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
 		if watch {
