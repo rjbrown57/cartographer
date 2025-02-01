@@ -1,5 +1,11 @@
 package proto
 
+import (
+	"fmt"
+	"log"
+	"net/url"
+)
+
 // New ProtoLink is a constructor for proto.Link
 func NewProtoLink(link string, description string, displayName string, tags []string) *Link {
 
@@ -10,6 +16,15 @@ func NewProtoLink(link string, description string, displayName string, tags []st
 	}
 
 	return &l
+}
+
+func SetDisplayName(l *Link) {
+	u, err := url.Parse(l.Url)
+	if err != nil {
+		log.Fatalf("error parsing url: %v", err)
+	}
+
+	l.Displayname = fmt.Sprintf("%s%s", u.Host, u.Path)
 }
 
 func NewProtoGroup(groupName string, tags []*Tag, description string) *Group {
