@@ -1,3 +1,5 @@
 dist/*
 notes/*
 /cartographer
+mem.prof
+profile.prof

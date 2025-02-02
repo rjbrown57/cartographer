@@ -18,3 +18,6 @@ build:
 
 serve:
 	@cartographer serve -c example
+
+pprof:
+	@cartographer serve -c example -p
