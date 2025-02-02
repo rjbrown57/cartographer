@@ -116,6 +116,11 @@ function PrepareTerms(filter) {
     return filterArray.filter(term => term.trim() !== "");
 }
 
+function TagFilter(tag) {
+    document.querySelector('#searchBar input').value = "";
+    filterCards(tag.toUpperCase());
+}
+
 function filterCards(filter) {
     linkList = CartographerData.links;
 
@@ -170,9 +175,8 @@ function createCard(link) {
         tagLink.className = 'text-black-500 break-words';
         tagLink.textContent = tag;
         tagLink.onclick = function() {
-                        filterCards(tag.toUpperCase());
+                        TagFilter(tag);
                     };
-
         li.appendChild(tagLink);
         ul.appendChild(li);
     });
