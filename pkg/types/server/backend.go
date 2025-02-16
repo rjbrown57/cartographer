@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) map[string]struct{} {
+func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) (map[string]struct{}, error) {
 	tagFilters := make(map[string]struct{})
 
 	for _, tag := range in.Request.Tags {
@@ -24,12 +24,14 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) map[s
 			for _, tag := range g.Tags {
 				tagFilters[tag] = struct{}{}
 			}
+		} else {
+			return nil, errors.New(fmt.Sprintf("Group %s not found", group.Name))
 		}
 	}
 
 	log.Printf("Tag Filters: %v", tagFilters)
 
-	return tagFilters
+	return tagFilters, nil
 }
 
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
@@ -92,12 +94,15 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 	// It can be filtered tags either supplied collectively as a group, or by individual tag
 	case proto.RequestType_REQUEST_TYPE_DATA:
 		// establish the tag filters
-		tagFilters := c.PrepFilters(in)
+		tagFilters, err := c.PrepFilters(in)
+		if err != nil {
+			return nil, err
+		}
 
 		for _, v := range c.cache {
 			switch v.(type) {
 			case *proto.Link:
-				// if we have tags, we need to filter the links
+				// if we have no tags send all inks
 				if len(tagFilters) == 0 {
 					r.Response.Links = append(r.Response.Links, v.(*proto.Link))
 					continue
