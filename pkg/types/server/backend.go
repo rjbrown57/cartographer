@@ -9,6 +9,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	"github.com/rjbrown57/cartographer/pkg/utils"
 	"google.golang.org/grpc"
 )
 
@@ -25,7 +26,7 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) (map[
 				tagFilters[tag] = struct{}{}
 			}
 		} else {
-			return nil, errors.New(fmt.Sprintf("Group %s not found", group.Name))
+			return nil, utils.GroupNotFoundError
 		}
 	}
 

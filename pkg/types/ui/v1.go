@@ -1,12 +1,14 @@
 package ui
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
+	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
 func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
@@ -31,6 +33,10 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		pr, err := carto.Client.Get(carto.Ctx, gr)
 
 		if err != nil {
+			if errors.Is(err, utils.GroupNotFoundError) {
+				c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Group not found"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
@@ -55,6 +61,7 @@ func getGroupFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)
 		if err != nil {
+			// need to handle known errors here
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}

@@ -2,6 +2,7 @@ package inmemory
 
 import (
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
 func (b *InMemoryBackend) Get(req *backend.BackendRequest) *backend.BackendResponse {
@@ -11,7 +12,7 @@ func (b *InMemoryBackend) Get(req *backend.BackendRequest) *backend.BackendRespo
 
 	for _, key := range req.Key {
 		if resp.Data[key], ok = b.Data.Load(key); !ok {
-			resp.Errors = append(resp.Errors, KeyNotFoundError)
+			resp.Errors = append(resp.Errors, utils.KeyNotFoundError)
 			continue
 		}
 	}
