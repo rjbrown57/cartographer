@@ -27,8 +27,8 @@ func SetDisplayName(l *Link) {
 	l.Displayname = fmt.Sprintf("%s%s", u.Host, u.Path)
 }
 
-func NewProtoGroup(groupName string, tags []*Tag, description string) *Group {
-	g := Group{Name: groupName, Tags: make([]string, 0), Description: description}
+func NewProtoGroup(groupName string, tags []string, description string) *Group {
+	g := Group{Name: groupName, Tags: tags, Description: description}
 	return &g
 }
 
@@ -50,22 +50,15 @@ func NewCartographerRequest(links, tags, groups []string) *CartographerRequest {
 	}
 
 	deDupMap = make(map[string]struct{})
-
-	newTags := make([]*Tag, 0)
-	for _, tag := range tags {
-		if _, ok := deDupMap[tag]; !ok {
-			newTags = append(newTags, NewProtoTag(tag, ""))
-		}
-		deDupMap[tag] = struct{}{}
-	}
-
 	newGroups := make([]*Group, 0)
 	for _, group := range groups {
-		newGroups = append(newGroups, NewProtoGroup(group, newTags, ""))
+		if _, ok := deDupMap[group]; !ok {
+			newGroups = append(newGroups, NewProtoGroup(group, tags, ""))
+		}
+		deDupMap[group] = struct{}{}
 	}
 
 	r := CartographerRequest{
-		Tags:   newTags,
 		Links:  newlinks,
 		Groups: newGroups,
 	}
