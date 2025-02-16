@@ -68,13 +68,6 @@ func NewCartographerConfig(configPath string) *CartographerConfig {
 		a.Configure()
 	}
 
-	// Set the displayname for links
-	for _, l := range c.Links {
-		if l.Displayname == "" {
-			proto.SetDisplayName(l)
-		}
-	}
-
 	return &c
 }
 
