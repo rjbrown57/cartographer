@@ -41,6 +41,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// Get links
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetLinks() {
+		proto.SetDisplayName(v)
 		d[v.Url] = v
 		c.AddToCache(v)
 	}
