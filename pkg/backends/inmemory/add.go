@@ -12,7 +12,7 @@ func (b *InMemoryBackend) Add(req *backend.BackendAddRequest) *backend.BackendRe
 	resp := backend.NewBackendResponse()
 	for key := range req.Data {
 		b.Data.Store(key, req.Data[key])
-		log.Printf("Added %s of type %T", key, req.Data[key])
+		log.Printf("Added %s of type %T %+v", key, req.Data[key], req.Data[key])
 	}
 
 	return resp

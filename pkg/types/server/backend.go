@@ -27,6 +27,8 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) map[s
 		}
 	}
 
+	log.Printf("Tag Filters: %v", tagFilters)
+
 	return tagFilters
 }
 
@@ -48,6 +50,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 
 	// Add Groups
 	for _, v := range in.Request.Groups {
+		log.Printf("Adding group %+v", v)
 		d[v.Name] = v
 		c.AddToCache(v)
 	}
@@ -81,6 +84,8 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 	r := &proto.CartographerGetResponse{
 		Response: &proto.CartographerResponse{},
 	}
+
+	log.Printf("Get Request: %v", in.Type)
 
 	switch in.Type {
 	// RequestType_REQUEST_TYPE_DATA returns a list of links
