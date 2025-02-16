@@ -17,7 +17,7 @@ dockers:
   - image_templates:
     - ghcr.io/rjbrown57/cartographer
 archives:
-  - format: binary
+  - formats: ['binary']
 checksum:
   name_template: 'checksums.txt'
 snapshot:

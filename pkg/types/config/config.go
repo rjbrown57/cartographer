@@ -126,25 +126,19 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) ([]
 
 	responses := []*proto.CartographerAddResponse{}
 
-	// Add all new links
-	for _, link := range c.Links {
-		r := proto.NewCartographerAddRequest([]string{link.GetUrl()}, link.GetTags(), nil)
-		resp, err := client.Client.Add(client.Ctx, r)
-		if err != nil {
-			return nil, err
-		}
-		responses = append(responses, resp)
+	r := proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Links:  c.Links,
+			Groups: c.Groups,
+		},
 	}
 
-	// Add all new groups
-	for _, group := range c.Groups {
-		r := proto.NewCartographerAddRequest(nil, group.GetTags(), []string{group.Name})
-		resp, err := client.Client.Add(client.Ctx, r)
-		if err != nil {
-			return nil, err
-		}
-		responses = append(responses, resp)
+	resp, err := client.Client.Add(client.Ctx, &r)
+	if err != nil {
+		return nil, err
 	}
+
+	responses = append(responses, resp)
 
 	return responses, nil
 }

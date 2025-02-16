@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"github.com/rjbrown57/cartographer/pkg/backends/inmemory"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
+	"github.com/rjbrown57/cartographer/pkg/types/notifier"
 	"github.com/rjbrown57/cartographer/pkg/types/ui"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
@@ -22,14 +22,17 @@ type CartographerServerOptions struct {
 type CartographerServer struct {
 	proto.UnimplementedCartographerServer
 
+	Backend   backend.Backend
 	Server    *grpc.Server
-	WebServer *ui.CartographerUI
 	Listener  net.Listener
+	Notifier  *notifier.Notifier
 	Options   *CartographerServerOptions
+	WebServer *ui.CartographerUI
 
-	Backend backend.Backend
-
-	config *config.CartographerConfig
+	config     *config.CartographerConfig
+	cache      map[string]interface{}
+	groupCache map[string]*proto.Group
+	tagCache   map[string]*proto.Tag
 }
 
 func (c *CartographerServer) Serve() {
@@ -46,28 +49,20 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 	conf := config.NewCartographerConfig(o.ConfigFile)
 
 	c := CartographerServer{
+		Backend:   inmemory.NewInMemoryBackend(),
 		Options:   o,
-		Backend:   inmemory.NewInMemoryBackend(&conf.ServerConfig.BackupConfig),
+		Notifier:  notifier.NewNotifier(),
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
 
-		config: conf,
+		config:     conf,
+		cache:      make(map[string]interface{}),
+		groupCache: make(map[string]*proto.Group),
+		tagCache:   make(map[string]*proto.Tag),
 	}
 
-	err = c.Backend.Initialize(conf)
+	err = c.Initialize()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// If a backup file is configured, and exists, load it
-	if conf.ServerConfig.BackupConfig.Enabled {
-		fileInfo, err := os.Stat(conf.ServerConfig.BackupConfig.BackupPath)
-		if err == nil && fileInfo.Size() > 0 {
-			bc := config.NewCartographerConfig(conf.ServerConfig.BackupConfig.BackupPath)
-			err := c.Backend.Initialize(bc)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
 	}
 
 	c.Listener, err = net.Listen("tcp", fmt.Sprintf("%s:%d", conf.ServerConfig.Address, conf.ServerConfig.Port))

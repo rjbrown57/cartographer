@@ -1,52 +1,62 @@
 package inmemory
 
 import (
+	"sync"
 	"testing"
 
-	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
-	"github.com/stretchr/testify/assert"
+	"github.com/rjbrown57/cartographer/pkg/types/backend"
 )
 
 func TestInMemoryBackend_Add(t *testing.T) {
-
-	backend := PrepTest(t)
-
-	req := &proto.CartographerAddRequest{
-		Request: &proto.CartographerRequest{
-			Links: []*proto.Link{
-				{
-					Url:  "http://example.com",
-					Tags: []string{"example"},
+	tests := []struct {
+		name string
+		req  *backend.BackendAddRequest
+	}{
+		{
+			name: "Add single item",
+			req: &backend.BackendAddRequest{
+				Data: map[string]interface{}{
+					"key1": "value1",
 				},
 			},
-			Tags: []*proto.Tag{
-				{Name: "example"},
+		},
+		{
+			name: "Add multiple items",
+			req: &backend.BackendAddRequest{
+				Data: map[string]interface{}{
+					"key1": "value1",
+					"key2": 42,
+					"key3": true,
+				},
 			},
-			Groups: []*proto.Group{
-				{Name: "exampleGroup", Tags: []string{"example"}},
+		},
+		{
+			name: "Add no items",
+			req: &backend.BackendAddRequest{
+				Data: map[string]interface{}{},
 			},
 		},
 	}
 
-	resp, err := backend.Add(req)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &InMemoryBackend{
+				Data: sync.Map{},
+			}
+			resp := b.Add(tt.req)
+			if resp == nil {
+				t.Errorf("Expected non-nil response")
+			}
 
-	assert.NotNil(t, resp)
-	assert.Contains(t, resp.Response.Msg, "Adding http://example.com")
-
-	// Verify link was added
-	link, exists := backend.Links["http://example.com"]
-	assert.True(t, exists)
-	assert.NotNil(t, link)
-
-	// Verify tag was added
-	tag, exists := backend.Tags["example"]
-	assert.True(t, exists)
-	assert.NotNil(t, tag)
-	assert.Contains(t, tag.Links, link)
-
-	// Verify group was added
-	group := backend.Groups.GetGroup("exampleGroup")
-	assert.NotNil(t, group)
-	assert.Contains(t, group.GroupTags, tag)
+			for key, expectedValue := range tt.req.Data {
+				actualValue, ok := b.Data.Load(key)
+				if !ok {
+					t.Errorf("Expected key %s to be present", key)
+				}
+				if actualValue != expectedValue {
+					t.Errorf("Expected value %v for key %s, got %v", expectedValue, key, actualValue)
+				}
+			}
+		})
+	}
 }
