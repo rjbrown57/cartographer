@@ -2,7 +2,8 @@ package notifier
 
 import (
 	"context"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 )
 
 /* this implemenation should move to it's own package outisde of the backend implementation */
@@ -24,7 +25,7 @@ func NewNotifier() *Notifier {
 
 func (n *Notifier) Subscribe() *Subscriber {
 	s := &Subscriber{Id: len(n.Subscribers), Channel: make(chan interface{})}
-	log.Printf("Add Subscriber %d to notifications", s.Id)
+	log.Infof("Add Subscriber %d to notifications", s.Id)
 	n.Subscribers[s.Id] = s
 	return s
 }
@@ -40,7 +41,7 @@ func (n *Notifier) Publish(pr interface{}) {
 func (n *Notifier) Unsubscribe(ctx context.Context, Id int) {
 	// Block until done
 	_ = <-ctx.Done()
-	log.Printf("Unsubscribe %d", Id)
+	log.Infof("Unsubscribe %d", Id)
 	close(n.Subscribers[Id].Channel)
 	delete(n.Subscribers, Id)
 }

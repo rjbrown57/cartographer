@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
@@ -63,7 +64,7 @@ var GetCmd = &cobra.Command{
 			log.Fatalf("Failed to get links %s", err)
 		}
 
-		log.Println("received:")
+		log.Infof("received:")
 
 		out, err := yaml.Marshal(response)
 		if err != nil {
@@ -97,7 +98,7 @@ func streamGet(c *client.CartographerClient, pr *proto.CartographerStreamGetRequ
 		fmt.Printf("%s\n", out)
 	}
 	cancelFunc()
-	log.Println("Stream closed")
+	log.Infof("Stream closed")
 }
 
 func init() {

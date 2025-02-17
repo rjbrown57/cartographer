@@ -2,11 +2,12 @@ package servecmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	"github.com/rjbrown57/cartographer/pkg/types/server"
 	"github.com/spf13/cobra"
@@ -57,7 +58,7 @@ func Pprof() {
 	}
 	defer memProfileFile.Close()
 
-	log.Printf("Started CPU profile at %s\n", "profile.prof")
+	log.Infof("Started CPU profile at %s\n", "profile.prof")
 
 	// Listen for OS signals to gracefully shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -68,7 +69,7 @@ func Pprof() {
 	// force GC to get up-to-date statistics
 	runtime.GC()
 
-	log.Println("Received shutdown signal, stopping CPU profile")
+	log.Infof("Received shutdown signal, stopping CPU profile")
 	pprof.StopCPUProfile()
 
 	// Write memory profile to file
@@ -87,7 +88,7 @@ func init() {
 	ServeCmd.Flags().BoolVarP(&profile, "profile", "p", false, "enable pprof profiling")
 	err := ServeCmd.MarkFlagRequired("config")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 
 }

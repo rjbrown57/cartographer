@@ -1,7 +1,7 @@
 package client
 
 import (
-	"log"
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	andcmd "github.com/rjbrown57/cartographer/cmd/client/add"
 	deletecmd "github.com/rjbrown57/cartographer/cmd/client/delete"
@@ -24,7 +24,7 @@ var ClientCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cmd.Help()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 	},
 }

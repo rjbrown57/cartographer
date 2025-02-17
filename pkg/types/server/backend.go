@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
@@ -30,7 +31,7 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) (map[
 		}
 	}
 
-	log.Printf("Tag Filters: %v", tagFilters)
+	log.Debugf("Tag Filters: %v", tagFilters)
 
 	return tagFilters, nil
 }
@@ -53,7 +54,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 
 	// Add Groups
 	for _, v := range in.Request.Groups {
-		log.Printf("Adding group %+v", v)
+		log.Debugf("Adding group %+v", v)
 		d[v.Name] = v
 		c.AddToCache(v)
 	}
@@ -88,7 +89,7 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		Response: &proto.CartographerResponse{},
 	}
 
-	log.Printf("Get Request: %v", in.Type)
+	log.Tracef("Get Request: %v", in.Type)
 
 	switch in.Type {
 	// RequestType_REQUEST_TYPE_DATA returns a list of links
@@ -131,7 +132,7 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		}
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
-		log.Printf("Unknown RequestType")
+		log.Infof("Unknown RequestType")
 		return nil, errors.New("Unknown RequestType")
 	}
 

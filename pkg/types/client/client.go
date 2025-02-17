@@ -3,7 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 

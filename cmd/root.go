@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"log"
 	"os"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	clientcmd "github.com/rjbrown57/cartographer/cmd/client"
 	servecmd "github.com/rjbrown57/cartographer/cmd/serve"
@@ -14,6 +15,8 @@ var (
 	version = "dev"
 	commit  = "none"
 	date    = "unknown"
+	jsonLog bool
+	debug   int
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -21,10 +24,14 @@ var rootCmd = &cobra.Command{
 	Use:   "cartographer",
 	Short: "cartographer",
 	Long:  `cartographer`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		log.ConfigureLog(jsonLog, debug)
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cmd.Help()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 	},
 }
@@ -36,9 +43,13 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+
 }
 
 func init() {
+	// Set the logging options
+	rootCmd.PersistentFlags().CountVarP(&debug, "debug", "d", "enable debug logging. Set multiple times to increase log level")
+	rootCmd.PersistentFlags().BoolVarP(&jsonLog, "json", "j", false, "enable json style logging")
 	rootCmd.AddCommand(servecmd.ServeCmd, clientcmd.ClientCmd, testcmd.TestCmd, versionCmd)
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
@@ -48,6 +59,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number of cartographer",
 	Long:  `All software has versions. This is cartographer's`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Printf("Cartographer version %s", version)
+		log.Infof("Cartographer version %s", version)
 	},
 }

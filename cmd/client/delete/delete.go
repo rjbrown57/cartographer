@@ -2,7 +2,8 @@ package deletecmd
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"

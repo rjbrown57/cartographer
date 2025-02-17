@@ -2,7 +2,8 @@ package addcmd
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
@@ -68,11 +69,11 @@ func validate() {
 		// We only allow a single group to be added
 		// The nil default stops bogus groups with "" being added
 		if len(group) > 1 {
-			log.Fatal("Only one group can be added at a time")
+			log.Fatalf("Only one group can be added at a time")
 		}
 
 		if len(group) == 0 && len(links) == 0 {
-			log.Fatal("Either a group or link(s) must be supplied")
+			log.Fatalf("Either a group or link(s) must be supplied")
 		}
 	}
 }

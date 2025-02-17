@@ -1,8 +1,9 @@
 package pingcmd
 
 import (
-	"log"
 	"os"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
@@ -40,6 +41,6 @@ var PingCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Error sending ping %s", err)
 		}
-		log.Printf("%s", pr.GetMessage())
+		log.Infof("%s", pr.GetMessage())
 	},
 }

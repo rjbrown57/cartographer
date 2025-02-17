@@ -1,8 +1,9 @@
 package auto
 
 import (
-	"log"
 	"regexp"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
@@ -42,6 +43,6 @@ func ProcessAutoTags(link *proto.Link, at []*AutoTag) {
 
 // Configure will compile the regex for the auto tag
 func (a *AutoTag) Configure() {
-	log.Printf("Configuring auto tag `%s` - %s", a.RegexString, a.Tags)
+	log.Infof("Configuring auto tag `%s` - %s", a.RegexString, a.Tags)
 	a.Regex = regexp.MustCompile(a.RegexString)
 }

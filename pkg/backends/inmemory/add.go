@@ -1,7 +1,7 @@
 package inmemory
 
 import (
-	"log"
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 )
@@ -12,7 +12,7 @@ func (b *InMemoryBackend) Add(req *backend.BackendAddRequest) *backend.BackendRe
 	resp := backend.NewBackendResponse()
 	for key := range req.Data {
 		b.Data.Store(key, req.Data[key])
-		log.Printf("Added %s of type %T %+v", key, req.Data[key], req.Data[key])
+		log.Debugf("Added %s of type %T %+v", key, req.Data[key], req.Data[key])
 	}
 
 	return resp
