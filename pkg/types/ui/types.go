@@ -2,9 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rjbrown57/cartographer/pkg/log"
+
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 )

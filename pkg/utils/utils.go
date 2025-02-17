@@ -3,14 +3,14 @@ package utils
 import (
 	"os"
 
-	"log"
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	yaml "gopkg.in/yaml.v3"
 )
 
 func UnmarshalYaml(configPath string, v interface{}) error {
 	var err error
-	log.Printf("Reading %s\n", configPath)
+	log.Infof("Reading %s\n", configPath)
 	// #nosec G304
 	yamlFile, err := os.ReadFile(configPath)
 	if err != nil {

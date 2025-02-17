@@ -2,7 +2,8 @@ package generatecmd
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
@@ -43,6 +44,6 @@ func init() {
 	GenerateCmd.Flags().IntVarP(&num, "num", "n", 1, "number of links to generate")
 	err := GenerateCmd.MarkFlagRequired("num")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 }

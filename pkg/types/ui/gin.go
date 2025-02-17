@@ -2,12 +2,12 @@ package ui
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/web"
@@ -46,7 +46,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies
 	err := g.SetTrustedProxies([]string{"127.0.0.1", "192.168.1.2", "10.0.0.0/8"})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 
 	// handle unknown routes with 404

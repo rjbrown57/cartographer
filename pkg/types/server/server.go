@@ -2,10 +2,11 @@ package server
 
 import (
 	"fmt"
-	"log"
+
 	"net"
 
 	"github.com/rjbrown57/cartographer/pkg/backends/inmemory"
+	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/pkg/types/notifier"
@@ -36,7 +37,7 @@ type CartographerServer struct {
 }
 
 func (c *CartographerServer) Serve() {
-	log.Printf("Staring cartographer server on :%s", c.Listener.Addr().String())
+	log.Infof("Staring cartographer server on :%s", c.Listener.Addr().String())
 	if err := c.Server.Serve(c.Listener); err != nil {
 		log.Fatalf("Failed to Serve %v", err)
 	}
@@ -62,7 +63,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 
 	err = c.Initialize()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 
 	c.Listener, err = net.Listen("tcp", fmt.Sprintf("%s:%d", conf.ServerConfig.Address, conf.ServerConfig.Port))
