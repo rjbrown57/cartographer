@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sync"
 
 	"net"
 
@@ -34,6 +35,7 @@ type CartographerServer struct {
 	cache      map[string]interface{}
 	groupCache map[string]*proto.Group
 	tagCache   map[string]*proto.Tag
+	mu         sync.Mutex
 }
 
 func (c *CartographerServer) Serve() {
@@ -59,6 +61,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		cache:      make(map[string]interface{}),
 		groupCache: make(map[string]*proto.Group),
 		tagCache:   make(map[string]*proto.Tag),
+		mu:         sync.Mutex{},
 	}
 
 	err = c.Initialize()
