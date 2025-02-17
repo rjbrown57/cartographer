@@ -18,9 +18,6 @@ cartographer:
     address: 0.0.0.0
     port: 8081
     siteName: cartographer
-  backup:
-    enabled: true
-    path: /tmp/testcartographer.backup
 groups:
   - name: example
     tags: ["tools","k8s"]
