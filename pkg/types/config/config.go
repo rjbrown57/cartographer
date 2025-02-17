@@ -123,9 +123,7 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 	}
 }
 
-func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) ([]*proto.CartographerAddResponse, error) {
-
-	responses := []*proto.CartographerAddResponse{}
+func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*proto.CartographerAddResponse, error) {
 
 	r := proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
@@ -139,7 +137,5 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) ([]
 		return nil, err
 	}
 
-	responses = append(responses, resp)
-
-	return responses, nil
+	return resp, nil
 }

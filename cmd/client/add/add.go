@@ -91,22 +91,19 @@ func HandleConfig(c *client.CartographerClient, file string) {
 
 	config := config.NewCartographerConfig(file)
 
-	responses, err := config.AddToBackend(c)
+	resp, err := config.AddToBackend(c)
 	if err != nil {
 		log.Fatalf("Unable to add config to backend %s", err)
 	}
 
-	for _, response := range responses {
-		OutputResponse(response.Response)
-	}
+	OutputResponse(resp)
 }
 
-func OutputResponse(r *proto.CartographerResponse) {
+func OutputResponse(r interface{}) {
 	out, err := yaml.Marshal(r)
 	if err != nil {
 		log.Fatalf("Unable to marshal response %s", err)
 	}
 
 	fmt.Printf("%s", out)
-
 }
