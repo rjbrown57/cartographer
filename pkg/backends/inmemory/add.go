@@ -13,6 +13,7 @@ func (b *InMemoryBackend) Add(req *backend.BackendAddRequest) *backend.BackendRe
 	for key := range req.Data {
 		b.Data.Store(key, req.Data[key])
 		log.Debugf("Added %s of type %T %+v", key, req.Data[key], req.Data[key])
+		resp.Data[key] = req.Data[key]
 	}
 
 	return resp
