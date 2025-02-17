@@ -17,15 +17,9 @@ import (
 const ApiVersion string = "v1beta"
 
 type ServerConfig struct {
-	Address      string       `yaml:"address,omitempty"`
-	BackupConfig BackupConfig `yaml:"backup,omitempty"`
-	Port         int          `yaml:"port,omitempty"`
-	WebConfig    WebConfig    `yaml:"web,omitempty"`
-}
-
-type BackupConfig struct {
-	BackupPath string `yaml:"path,omitempty"`
-	Enabled    bool   `yaml:"enabled,omitempty"`
+	Address   string    `yaml:"address,omitempty"`
+	Port      int       `yaml:"port,omitempty"`
+	WebConfig WebConfig `yaml:"web,omitempty"`
 }
 
 type WebConfig struct {
