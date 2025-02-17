@@ -141,20 +141,29 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDeleteRequest) (*proto.CartographerDeleteResponse, error) {
 
+	// This needs more thought, we should be able to handle multiple deletes in a single request
 	keys := make([]string, 0)
+	var typeKey string
 
-	for _, link := range in.Request.GetLinks() {
-		keys = append(keys, link.Url)
-	}
-
-	for _, group := range in.Request.GetGroups() {
-		keys = append(keys, group.Name)
+	switch {
+	case in.Request.Links != nil:
+		for _, link := range in.Request.GetLinks() {
+			keys = append(keys, link.Url)
+		}
+		typeKey = "link"
+	case in.Request.Groups != nil:
+		for _, group := range in.Request.GetGroups() {
+			keys = append(keys, group.Name)
+		}
+		typeKey = "group"
+	default:
+		return nil, errors.New("No keys to delete")
 	}
 
 	c.DeleteFromCache(keys...)
 
 	// TODO FIX
-	r := c.Backend.Delete(backend.NewBackendRequest("", keys...))
+	r := c.Backend.Delete(backend.NewBackendRequest(typeKey, keys...))
 
 	if len(r.Errors) > 0 {
 		return nil, errors.New(fmt.Sprintf("Error deleting keys: %v", r.Errors))
@@ -164,7 +173,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 		Response: &proto.CartographerResponse{},
 	}
 
-	for k, _ := range r.Data {
+	for k := range r.Data {
 		resp.Response.Msg = append(resp.Response.Msg, k)
 	}
 
