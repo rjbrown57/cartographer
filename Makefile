@@ -13,6 +13,14 @@ buf:
 	@cd ./proto && buf generate && cd ../
 
 build:
+	@echo "npx tsc"
+	@cd web && npx tsc && cd ../
+	@echo "Running go build"
+	@go build
+
+bs: build serve
+
+snapshot:
 	@echo "Building..."
 	@goreleaser release --snapshot --clean
 
