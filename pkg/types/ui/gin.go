@@ -40,7 +40,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 			gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping"})))
 
 	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
-	g.StaticFileFS("scripts/cartographer.js", "js/cartographer.js", http.FS(web.JsFS))
+	g.StaticFS("/scripts/", http.FS(web.GetJSFS()))
 
 	// https://github.com/gin-gonic/gin/issues/2809
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies
