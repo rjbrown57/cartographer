@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<script src="scripts/cartographer.js"></script>
+<script type="module" src="scripts/cartographer.js"></script>
 <style>
 @keyframes fadeIn {
 	from {
@@ -33,12 +33,12 @@
                 <a class="active text-white" href="/"><i class="fa fa-compass-drafting p-2"></i>{{ .sitename }}</a> 
             </div>
             <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
-            <div id="searchBar" class="flex-grow mr-4">
-                <input type="text" placeholder="Enter space seperated filter terms..." class="w-full p-2 rounded" onkeyup="searchData()">
+            <div id="searchBarDiv" class="flex-grow mr-4">
+                <input id="searchBar" type="text" placeholder="Enter space seperated filter terms..." class="w-full p-2 rounded">
             </div>
             <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
             <div class="relative flex-grow">
-                <button class="text-gray-300 hover:text-white focus:outline-none flex items-center" onclick="toggleDropdown('groupdropdown')">
+                <button id="groupButton" class="text-gray-300 hover:text-white focus:outline-none flex items-center">
                     <i class="fa fa-caret-down mr-2"></i>
                     Groups
                 </button>
