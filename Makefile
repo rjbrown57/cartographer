@@ -20,6 +20,9 @@ build:
 
 bs: build serve
 
+lint:
+	cd web && npx eslint ; cd ../
+
 snapshot:
 	@echo "Building..."
 	@goreleaser release --snapshot --clean

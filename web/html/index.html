@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<script src="scripts/cartographer.js"></script>
+<script type="module" src="scripts/cartographer.js"></script>
 <style>
 @keyframes fadeIn {
 	from {
@@ -38,7 +38,7 @@
             </div>
             <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
             <div class="relative flex-grow">
-                <button class="text-gray-300 hover:text-white focus:outline-none flex items-center" onclick="toggleDropdown('groupdropdown')">
+                <button id="groupButton" class="text-gray-300 hover:text-white focus:outline-none flex items-center">
                     <i class="fa fa-caret-down mr-2"></i>
                     Groups
                 </button>
