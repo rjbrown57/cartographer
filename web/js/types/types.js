@@ -9,9 +9,12 @@ const GetEndpoint = '/v1/get';
 const GroupEndpoint = GetEndpoint + '/groups';
 const GroupId = 'groupList';
 const buttonId = 'groupButton';
+const searchId = 'searchBar';
+let filter = [];
 export class Cartographer {
     Cards = [];
     constructor() {
+        this.ConfigureSearchBar();
         GetGroups().then(() => {
             PopulateDropDown(GroupData, GroupId);
         }, (err) => {
@@ -21,7 +24,6 @@ export class Cartographer {
             CartographerData.links.forEach((link) => {
                 this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags));
             });
-            this.showCards();
             this.renderCards();
         }, (err) => {
             console.error(err);
@@ -42,6 +44,26 @@ export class Cartographer {
             container.appendChild(card.render());
         });
     }
+    ConfigureSearchBar() {
+        const search = document.getElementById(searchId);
+        search.onkeyup = () => {
+            const search = document.getElementById(searchId);
+            filter = PrepareTerms(search.value.toUpperCase());
+            console.log(filter);
+            this.FilterCards();
+        };
+    }
+    FilterCards() {
+        this.Cards.forEach(card => {
+            filter.forEach(term => {
+                card.hide(term);
+            });
+        });
+    }
+}
+function PrepareTerms(filter) {
+    const filterArray = filter.split(" ");
+    return filterArray.filter(term => term.trim() !== "");
 }
 function GetQueryPath() {
     let queryUrl = GetEndpoint;
@@ -85,18 +107,20 @@ class Link {
     url;
     description;
     tags;
+    self;
     constructor(id, displayname, url, description, tags) {
         this.id = id;
         this.displayname = displayname;
         this.url = url;
         this.description = description;
         this.tags = tags;
+        this.self = document.createElement('div');
     }
     log() {
         console.log(this);
     }
     render() {
-        const card = document.createElement('div');
+        const card = this.self;
         card.id = this.displayname;
         card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5';
         const body = document.createElement('div');
@@ -133,7 +157,14 @@ class Link {
         card.appendChild(footer);
         return card;
     }
-    hide() { }
+    hide(filter) {
+        if (this.displayname.toUpperCase().includes(filter) || this.tags.some(tag => tag.toUpperCase().includes(filter))) {
+            this.self.style.display = "";
+        }
+        else {
+            this.self.style.display = "none";
+        }
+    }
     remove() { }
 }
 function AddDropDownElement(dropDown, href, item) {
@@ -159,7 +190,7 @@ function PopulateDropDown(data, elementTarget) {
 }
 function toggleDropdown(dropdownId) {
     const dropdownElement = document.getElementById(dropdownId);
-    console.log('Toggling dropdown' + dropdownId);
+    console.log('Toggling dropdown ' + dropdownId);
     if (dropdownElement) {
         dropdownElement.classList.toggle('hidden');
     }
