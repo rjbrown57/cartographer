@@ -1,0 +1,38 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  insalltools:
+    desc: "Install tools"
+    cmds:
+    - go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    - go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    - go install github.com/bufbuild/buf/cmd/buf@latest
+    - go install github.com/goreleaser/goreleaser@latest
+  buf:
+    desc: "Run buf"
+    cmds:
+    - cd ./proto && buf generate && cd ../
+  ts:
+    desc: "Run typescript"
+    cmds:
+    - cd web && npx tsc && cd ../
+  build:
+    desc: "Build all"
+    cmds:
+    - task buf
+    - task ts
+    - task snapshot
+  snapshot:
+    desc: "Snapshot"
+    cmds:
+    - goreleaser --snapshot --skip-publish --rm-dist
+  serve:
+    desc: "start cartographer"
+    cmds:
+    - cartographer serve -c example
+  pprof:
+    desc: "start cartographer + Pprof"
+    cmds:
+    - cartographer serve -c example -pprof
