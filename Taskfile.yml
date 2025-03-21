@@ -27,7 +27,7 @@ tasks:
   snapshot:
     desc: "Snapshot"
     cmds:
-    - goreleaser --snapshot --skip-publish --rm-dist
+    - goreleaser --snapshot --clean
   serve:
     desc: "start cartographer"
     cmds:
