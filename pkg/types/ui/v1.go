@@ -11,6 +11,12 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pr, err := carto.Client.Ping(carto.Ctx, &proto.PingRequest{Name: c.ClientIP()})
@@ -98,5 +104,15 @@ func getTagFunc(carto *client.CartographerClient) gin.HandlerFunc {
 func indexFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{"sitename": name})
+	}
+}
+
+func aboutFunc(siteName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"site": siteName,
+			"version": version,
+			"commit":  commit,
+			"date":    date,
+		})
 	}
 }

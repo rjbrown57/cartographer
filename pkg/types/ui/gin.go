@@ -63,6 +63,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/v1/get/groups/:group", getGroupFunc(carto))
 	g.GET("/v1/get/tags", getTagFunc(carto))
 	g.GET("/v1/get/groups", getGroupFunc(carto))
+	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints
 	g.GET("/", indexFunc(o.SiteName))

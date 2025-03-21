@@ -12,7 +12,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - "-X cmd.version={{.Version}}"
+      - "-X github.com/rjbrown57/cartographer/cmd.version={{.Version}} -X github.com/rjbrown57/cartographer/pkg/types/ui.version={{.Version}} -X github.com/rjbrown57/cartographer/pkg/types/ui.commit={{.Commit}} -X github.com/rjbrown57/cartographer/pkg/types/ui.date={{.Date}}"
 dockers:
   - image_templates:
     - ghcr.io/rjbrown57/cartographer
