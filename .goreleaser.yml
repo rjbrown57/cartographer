@@ -16,6 +16,7 @@ builds:
 dockers:
   - image_templates:
     - ghcr.io/rjbrown57/cartographer
+    - ghcr.io/rjbrown57/cartographer:{{ .Tag }}
 archives:
   - formats: ['binary']
 checksum:
