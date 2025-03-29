@@ -20,9 +20,9 @@ A [helm chart](charts/cartographer/values.yaml)  is provided for running in kube
 
 ## Developing
 
-See the [makefile](Makefile) for basic steps and required tools.
+See the [TaskFile](Taskfile.yml) for basic steps and required tools.
 
-To run use `make serve` or `./cartographer -c example`
+To run use `task serve` or `./cartographer -c example`
 
 ## TODO
 
