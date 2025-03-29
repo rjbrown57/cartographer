@@ -58,16 +58,25 @@ export class Link {
         card.appendChild(footer);
         return card;
     }
-    hide(filter) {
-        if (this.displayname.toUpperCase().includes(filter) || this.tags.some(tag => tag.toUpperCase().includes(filter))) {
-            this.self.style.display = "";
+    processFilter(filter) {
+        if (filter.length === 0) {
+            this.show();
+            return;
+        }
+        const matchesAll = filter.every(term => this.displayname.toUpperCase().includes(term.toUpperCase()) ||
+            this.tags.some(tag => tag.toUpperCase().includes(term.toUpperCase())));
+        if (matchesAll) {
+            this.show();
         }
         else {
-            this.self.style.display = "none";
+            this.hide();
         }
     }
     show() {
         this.self.style.display = "";
+    }
+    hide() {
+        this.self.style.display = "none";
     }
     remove() { }
 }

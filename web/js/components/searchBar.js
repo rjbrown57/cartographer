@@ -16,9 +16,7 @@ function FilterCards(deck, filter) {
         return;
     }
     deck.forEach(card => {
-        filter.forEach(term => {
-            card.hide(term);
-        });
+        card.processFilter(filter);
     });
 }
 export function TagFilter(tag) {

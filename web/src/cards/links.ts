@@ -73,15 +73,30 @@ export class Link implements cards.Card {
 
         return card;
     }
-    hide(filter: string): void {
-        if (this.displayname.toUpperCase().includes(filter) || this.tags.some(tag => tag.toUpperCase().includes(filter))) {
-            this.self.style.display = "";
+    processFilter(filter: string[]): void {
+        // if the filter is unset, or emptied, show all cards
+        if (filter.length === 0) {
+            this.show();
+            return;
+        }
+        
+        // Check if all terms in the filter array match either the displayname or tags
+        const matchesAll = filter.every(term => 
+            this.displayname.toUpperCase().includes(term.toUpperCase()) || 
+            this.tags.some(tag => tag.toUpperCase().includes(term.toUpperCase()))
+        );
+
+        if (matchesAll) {
+            this.show();
         } else {
-            this.self.style.display = "none";
+            this.hide();
         }
     }
     show(): void {
         this.self.style.display = "";
+    }
+    hide(): void {
+        this.self.style.display = "none";
     }
     remove(): void {}
 }
