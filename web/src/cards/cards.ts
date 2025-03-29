@@ -1,10 +1,12 @@
 export interface Card {
-    log(): void;
     hide(filter: string): void;
-    render(): Node;
+    log(): void;
     remove(): void;
+    render(): Node;
     show(): void;
+    processFilter(filter: string[]): void;
     tags: string[];
+    
     displayname: string;
 }
 

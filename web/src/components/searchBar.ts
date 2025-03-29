@@ -23,9 +23,7 @@ function FilterCards(deck: cards.Card[], filter: string[]) {
     }
 
     deck.forEach(card => {
-        filter.forEach(term => {
-            card.hide(term);
-        });
+        card.processFilter(filter);
     });
 }
 
