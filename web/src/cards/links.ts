@@ -9,17 +9,51 @@ export class Link implements cards.Card {
     url: string;
     description: string;
     tags: string[];
-    private self: HTMLElement;
+    self: HTMLElement;
     constructor(id: string, displayname: string, url: string, description: string, tags: string[]) {
         this.id = id;
         this.displayname = displayname;
         this.url = url;
         this.description = description;
         this.tags = tags;
-        this.self = document.createElement('div');
+        // we should update to a single render function
+        this.self = this.renderTable();
     }
     log(): void {
         console.log(this);
+    }
+    renderTable(): HTMLTableRowElement {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-100 cursor-pointer outline-solid outline-1 outline-gray-300 rounded-lg';
+
+        // URL column
+        const urlCell = document.createElement('td');
+        const linkElement = document.createElement('a');
+        linkElement.href = this.url;
+        linkElement.target = '_blank';
+        linkElement.className = 'text-blue-500 underline break-words';
+        linkElement.textContent = this.displayname;
+        urlCell.appendChild(linkElement);
+        row.appendChild(urlCell);
+
+        // Tags column
+        const tagsCell = document.createElement('td');
+        tagsCell.className = 'flex flex-wrap space-x-2';
+        this.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'bg-gray-200 rounded-full px-2 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100';
+            tagElement.textContent = tag;
+            tagsCell.appendChild(tagElement);
+        });
+        row.appendChild(tagsCell);
+
+        // Description column
+        const descriptionCell = document.createElement('td');
+        descriptionCell.className = 'text-gray-700 text-sm break-words';
+        descriptionCell.textContent = this.description;
+        row.appendChild(descriptionCell);
+
+        return row;
     }
     render(): Node {
         const card = this.self;
@@ -93,9 +127,12 @@ export class Link implements cards.Card {
         }
     }
     show(): void {
+        console.log("Showing card: " + this.displayname);
         this.self.style.display = "";
+
     }
     hide(): void {
+        console.log("Hiding card: " + this.displayname);
         this.self.style.display = "none";
     }
     remove(): void {}

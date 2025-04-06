@@ -44,7 +44,8 @@ export class Cartographer {
                     )
                 );
             });
-            this.renderCards();
+            //this.renderCards();
+            this.renderTable();
         }, (err) => {
             console.error(err);
         });
@@ -55,12 +56,54 @@ export class Cartographer {
             card.log();
         });
     }
-    renderCards(): void {
-        const container = document.getElementById("linkgrid");
+    renderTable(): void {
+        const container = document.getElementById("data");
         if (!container) {
             console.error("Container element not found");
             return;
         }
+
+        const table = document.createElement("table");
+        table.className = "table-auto border-collapse border border-gray-400 w-full drop-shadow-lg/25";
+
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+
+        ["URL", "Tags", "Description    "].forEach((headerText) => {
+            const th = document.createElement("th");
+            th.className = "border border-gray-400 px-4 py-2";
+            th.textContent = headerText;
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+
+        this.Cards.forEach((card) => {
+            tbody.appendChild(card.self);
+            // card.id will be set to the last row's id
+        });
+
+        table.appendChild(tbody);
+
+        const caption = document.createElement("caption");
+        caption.className = "caption-top text-sm text-right py-2";
+        caption.textContent = `Total Links: ${this.Cards.length}`;
+        table.appendChild(caption);
+
+        container.innerHTML = ""; // Clear the container
+        container.appendChild(table);
+    }
+    renderCards(): void {
+        const container = document.getElementById("data");
+        if (!container) {
+            console.error("Container element not found");
+            return;
+        }
+
+        container.className = "grid grid-cols-3 gap-4";
 
         this.Cards.forEach((card) => {
             container.appendChild(card.render());
