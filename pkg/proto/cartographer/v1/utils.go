@@ -19,6 +19,11 @@ func NewProtoLink(link string, description string, displayName string, tags []st
 }
 
 func SetDisplayName(l *Link) {
+
+	if l.Displayname != "" {
+		return
+	}
+
 	u, err := url.Parse(l.Url)
 	if err != nil {
 		log.Fatalf("error parsing url: %v", err)
