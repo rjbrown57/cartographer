@@ -8,19 +8,18 @@ import (
 
 func (c *CartographerServer) AddToCache(v interface{}) {
 	c.mu.Lock()
-	switch v.(type) {
+	switch v := v.(type) {
 	case *proto.Link:
-		l := v.(*proto.Link)
+		l := v
 		log.Debugf("Adding link %s to cache", l.Url)
 		c.cache[l.Url] = v
 		for _, tag := range l.Tags {
 			c.tagCache[tag] = proto.NewProtoTag(tag, "")
 		}
 	case *proto.Group:
-		log.Debugf("Adding group %s to cache", v.(*proto.Group).Name)
-		g := v.(*proto.Group)
-		c.cache[g.Name] = g
-		c.groupCache[g.Name] = g
+		log.Debugf("Adding group %s to cache", v.Name)
+		c.cache[v.Name] = v
+		c.groupCache[v.Name] = v
 	}
 	c.mu.Unlock()
 }

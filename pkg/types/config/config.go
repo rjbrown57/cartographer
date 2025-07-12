@@ -104,17 +104,9 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 		mc.SetApi()
 	}
 
-	for _, autoTag := range mc.AutoTags {
-		c.AutoTags = append(c.AutoTags, autoTag)
-	}
-
-	for _, group := range mc.Groups {
-		c.Groups = append(c.Groups, group)
-	}
-
-	for _, link := range mc.Links {
-		c.Links = append(c.Links, link)
-	}
+	c.AutoTags = append(c.AutoTags, mc.AutoTags...)
+	c.Groups = append(c.Groups, mc.Groups...)
+	c.Links = append(c.Links, mc.Links...)
 }
 
 func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*proto.CartographerAddResponse, error) {
