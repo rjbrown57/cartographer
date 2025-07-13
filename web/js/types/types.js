@@ -23,7 +23,9 @@ export class Cartographer {
         });
         QueryMainData().then(() => {
             CartographerData.links.forEach((link) => {
-                this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags));
+                if (link.url) {
+                    this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags));
+                }
             });
             this.renderCards();
         }, (err) => {

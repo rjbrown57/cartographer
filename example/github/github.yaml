@@ -6,13 +6,13 @@ links:
     description: "kubernetes main github repo"
     tags: ["k8s"]
   - url: https://github.com/goharbor/harbor
-    description: "kubernetes main github repo"
+    description: "CNCF graduated OCI registry"
     tags: ["oci", "k8s"]
   - url: https://github.com/sigstore/cosign
-    description: "CNCF graduated OCI registry"
+    description: "OCI signing"
     tags: ["oci"]
   - url: https://github.com/google/go-containerregistry/
-    description: "excellent OCI tooling"
+    description: "excellent OCI library and cli"
     tags: ["oci"]
   - url: https://github.com/anchore/syft
     description: "SBOM generation"

@@ -13,3 +13,9 @@ links:
   - url: https://kernel.org
     description: "kubernetes main github repo"
     tags: ["linux"]
+  - data:
+      example: data
+      list:
+      - item1
+      - item2
+      - item3

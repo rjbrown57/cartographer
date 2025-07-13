@@ -14,6 +14,8 @@
 
 syntax = "proto3";
 
+import "google/protobuf/struct.proto"; // <-- Import Struct
+
 option go_package = "github.com/rjbrown57/cartographer/pkg/proto";
 option java_multiple_files = true;
 option java_package = "io.grpc.rjbrown57.cartographer";
@@ -44,6 +46,7 @@ message Link {
   string displayname = 2;
   string description = 3;
   repeated string tags = 4; // need to fix this to use repeated Tag tags
+  google.protobuf.Struct data = 5;
 }
 
 message Tag {

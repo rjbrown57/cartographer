@@ -29,6 +29,8 @@ links:
     displayname: github kube
   - url: https://github.com/goharbor/harbor
     tags: ["oci", "k8s"]
+  - data:
+    example: "data"
 `
 
 var LinkOnly1Config string = `

@@ -3,7 +3,17 @@ links:
     displayname: "binman" # A custom display name
     description: "binary manager"
     tags: ["github","tools"]
+    data:
+      version: v0.12.0
+      published: "2025-02-21"
+      author: "rjbrown57"
+      repo: "https://github.com/rjbrown57/binman"
+      note: "a tool for managing binaries"
   - url: https://github.com/rjbrown57/cartographer
     displayname: "cartographer" # A custom display name
     description: "a tool for aggregating and sharing links"
     tags: ["github","tools"]
+    data:
+      version: v0.7.1
+      published: "2025-06-29"
+      author: "rjbrown57"
