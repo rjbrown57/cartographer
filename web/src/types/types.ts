@@ -35,14 +35,17 @@ export class Cartographer {
         });
         QueryMainData().then(() => {
             CartographerData.links.forEach((link) => {
-                this.Cards.push(
-                    new Link(link.id, 
-                        link.displayname, 
-                        link.url, 
-                        link.description, 
-                        link.tags
-                    )
-                );
+                // If the link has a url, we will add it to the cards
+                if (link.url) {
+                    this.Cards.push(
+                        new Link(link.id, 
+                            link.displayname, 
+                            link.url, 
+                            link.description, 
+                            link.tags
+                        )
+                    );
+                }
             });
             this.renderCards();
         }, (err) => {

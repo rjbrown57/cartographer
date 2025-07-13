@@ -3,7 +3,7 @@
 version: '3'
 
 tasks:
-  insalltools:
+  installtools:
     desc: "Install tools"
     cmds:
     - go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -27,7 +27,7 @@ tasks:
   snapshot:
     desc: "Snapshot"
     cmds:
-    - goreleaser --snapshot --clean
+    - goreleaser --snapshot --clean --config ./.goreleaser.yml
   serve:
     desc: "start cartographer"
     cmds:

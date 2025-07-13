@@ -3,6 +3,7 @@ package ui
 import (
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g := gin.New()
 
 	g.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		SkipPaths: []string{"/healthz", "/metrics", "/v1/ping"},
+		Skip: GetSkipper(),
 	}), SiteNameMiddleware(o.SiteName),
 		gin.Recovery(),
 		gzip.Gzip(gzip.DefaultCompression,
@@ -73,5 +74,22 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 func NoRouteFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Page not found"})
+	}
+}
+
+func GetSkipper() func(c *gin.Context) bool {
+	return func(c *gin.Context) bool {
+		// Exact Path Matches
+		switch c.Request.URL.Path {
+		case "/healthz", "/metrics", "/v1/ping":
+			return true
+		}
+
+		// Prefix Matches
+		if strings.HasPrefix(c.Request.URL.Path, "/scripts") {
+			return true
+		}
+
+		return false
 	}
 }

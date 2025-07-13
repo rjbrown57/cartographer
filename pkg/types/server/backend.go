@@ -68,12 +68,12 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	r := proto.NewCartographerResponse()
 
 	for _, v := range b.Data {
-		switch v.(type) {
+		switch v := v.(type) {
 		case *proto.Link:
-			l := v.(*proto.Link)
+			l := v
 			r.Links = append(r.Links, l)
 		case *proto.Group:
-			g := v.(*proto.Group)
+			g := v
 			r.Groups = append(r.Groups, g.Name)
 		}
 	}
@@ -102,22 +102,22 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		}
 
 		for _, v := range c.cache {
-			switch v.(type) {
+			switch v := v.(type) {
 			case *proto.Link:
 				// if we have no tags send all inks
 				if len(tagFilters) == 0 {
-					r.Response.Links = append(r.Response.Links, v.(*proto.Link))
+					r.Response.Links = append(r.Response.Links, v)
 					continue
 				}
 
 				// if we have tags, we need to filter the links
-				for _, tag := range v.(*proto.Link).Tags {
+				for _, tag := range v.Tags {
 					if _, ok := tagFilters[tag]; ok {
-						r.Response.Links = append(r.Response.Links, v.(*proto.Link))
+						r.Response.Links = append(r.Response.Links, v)
 					}
 				}
 			case *proto.Group:
-				r.Response.Groups = append(r.Response.Groups, v.(*proto.Group).Name)
+				r.Response.Groups = append(r.Response.Groups, v.Name)
 			}
 		}
 	// RequestType_REQUEST_TYPE_GROUP returns a list of groups from the cache
@@ -132,8 +132,8 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		}
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
-		log.Infof("Unknown RequestType")
-		return nil, errors.New("Unknown RequestType")
+		log.Infof("unknown RequestType")
+		return nil, errors.New("unknown RequestType")
 	}
 
 	return r, nil
@@ -157,7 +157,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 		}
 		typeKey = "group"
 	default:
-		return nil, errors.New("No keys to delete")
+		return nil, errors.New("no keys to delete")
 	}
 
 	c.DeleteFromCache(keys...)
@@ -166,7 +166,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	r := c.Backend.Delete(backend.NewBackendRequest(typeKey, keys...))
 
 	if len(r.Errors) > 0 {
-		return nil, errors.New(fmt.Sprintf("Error deleting keys: %v", r.Errors))
+		return nil, fmt.Errorf("error deleting keys: %v", r.Errors)
 	}
 
 	resp := &proto.CartographerDeleteResponse{
@@ -188,11 +188,11 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	}
 
 	for _, v := range c.cache {
-		switch v.(type) {
+		switch v := v.(type) {
 		case *proto.Link:
-			s.Response.Links = append(s.Response.Links, v.(*proto.Link))
+			s.Response.Links = append(s.Response.Links, v)
 		case *proto.Group:
-			s.Response.Groups = append(s.Response.Groups, v.(*proto.Group).Name)
+			s.Response.Groups = append(s.Response.Groups, v.Name)
 		}
 	}
 
@@ -206,13 +206,13 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	go c.Notifier.Unsubscribe(stream.Context(), notifier.Id)
 
 	for {
-		_ = <-notifier.Channel
+		<-notifier.Channel
 		for _, v := range c.cache {
-			switch v.(type) {
+			switch v := v.(type) {
 			case *proto.Link:
-				s.Response.Links = append(s.Response.Links, v.(*proto.Link))
+				s.Response.Links = append(s.Response.Links, v)
 			case *proto.Group:
-				s.Response.Groups = append(s.Response.Groups, v.(*proto.Group).Name)
+				s.Response.Groups = append(s.Response.Groups, v.Name)
 			}
 		}
 
