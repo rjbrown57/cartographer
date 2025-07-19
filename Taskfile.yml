@@ -36,3 +36,15 @@ tasks:
     desc: "start cartographer + Pprof"
     cmds:
     - cartographer serve -c example -pprof
+  compose:
+    - docker-compose up -d
+  build-basic-explorer:
+    desc: "build basic explorer"
+    cmds:
+    - go build -o basic_explorer explorer/basic/main.go
+  test-basic-explorer:
+    desc: "test basic explorer"
+    cmds:
+    - task build-basic-explorer
+    - task compose
+    - ./basic_explorer -url https://restcountries.com/v3.1/name/deutschland
