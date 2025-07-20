@@ -143,19 +143,16 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 
 	// This needs more thought, we should be able to handle multiple deletes in a single request
 	keys := make([]string, 0)
-	var typeKey string
 
 	switch {
 	case in.Request.Links != nil:
 		for _, link := range in.Request.GetLinks() {
 			keys = append(keys, link.Url)
 		}
-		typeKey = "link"
 	case in.Request.Groups != nil:
 		for _, group := range in.Request.GetGroups() {
 			keys = append(keys, group.Name)
 		}
-		typeKey = "group"
 	default:
 		return nil, errors.New("no keys to delete")
 	}
@@ -163,7 +160,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	c.DeleteFromCache(keys...)
 
 	// TODO FIX
-	r := c.Backend.Delete(backend.NewBackendRequest(typeKey, keys...))
+	r := c.Backend.Delete(backend.NewBackendRequest(keys...))
 
 	if len(r.Errors) > 0 {
 		return nil, fmt.Errorf("error deleting keys: %v", r.Errors)
