@@ -41,7 +41,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		auto.ProcessAutoTags(link, c.config.AutoTags)
 	}
 
-	d := make(map[string]interface{})
+	d := make(map[string]any)
 
 	// This needs to be refactored with more constructors/factories etc
 	// Get links

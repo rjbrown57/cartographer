@@ -6,7 +6,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
-func (c *CartographerServer) AddToCache(v interface{}) {
+func (c *CartographerServer) AddToCache(v any) {
 	c.mu.Lock()
 	switch v := v.(type) {
 	case *proto.Link:

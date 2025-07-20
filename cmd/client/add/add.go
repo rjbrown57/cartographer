@@ -99,7 +99,7 @@ func HandleConfig(c *client.CartographerClient, file string) {
 	OutputResponse(resp)
 }
 
-func OutputResponse(r interface{}) {
+func OutputResponse(r any) {
 	out, err := yaml.Marshal(r)
 	if err != nil {
 		log.Fatalf("Unable to marshal response %s", err)

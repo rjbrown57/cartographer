@@ -1,12 +1,12 @@
 package backend
 
 type BackendResponse struct {
-	Data   map[string]interface{}
+	Data   map[string]any
 	Errors []error
 }
 
 func NewBackendResponse() *BackendResponse {
 	return &BackendResponse{
-		Data: make(map[string]interface{}),
+		Data: make(map[string]any),
 	}
 }

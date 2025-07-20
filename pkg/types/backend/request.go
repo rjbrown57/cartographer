@@ -16,10 +16,10 @@ func NewBackendRequest(keys ...string) *BackendRequest {
 }
 
 type BackendAddRequest struct {
-	Data map[string]interface{}
+	Data map[string]any
 }
 
-func NewBackendAddRequest(data map[string]interface{}) *BackendAddRequest {
+func NewBackendAddRequest(data map[string]any) *BackendAddRequest {
 	if len(data) == 0 {
 		log.Fatalf("data cannot be empty")
 	}

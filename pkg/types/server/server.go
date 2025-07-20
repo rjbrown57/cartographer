@@ -32,7 +32,7 @@ type CartographerServer struct {
 	WebServer *ui.CartographerUI
 
 	config     *config.CartographerConfig
-	cache      map[string]interface{}
+	cache      map[string]any
 	groupCache map[string]*proto.Group
 	tagCache   map[string]*proto.Tag
 	mu         sync.Mutex
@@ -58,7 +58,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
 
 		config:     conf,
-		cache:      make(map[string]interface{}),
+		cache:      make(map[string]any),
 		groupCache: make(map[string]*proto.Group),
 		tagCache:   make(map[string]*proto.Tag),
 		mu:         sync.Mutex{},

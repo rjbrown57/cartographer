@@ -8,7 +8,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-func UnmarshalYaml(configPath string, v interface{}) error {
+func UnmarshalYaml(configPath string, v any) error {
 	var err error
 	log.Infof("Reading %s\n", configPath)
 	// #nosec G304

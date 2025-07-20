@@ -14,7 +14,7 @@ type Notifier struct {
 
 type Subscriber struct {
 	Id      int
-	Channel chan interface{}
+	Channel chan any
 }
 
 func NewNotifier() *Notifier {
@@ -24,14 +24,14 @@ func NewNotifier() *Notifier {
 }
 
 func (n *Notifier) Subscribe() *Subscriber {
-	s := &Subscriber{Id: len(n.Subscribers), Channel: make(chan interface{})}
+	s := &Subscriber{Id: len(n.Subscribers), Channel: make(chan any)}
 	log.Infof("Add Subscriber %d to notifications", s.Id)
 	n.Subscribers[s.Id] = s
 	return s
 }
 
 // Publish to all known channels
-func (n *Notifier) Publish(pr interface{}) {
+func (n *Notifier) Publish(pr any) {
 	// Update to only publish to type matched channels
 	for _, s := range n.Subscribers {
 		s.Channel <- pr
@@ -40,7 +40,7 @@ func (n *Notifier) Publish(pr interface{}) {
 
 func (n *Notifier) Unsubscribe(ctx context.Context, Id int) {
 	// Block until done
-	_ = <-ctx.Done()
+	<-ctx.Done()
 	log.Infof("Unsubscribe %d", Id)
 	close(n.Subscribers[Id].Channel)
 	delete(n.Subscribers, Id)
