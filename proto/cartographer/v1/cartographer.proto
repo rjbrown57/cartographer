@@ -47,6 +47,7 @@ message Link {
   string description = 3;
   repeated string tags = 4; // need to fix this to use repeated Tag tags
   google.protobuf.Struct data = 5;
+  string id = 6; // optional ID field for indexing in backends
 }
 
 message Tag {

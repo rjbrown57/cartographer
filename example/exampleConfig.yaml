@@ -13,8 +13,17 @@ links:
   - url: https://kernel.org
     description: "kubernetes main github repo"
     tags: ["linux"]
+  # Data with generated ID
   - data:
       example: data
+      list:
+      - item1
+      - item2
+      - item3
+  # Data with a supplied id
+  - id: example2
+    data:
+      example: data2
       list:
       - item1
       - item2

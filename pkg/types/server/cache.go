@@ -10,10 +10,9 @@ func (c *CartographerServer) AddToCache(v any) {
 	c.mu.Lock()
 	switch v := v.(type) {
 	case *proto.Link:
-		l := v
-		log.Debugf("Adding link %s to cache", l.Url)
-		c.cache[l.Url] = v
-		for _, tag := range l.Tags {
+		log.Debugf("Adding link %s to cache", v.Url)
+		c.cache[v.GetKey()] = v
+		for _, tag := range v.Tags {
 			c.tagCache[tag] = proto.NewProtoTag(tag, "")
 		}
 	case *proto.Group:

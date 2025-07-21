@@ -5,38 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewProtoLink(t *testing.T) {
-	tests := []struct {
-		link        string
-		description string
-		displayName string
-		tags        []string
-		expected    *Link
-	}{
-		{
-			link:        "http://example.com",
-			description: "Example",
-			displayName: "Example",
-			tags:        []string{"tag1", "tag2"},
-			expected:    &Link{Url: "http://example.com", Description: "Example", Displayname: "Example", Tags: []string{"tag1", "tag2"}},
-		},
-		{
-			link:        "http://example.com",
-			description: "Example",
-			displayName: "",
-			tags:        []string{"tag1", "tag2"},
-			expected:    &Link{Url: "http://example.com", Description: "Example", Displayname: "http://example.com", Tags: []string{"tag1", "tag2"}},
-		},
-	}
-
-	for _, test := range tests {
-		result := NewProtoLink(test.link, test.description, test.displayName, test.tags)
-		if !reflect.DeepEqual(result, test.expected) {
-			t.Errorf("NewProtoLink(%s, %s, %s, %v) = %v; want %v", test.link, test.description, test.displayName, test.tags, result, test.expected)
-		}
-	}
-}
-
 func TestNewProtoGroup(t *testing.T) {
 	tests := []struct {
 		groupName   string
@@ -93,7 +61,10 @@ func TestNewCartographerRequest(t *testing.T) {
 			groups: []string{"group1"},
 			tags:   []string{"tag1"},
 			expected: &CartographerRequest{
-				Links:  []*Link{NewProtoLink("http://example.com", "", "", []string{"tag1"})},
+				Links: []*Link{NewLinkBuilder().
+					WithURL("http://example.com").
+					WithTags([]string{"tag1"}).
+					Build()},
 				Groups: []*Group{NewProtoGroup("group1", []string{"tag1"}, "")},
 			},
 		},

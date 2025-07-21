@@ -29,8 +29,9 @@ links:
     displayname: github kube
   - url: https://github.com/goharbor/harbor
     tags: ["oci", "k8s"]
+    displayname: "github.com/goharbor/harbor"
   - data:
-    example: "data"
+      example: "data"
 `
 
 var LinkOnly1Config string = `
@@ -119,7 +120,7 @@ func WriteTestDir() (string, error) {
 	return rootDir, nil
 }
 
-func AssertDeepEqual(t *testing.T, got, expected interface{}) {
+func AssertDeepEqual(t *testing.T, got, expected any) {
 	if !reflect.DeepEqual(got, expected) {
 		t.Fatalf("%+v\n is not equal to control %+v\n", got, expected)
 	}
