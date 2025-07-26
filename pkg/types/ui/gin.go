@@ -60,10 +60,10 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	// Json Endpoints
 	g.GET("/v1/ping", pingFunc(carto))
 	g.GET("/v1/get", getFunc(carto))
-	g.GET("/v1/get/tags/:tag", getTagFunc(carto))
-	g.GET("/v1/get/groups/:group", getGroupFunc(carto))
-	g.GET("/v1/get/tags", getTagFunc(carto))
-	g.GET("/v1/get/groups", getGroupFunc(carto))
+	g.GET("/v1/get/tags", getTagsFunc(carto))
+	g.GET("/v1/get/groups", getGroupsFunc(carto))
+	g.GET("/v1/get/tags/:tag", getByTagsFunc(carto))
+	g.GET("/v1/get/groups/:group", getByGroupsFunc(carto))
 	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints
