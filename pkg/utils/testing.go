@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -154,4 +155,30 @@ func GenerateFakeURL() string {
 	tld := tlds[rand.Intn(len(tlds))]
 
 	return fmt.Sprintf("https://%s%s%s", subdomain, domain, tld)
+}
+
+func GenerateFakeData() map[string]any {
+	rawData := map[string]any{
+		"example": GenerateRandomString(rand.Intn(10) + 1),
+		"list":    []string{GenerateRandomString(rand.Intn(10) + 1), GenerateRandomString(rand.Intn(10) + 1), GenerateRandomString(rand.Intn(10) + 1)},
+		"number":  rand.Intn(100),
+		"boolean": rand.Intn(2) == 1,
+		"nested": map[string]any{
+			"key":   GenerateRandomString(5),
+			"value": rand.Float64(),
+		},
+	}
+
+	// Convert to JSON-compatible format for structpb
+	jsonData, err := json.Marshal(rawData)
+	if err != nil {
+		return map[string]any{"error": "failed to marshal data"}
+	}
+
+	var jsonMap map[string]any
+	if err := json.Unmarshal(jsonData, &jsonMap); err != nil {
+		return map[string]any{"error": "failed to unmarshal data"}
+	}
+
+	return jsonMap
 }
