@@ -41,24 +41,24 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		auto.ProcessAutoTags(link, c.config.AutoTags)
 	}
 
-	d := make(map[string]any)
+	newData := make(map[string]any)
 
 	// This needs to be refactored with more constructors/factories etc
 	// Get links
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetLinks() {
-		d[v.GetKey()] = v
+		newData[v.GetKey()] = v
 		c.AddToCache(v)
 	}
 
 	// Add Groups
 	for _, v := range in.Request.Groups {
 		log.Debugf("Adding group %+v", v)
-		d[v.Name] = v
+		newData[v.Name] = v
 		c.AddToCache(v)
 	}
 
-	ar := backend.NewBackendAddRequest(d)
+	ar := backend.NewBackendAddRequest(newData)
 
 	// run the add
 	b := c.Backend.Add(ar)
