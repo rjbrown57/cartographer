@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
@@ -17,6 +19,14 @@ var (
 	date    = "unknown"
 )
 
+// PingHandler godoc
+// @Summary Responds with a pong message
+// @Description get a simple pong for your ping
+// @Tags ping
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "Pong"
+// @Router /v1/ping [get]
 func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pr, err := carto.Client.Ping(carto.Ctx, &proto.PingRequest{Name: c.ClientIP()})
@@ -30,6 +40,18 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
+// GetHandler godoc
+// @Summary Get all data with optional filtering
+// @Description Retrieve all links, groups, and tags with optional filtering by tags and groups via query parameters
+// @Tags get
+// @Accept json
+// @Produce json
+// @Param tag query string false "Filter by tag names (comma-separated)" example("oci,k8s")
+// @Param group query string false "Filter by group names (comma-separated)" example("gitlab,github")
+// @Success 200 {object} map[string]interface{} "Filtered data"
+// @Failure 404 {object} map[string]interface{} "Group not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get [get]
 func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gr := &proto.CartographerGetRequest{
@@ -65,8 +87,15 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
-// getGroupFunc is a handler for the /v1/get/groups endpoint
-// it will return a list of groups
+// GetGroupsHandler godoc
+// @Summary Get all groups
+// @Description Retrieve a list of all available groups
+// @Tags get
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of groups"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get/groups [get]
 func getGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -86,8 +115,17 @@ func getGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
-// getByGroupsFunc is a handler for the /v1/get/groups/:group endpoint
-// it will return a list of links by group
+// GetByGroupsHandler godoc
+// @Summary Get links by group
+// @Description Retrieve links filtered by group name. Can accept additional groups via query parameters.
+// @Tags get
+// @Accept json
+// @Produce json
+// @Param group path string true "Group name" example("example-group")
+// @Param group query string false "Additional group names (comma-separated)"
+// @Success 200 {object} map[string]interface{} "Links filtered by group"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get/groups/{group} [get]
 func getByGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -118,8 +156,15 @@ func getByGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
-// getTagsFunc is a handler for the /v1/get/tags endpoint
-// it will return a list of known tags
+// GetTagsHandler godoc
+// @Summary Get all tags
+// @Description Retrieve a list of all available tags
+// @Tags get
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of tags"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get/tags [get]
 func getTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -139,8 +184,17 @@ func getTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
-// getByTagsFunc is a handler for the /v1/get/tags/:tag endpoint
-// it will return a list of links by tag
+// GetByTagsHandler godoc
+// @Summary Get links by tag
+// @Description Retrieve links filtered by tag name. Can accept additional tags via query parameters.
+// @Tags get
+// @Accept json
+// @Produce json
+// @Param tag path string true "Tag name" example("javascript")
+// @Param tag query []string false "Additional tag names" collectionFormat(multi)
+// @Success 200 {object} map[string]interface{} "Links filtered by tag"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get/tags/{tag} [get]
 func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -171,12 +225,28 @@ func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
+// IndexHandler godoc
+// @Summary Serve the main HTML page
+// @Description Serves the main Cartographer web interface
+// @Tags web
+// @Accept html
+// @Produce html
+// @Success 200 {string} string "HTML page"
+// @Router / [get]
 func indexFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{"sitename": name})
 	}
 }
 
+// AboutHandler godoc
+// @Summary Get application information
+// @Description Retrieve information about the Cartographer application including version, commit, and build date
+// @Tags info
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Application information"
+// @Router /v1/about [get]
 func aboutFunc(siteName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"site": siteName,
@@ -184,5 +254,18 @@ func aboutFunc(siteName string) gin.HandlerFunc {
 			"commit":  commit,
 			"date":    date,
 		})
+	}
+}
+
+func swaggerFunc() gin.HandlerFunc {
+	// https://github.com/swaggo/http-swagger/issues/44
+	return func(ctx *gin.Context) {
+		// Handle "/docs" and "/docs/"
+		if ctx.Param("any") == "" || ctx.Param("any") == "/" {
+			ctx.Redirect(http.StatusMovedPermanently, "/docs/index.html")
+			return
+		}
+
+		ginSwagger.WrapHandler(swaggerfiles.Handler)(ctx)
 	}
 }

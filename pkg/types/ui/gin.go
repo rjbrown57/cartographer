@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-contrib/gzip"
@@ -12,6 +14,9 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/web"
+
+	// Swagger
+	docs "github.com/rjbrown57/cartographer/pkg/types/ui/docs"
 )
 
 func prometheusHandler() gin.HandlerFunc {
@@ -27,6 +32,18 @@ func healthzFunc() gin.HandlerFunc {
 		c.String(http.StatusOK, "%s", "ok")
 	}
 }
+
+// @title Cartographer Swagger API
+// @version 1.0
+// @description Cartographer Swagger API
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url https://github.com/rjbrown57/cartographer
+// @contact.email rjbrown57@gmail.com
+
+// @BasePath /v1
+// @schemes http,https
 
 func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
@@ -49,6 +66,13 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
+
+	SwaggerConfig(o)
+
+	// Swagger docs
+	g.GET("/docs/*any", swaggerFunc())
+	g.GET("/swagger-ui/*any", swaggerFunc())
+	g.GET("/swagger/*any", swaggerFunc())
 
 	// handle unknown routes with 404
 	g.NoRoute(NoRouteFunc())
@@ -92,4 +116,18 @@ func GetSkipper() func(c *gin.Context) bool {
 
 		return false
 	}
+}
+
+func SwaggerConfig(o *config.WebConfig) {
+	swaggerHost := os.Getenv("SWAGGER_HOST")
+	if swaggerHost == "" {
+		swaggerHost = fmt.Sprintf("%s:%d", "localhost", o.Port)
+	}
+	docs.SwaggerInfo.Host = swaggerHost
+
+	swaggerScheme := os.Getenv("SWAGGER_SCHEME")
+	if swaggerScheme == "" {
+		swaggerScheme = "http"
+	}
+	docs.SwaggerInfo.Schemes = []string{swaggerScheme}
 }
