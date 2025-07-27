@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	links  []string
-	tags   []string
+	keys   []string
 	groups []string
 )
 
@@ -21,7 +20,7 @@ var (
 var DeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete from cartographer server",
-	Long:  `delete from cartographer server. Can be supplied with one to many links, tags, linkGroups`,
+	Long:  `delete from cartographer server. Can be supplied with one to many keys`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		addr, err := cmd.Flags().GetString("address")
@@ -43,9 +42,9 @@ var DeleteCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		r, err := c.Client.Delete(c.Ctx, proto.NewCartographerDeleteRequest(links, tags, groups))
+		r, err := c.Client.Delete(c.Ctx, proto.NewCartographerDeleteRequest(keys, groups))
 		if err != nil {
-			log.Fatalf("Failed to Delete links %s", err)
+			log.Fatalf("Failed to Delete data %s", err)
 		}
 
 		out, err := yaml.Marshal(r)
@@ -58,7 +57,6 @@ var DeleteCmd = &cobra.Command{
 }
 
 func init() {
-	DeleteCmd.Flags().StringSliceVarP(&links, "links", "l", nil, "links to delete from cartographer server e.g -l=https://github.com,https://gitlab.com")
-	DeleteCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to delete -t=git,k8s`)
+	DeleteCmd.Flags().StringSliceVarP(&keys, "keys", "k", nil, "data points to delete from cartographer server e.g -k=https://github.com,https://gitlab.com,-k=1234567890(an id)")
 	DeleteCmd.Flags().StringSliceVarP(&groups, "group", "g", nil, `Groups to Delete -t=git,k8s`)
 }

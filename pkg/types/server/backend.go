@@ -146,7 +146,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	switch {
 	case in.Request.Links != nil:
 		for _, link := range in.Request.GetLinks() {
-			keys = append(keys, link.Url)
+			keys = append(keys, link.GetKey())
 		}
 	case in.Request.Groups != nil:
 		for _, group := range in.Request.GetGroups() {

@@ -65,10 +65,23 @@ func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddReq
 	}
 }
 
-func NewCartographerDeleteRequest(links, tags, groups []string) *CartographerDeleteRequest {
-	return &CartographerDeleteRequest{
-		Request: NewCartographerRequest(links, tags, groups),
+func NewCartographerDeleteRequest(keys, groups []string) *CartographerDeleteRequest {
+	c := &CartographerDeleteRequest{
+		Request: &CartographerRequest{
+			Links:  make([]*Link, 0),
+			Groups: make([]*Group, 0),
+		},
 	}
+
+	for _, key := range keys {
+		c.Request.Links = append(c.Request.Links, &Link{Id: key})
+	}
+
+	for _, group := range groups {
+		c.Request.Groups = append(c.Request.Groups, &Group{Name: group})
+	}
+
+	return c
 }
 
 func NewCartographerResponse() *CartographerResponse {
