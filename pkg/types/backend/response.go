@@ -7,6 +7,7 @@ type BackendResponse struct {
 
 func NewBackendResponse() *BackendResponse {
 	return &BackendResponse{
-		Data: make(map[string]any),
+		Data:   make(map[string]any),
+		Errors: make([]error, 0),
 	}
 }
