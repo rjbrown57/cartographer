@@ -86,7 +86,6 @@ func init() {
 
 }
 
-// TODO refactor to do one request not 3 :)
 func HandleConfig(c *client.CartographerClient, file string) {
 
 	config := config.NewCartographerConfig(file)

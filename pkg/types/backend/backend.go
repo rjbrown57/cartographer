@@ -6,4 +6,5 @@ type Backend interface {
 	Get(r *BackendRequest) *BackendResponse
 	GetKeys() *BackendResponse
 	GetAllValues() *BackendResponse
+	Close() error
 }

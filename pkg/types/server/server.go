@@ -6,7 +6,6 @@ import (
 
 	"net"
 
-	"github.com/rjbrown57/cartographer/pkg/backends/inmemory"
 	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
@@ -52,7 +51,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 	conf := config.NewCartographerConfig(o.ConfigFile)
 
 	c := CartographerServer{
-		Backend:   inmemory.NewInMemoryBackend(),
+		Backend:   conf.ServerConfig.Backend.GetBackend(),
 		Options:   o,
 		Notifier:  notifier.NewNotifier(),
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
