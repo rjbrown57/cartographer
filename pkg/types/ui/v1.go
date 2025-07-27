@@ -229,6 +229,8 @@ func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Summary Serve the main HTML page
 // @Description Serves the main Cartographer web interface
 // @Tags web
+// @Param tag query []string false "Additional tag names" collectionFormat(multi)
+// @Param group query []string false "Additional group names" collectionFormat(multi)
 // @Accept html
 // @Produce html
 // @Success 200 {string} string "HTML page"

@@ -6,6 +6,21 @@ paths:
       consumes:
       - text/html
       description: Serves the main Cartographer web interface
+      parameters:
+      - collectionFormat: multi
+        description: Additional tag names
+        in: query
+        items:
+          type: string
+        name: tag
+        type: array
+      - collectionFormat: multi
+        description: Additional group names
+        in: query
+        items:
+          type: string
+        name: group
+        type: array
       produces:
       - text/html
       responses:

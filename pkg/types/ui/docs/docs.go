@@ -28,6 +28,28 @@ const docTemplate = `{
                     "web"
                 ],
                 "summary": "Serve the main HTML page",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Additional tag names",
+                        "name": "tag",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Additional group names",
+                        "name": "group",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "HTML page",
