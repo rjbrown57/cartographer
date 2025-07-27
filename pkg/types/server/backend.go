@@ -10,6 +10,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 	"github.com/rjbrown57/cartographer/pkg/utils"
 	"google.golang.org/grpc"
 )
@@ -37,6 +38,10 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) (map[
 }
 
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
+
+	// record the duration of the add operation
+	defer metrics.RecordOperationDuration("add")()
+
 	for _, link := range in.Request.GetLinks() {
 		auto.ProcessAutoTags(link, c.config.AutoTags)
 	}
@@ -77,12 +82,18 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		}
 	}
 
+	metrics.IncrementObjectCount("link", float64(len(r.Links)))
+	metrics.IncrementObjectCount("group", float64(len(r.Groups)))
+
 	go c.Notifier.Publish(b)
 
 	return &proto.CartographerAddResponse{Response: r}, nil
 }
 
 func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error) {
+
+	// record the duration of the get operation
+	defer metrics.RecordOperationDuration("get")()
 
 	r := &proto.CartographerGetResponse{
 		Response: &proto.CartographerResponse{},
@@ -140,6 +151,9 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDeleteRequest) (*proto.CartographerDeleteResponse, error) {
 
+	// record the duration of the delete operation
+	defer metrics.RecordOperationDuration("delete")()
+
 	// This needs more thought, we should be able to handle multiple deletes in a single request
 	keys := make([]string, 0)
 
@@ -177,6 +191,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 }
 
 func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
+
 	// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
 
 	s := proto.CartographerStreamGetResponse{
