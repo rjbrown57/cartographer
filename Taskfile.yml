@@ -9,7 +9,8 @@ tasks:
     - go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
     - go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
     - go install github.com/bufbuild/buf/cmd/buf@latest
-    - go install github.com/goreleaser/goreleaser@latest
+    - go install github.com/goreleaser/goreleaser@v2
+    - go install github.com/swaggo/swag/cmd/swag@latest
   buf:
     desc: "Run buf"
     cmds:
@@ -28,6 +29,14 @@ tasks:
     desc: "Snapshot"
     cmds:
     - goreleaser --snapshot --clean --config ./.goreleaser.yml
+  generate:
+    desc: "Generate Fake Data and add to cartographer. Can re-run to add more data"
+    vars:
+      num: 1000
+      dataPath: /tmp/data.yaml
+    cmds:
+    - cartographer generate -c example -n ${num} > ${dataPath}
+    - cartographer client add -f ${dataPath}
   serve:
     desc: "start cartographer"
     cmds:
@@ -36,3 +45,19 @@ tasks:
     desc: "start cartographer + Pprof"
     cmds:
     - cartographer serve -c example -pprof
+  compose:
+    - docker-compose up -d
+  build-basic-explorer:
+    desc: "build basic explorer"
+    cmds:
+    - go build -o basic_explorer explorer/basic/main.go
+  test-basic-explorer:
+    desc: "test basic explorer"
+    cmds:
+    - task build-basic-explorer
+    - task compose
+    - ./basic_explorer -url https://restcountries.com/v3.1/name/deutschland
+  swagger:
+    desc: "generate swagger"
+    cmds:
+    - swag init -g pkg/types/ui/v1.go -d . -o ./pkg/types/ui/docs

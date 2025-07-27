@@ -9,8 +9,13 @@ import (
 var log = logrus.New()
 
 func ConfigureLog(jsonLog bool, logLevel int) {
-
-	log.Out = os.Stdout
+	// Check environment variable for output destination
+	outputDest := os.Getenv("LOG_OUTPUT")
+	if outputDest == "stderr" {
+		log.Out = os.Stderr
+	} else {
+		log.Out = os.Stdout
+	}
 
 	switch {
 	case logLevel == 1:
@@ -25,29 +30,29 @@ func ConfigureLog(jsonLog bool, logLevel int) {
 		log.Formatter = &logrus.JSONFormatter{}
 	}
 
-	log.Infof("log level=%s,Json=%v ", log.GetLevel(), jsonLog)
+	log.Debugf("log level=%s,Json=%v,Output=%s ", log.GetLevel(), jsonLog, log.Out)
 }
 
-func Infof(format string, v ...interface{}) {
+func Infof(format string, v ...any) {
 	log.Infof(format, v...)
 }
 
-func Warnf(format string, v ...interface{}) {
+func Warnf(format string, v ...any) {
 	log.Warnf(format, v...)
 }
 
-func Debugf(format string, v ...interface{}) {
+func Debugf(format string, v ...any) {
 	log.Debugf(format, v...)
 }
 
-func Tracef(format string, v ...interface{}) {
+func Tracef(format string, v ...any) {
 	log.Tracef(format, v...)
 }
 
-func Errorf(format string, v ...interface{}) {
+func Errorf(format string, v ...any) {
 	log.Errorf(format, v...)
 }
 
-func Fatalf(format string, v ...interface{}) {
+func Fatalf(format string, v ...any) {
 	log.Fatalf(format, v...)
 }

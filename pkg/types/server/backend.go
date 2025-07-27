@@ -10,6 +10,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 	"github.com/rjbrown57/cartographer/pkg/utils"
 	"google.golang.org/grpc"
 )
@@ -37,29 +38,32 @@ func (c *CartographerServer) PrepFilters(in *proto.CartographerGetRequest) (map[
 }
 
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
+
+	// record the duration of the add operation
+	defer metrics.RecordOperationDuration("add")()
+
 	for _, link := range in.Request.GetLinks() {
 		auto.ProcessAutoTags(link, c.config.AutoTags)
 	}
 
-	d := make(map[string]interface{})
+	newData := make(map[string]any)
 
 	// This needs to be refactored with more constructors/factories etc
 	// Get links
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetLinks() {
-		proto.SetDisplayName(v)
-		d[v.Url] = v
+		newData[v.GetKey()] = v
 		c.AddToCache(v)
 	}
 
 	// Add Groups
 	for _, v := range in.Request.Groups {
 		log.Debugf("Adding group %+v", v)
-		d[v.Name] = v
+		newData[v.Name] = v
 		c.AddToCache(v)
 	}
 
-	ar := backend.NewBackendAddRequest(d)
+	ar := backend.NewBackendAddRequest(newData)
 
 	// run the add
 	b := c.Backend.Add(ar)
@@ -78,12 +82,18 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		}
 	}
 
+	metrics.IncrementObjectCount("link", float64(len(r.Links)))
+	metrics.IncrementObjectCount("group", float64(len(r.Groups)))
+
 	go c.Notifier.Publish(b)
 
 	return &proto.CartographerAddResponse{Response: r}, nil
 }
 
 func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error) {
+
+	// record the duration of the get operation
+	defer metrics.RecordOperationDuration("get")()
 
 	r := &proto.CartographerGetResponse{
 		Response: &proto.CartographerResponse{},
@@ -141,21 +151,21 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDeleteRequest) (*proto.CartographerDeleteResponse, error) {
 
+	// record the duration of the delete operation
+	defer metrics.RecordOperationDuration("delete")()
+
 	// This needs more thought, we should be able to handle multiple deletes in a single request
 	keys := make([]string, 0)
-	var typeKey string
 
 	switch {
 	case in.Request.Links != nil:
 		for _, link := range in.Request.GetLinks() {
-			keys = append(keys, link.Url)
+			keys = append(keys, link.GetKey())
 		}
-		typeKey = "link"
 	case in.Request.Groups != nil:
 		for _, group := range in.Request.GetGroups() {
 			keys = append(keys, group.Name)
 		}
-		typeKey = "group"
 	default:
 		return nil, errors.New("no keys to delete")
 	}
@@ -163,7 +173,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	c.DeleteFromCache(keys...)
 
 	// TODO FIX
-	r := c.Backend.Delete(backend.NewBackendRequest(typeKey, keys...))
+	r := c.Backend.Delete(backend.NewBackendRequest(keys...))
 
 	if len(r.Errors) > 0 {
 		return nil, fmt.Errorf("error deleting keys: %v", r.Errors)
@@ -181,6 +191,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 }
 
 func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
+
 	// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
 
 	s := proto.CartographerStreamGetResponse{

@@ -22,9 +22,18 @@ var GenerateCmd = &cobra.Command{
 	Short: "generate a fake ingestion config to test with cartographer server",
 	Long:  `generate urls to test with cartographer server`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// Configure logging to info level for all generate commands
+		// This is to avoid the log messages from the generate command from being printed to the console
+		log.ConfigureLog(false, 0)
+
 		genLinks := make([]*proto.Link, 0)
 		for i := 0; i < num; i++ {
-			genLinks = append(genLinks, &proto.Link{Url: utils.GenerateFakeURL(), Tags: []string{"default"}})
+			genLinks = append(genLinks, proto.NewLinkBuilder().
+				WithURL(utils.GenerateFakeURL()).
+				WithTags([]string{"default"}).
+				WithData(utils.GenerateFakeData()).
+				Build())
 		}
 
 		c := config.CartographerConfig{

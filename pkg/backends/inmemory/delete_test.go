@@ -11,7 +11,7 @@ func TestDelete(t *testing.T) {
 	b := NewInMemoryBackend()
 	b.Data.Store("key1", "value1")
 
-	resp := b.Delete(backend.NewBackendRequest("string", "key1"))
+	resp := b.Delete(backend.NewBackendRequest("key1"))
 	if resp.Errors != nil {
 		t.Errorf("Expected no errors, got %v", resp.Errors)
 	}

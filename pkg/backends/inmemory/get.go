@@ -23,7 +23,7 @@ func (b *InMemoryBackend) Get(req *backend.BackendRequest) *backend.BackendRespo
 func (b *InMemoryBackend) GetKeys() *backend.BackendResponse {
 	resp := backend.NewBackendResponse()
 
-	b.Data.Range(func(key, value interface{}) bool {
+	b.Data.Range(func(key, value any) bool {
 		resp.Data[key.(string)] = nil
 		return true
 	})
@@ -34,7 +34,7 @@ func (b *InMemoryBackend) GetKeys() *backend.BackendResponse {
 func (b *InMemoryBackend) GetAllValues() *backend.BackendResponse {
 	resp := backend.NewBackendResponse()
 
-	b.Data.Range(func(key, value interface{}) bool {
+	b.Data.Range(func(key, value any) bool {
 		resp.Data[key.(string)] = value
 		return true
 	})

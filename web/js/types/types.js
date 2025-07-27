@@ -52,14 +52,22 @@ export class Cartographer {
 function GetQueryPath() {
     let queryUrl = GetEndpoint;
     const urlParams = new URLSearchParams(window.location.search);
-    const tag = urlParams.get('tag');
-    const group = urlParams.get('group');
-    if (tag) {
-        queryUrl += "/tags/" + tag;
+    const tag = urlParams.getAll('tag');
+    const group = urlParams.getAll('group');
+    if (tag.length > 0) {
+        queryUrl += "/tags/";
+        queryUrl += tag[0];
+        queryUrl += "?";
+        tag.slice(1).forEach((t) => {
+            queryUrl += "&tag=" + t;
+        });
         return queryUrl;
     }
-    if (group) {
-        queryUrl += "/groups/" + group;
+    if (group.length > 0) {
+        queryUrl += "/groups/" + group[0];
+        group.slice(1).forEach((g) => {
+            queryUrl += "&group=" + g;
+        });
         return queryUrl;
     }
     return queryUrl;

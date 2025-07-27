@@ -3,25 +3,23 @@ package backend
 import "github.com/rjbrown57/cartographer/pkg/log"
 
 type BackendRequest struct {
-	TypeKey string   // string name of a type of data
-	Key     []string // keys within the string
+	Key []string // keys to operate on
 }
 
-func NewBackendRequest(typeKey string, keys ...string) *BackendRequest {
-	if len(keys) == 0 || typeKey == "" {
-		log.Fatalf("must supply key/typekey")
+func NewBackendRequest(keys ...string) *BackendRequest {
+	if len(keys) == 0 {
+		log.Fatalf("must supply at least one key")
 	}
 	return &BackendRequest{
-		Key:     keys,
-		TypeKey: typeKey,
+		Key: keys,
 	}
 }
 
 type BackendAddRequest struct {
-	Data map[string]interface{}
+	Data map[string]any
 }
 
-func NewBackendAddRequest(data map[string]interface{}) *BackendAddRequest {
+func NewBackendAddRequest(data map[string]any) *BackendAddRequest {
 	if len(data) == 0 {
 		log.Fatalf("data cannot be empty")
 	}

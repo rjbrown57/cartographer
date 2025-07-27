@@ -29,15 +29,12 @@ func TestNewCartographerConfig(t *testing.T) {
 		os.RemoveAll(dir)
 	})
 
-	controlConfig := CartographerConfig{}
-
-	err = yaml.Unmarshal([]byte(utils.TestFullConfig), &controlConfig)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal control config %s", err)
-	}
-
 	// Test a single file
 	c := NewCartographerConfig(config.Name())
+
+	// Create control config using the same process
+	controlConfig := CartographerConfig{}
+	controlConfig = *controlConfig.WithIngest(config.Name())
 
 	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
 	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)

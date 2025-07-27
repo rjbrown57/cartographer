@@ -1,37 +1,5 @@
 package proto
 
-import (
-	"fmt"
-	"log"
-	"net/url"
-)
-
-// New ProtoLink is a constructor for proto.Link
-func NewProtoLink(link string, description string, displayName string, tags []string) *Link {
-
-	l := Link{Url: link, Description: description, Displayname: displayName, Tags: tags}
-
-	if displayName == "" {
-		l.Displayname = link
-	}
-
-	return &l
-}
-
-func SetDisplayName(l *Link) {
-
-	if l.Displayname != "" {
-		return
-	}
-
-	u, err := url.Parse(l.Url)
-	if err != nil {
-		log.Fatalf("error parsing url: %v", err)
-	}
-
-	l.Displayname = fmt.Sprintf("%s%s", u.Host, u.Path)
-}
-
 func NewProtoGroup(groupName string, tags []string, description string) *Group {
 	g := Group{Name: groupName, Tags: tags, Description: description}
 	return &g
@@ -49,7 +17,10 @@ func NewCartographerRequest(links, tags, groups []string) *CartographerRequest {
 
 	for _, link := range links {
 		if _, ok := deDupMap[link]; !ok {
-			newlinks = append(newlinks, NewProtoLink(link, "", "", tags))
+			newlinks = append(newlinks, NewLinkBuilder().
+				WithURL(link).
+				WithTags(tags).
+				Build())
 		}
 		deDupMap[link] = struct{}{}
 	}
@@ -94,10 +65,23 @@ func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddReq
 	}
 }
 
-func NewCartographerDeleteRequest(links, tags, groups []string) *CartographerDeleteRequest {
-	return &CartographerDeleteRequest{
-		Request: NewCartographerRequest(links, tags, groups),
+func NewCartographerDeleteRequest(keys, groups []string) *CartographerDeleteRequest {
+	c := &CartographerDeleteRequest{
+		Request: &CartographerRequest{
+			Links:  make([]*Link, 0),
+			Groups: make([]*Group, 0),
+		},
 	}
+
+	for _, key := range keys {
+		c.Request.Links = append(c.Request.Links, &Link{Id: key})
+	}
+
+	for _, group := range groups {
+		c.Request.Groups = append(c.Request.Groups, &Group{Name: group})
+	}
+
+	return c
 }
 
 func NewCartographerResponse() *CartographerResponse {

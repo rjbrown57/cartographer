@@ -10,7 +10,6 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/utils"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // IngestConfig is used to ingest data from a yaml file. This is mainly for the map[string]any{} data in links.
@@ -28,21 +27,14 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 	pl := []*proto.Link{}
 	for _, l := range i.Links {
 
-		protoLink := &proto.Link{
-			Url:         l.URL,
-			Displayname: l.Displayname,
-			Description: l.Description,
-			Tags:        l.Tags,
-		}
-
-		// If the data is not empty we will add it to the proto.Link
-		if len(l.Data) > 0 {
-			sp, err := structpb.NewStruct(l.Data)
-			if err != nil {
-				log.Fatalf("error creating structpb: %v", err)
-			}
-			protoLink.Data = sp
-		}
+		protoLink := proto.NewLinkBuilder().
+			WithURL(l.URL).
+			WithDisplayName(l.Displayname).
+			WithDescription(l.Description).
+			WithTags(l.Tags).
+			WithId(l.Id).
+			WithData(l.Data).
+			Build()
 
 		pl = append(pl, protoLink)
 	}
@@ -68,6 +60,7 @@ type YamlLink struct {
 	Description string         `yaml:"description"`
 	Tags        []string       `yaml:"tags"`
 	Data        map[string]any `yaml:"data"`
+	Id          string         `yaml:"id"`
 }
 
 // WithIngest is a builder for the CartographerConfig struct to ingest data from a yaml file

@@ -1,0 +1,215 @@
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      consumes:
+      - text/html
+      description: Serves the main Cartographer web interface
+      parameters:
+      - collectionFormat: multi
+        description: Additional tag names
+        in: query
+        items:
+          type: string
+        name: tag
+        type: array
+      - collectionFormat: multi
+        description: Additional group names
+        in: query
+        items:
+          type: string
+        name: group
+        type: array
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML page
+          schema:
+            type: string
+      summary: Serve the main HTML page
+      tags:
+      - web
+  /v1/about:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve information about the Cartographer application including
+        version, commit, and build date
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application information
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get application information
+      tags:
+      - info
+  /v1/get:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all links, groups, and tags with optional filtering by
+        tags and groups via query parameters
+      parameters:
+      - description: Filter by tag names (comma-separated)
+        example: '"oci,k8s"'
+        in: query
+        name: tag
+        type: string
+      - description: Filter by group names (comma-separated)
+        example: '"gitlab,github"'
+        in: query
+        name: group
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Filtered data
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Group not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all data with optional filtering
+      tags:
+      - get
+  /v1/get/groups:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all available groups
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of groups
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all groups
+      tags:
+      - get
+  /v1/get/groups/{group}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve links filtered by group name. Can accept additional groups
+        via query parameters.
+      parameters:
+      - description: Group name
+        example: '"example-group"'
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: Additional group names (comma-separated)
+        in: query
+        name: group
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Links filtered by group
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get links by group
+      tags:
+      - get
+  /v1/get/tags:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all available tags
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tags
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all tags
+      tags:
+      - get
+  /v1/get/tags/{tag}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve links filtered by tag name. Can accept additional tags
+        via query parameters.
+      parameters:
+      - description: Tag name
+        example: '"javascript"'
+        in: path
+        name: tag
+        required: true
+        type: string
+      - collectionFormat: multi
+        description: Additional tag names
+        in: query
+        items:
+          type: string
+        name: tag
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Links filtered by tag
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get links by tag
+      tags:
+      - get
+  /v1/ping:
+    get:
+      consumes:
+      - application/json
+      description: get a simple pong for your ping
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pong
+          schema:
+            type: string
+      summary: Responds with a pong message
+      tags:
+      - ping
+swagger: "2.0"

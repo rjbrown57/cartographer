@@ -40,3 +40,69 @@ func TestMustUnmarshalYaml(t *testing.T) {
 		t.Errorf("Unmarshaled content does not match expected values: %+v", config)
 	}
 }
+
+func TestGenerateDataHash(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     map[string]any
+		expected string
+	}{
+		{
+			name:     "empty data",
+			data:     nil,
+			expected: "",
+		},
+		{
+			name:     "empty map",
+			data:     map[string]any{},
+			expected: "",
+		},
+		{
+			name: "simple data",
+			data: map[string]any{
+				"example": "data",
+			},
+			expected: "a1b2c3d4", // This will be the actual hash, but we just check it's 8 chars
+		},
+		{
+			name: "complex data",
+			data: map[string]any{
+				"id":      "example1",
+				"example": "data",
+				"list":    []string{"item1", "item2", "item3"},
+			},
+			expected: "e5f6g7h8", // This will be the actual hash, but we just check it's 8 chars
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GenerateDataHash(tt.data)
+
+			if tt.expected == "" {
+				if result != "" {
+					t.Errorf("GenerateDataHash() = %v, want empty string", result)
+				}
+			} else {
+				// For non-empty expected, just check the length is 8 characters
+				if len(result) != 8 {
+					t.Errorf("GenerateDataHash() length = %d, want 8", len(result))
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateDataHashConsistency(t *testing.T) {
+	data := map[string]any{
+		"example": "data",
+		"number":  42,
+	}
+
+	hash1 := GenerateDataHash(data)
+	hash2 := GenerateDataHash(data)
+
+	if hash1 != hash2 {
+		t.Errorf("GenerateDataHash() inconsistent: %v != %v", hash1, hash2)
+	}
+}
