@@ -44,6 +44,29 @@ func (c *CartographerServer) Serve() {
 	}
 }
 
+// Close gracefully shuts down the server and closes the backend
+func (c *CartographerServer) Close() error {
+	log.Infof("Shutting down cartographer server...")
+
+	// Gracefully stop the gRPC server
+	if c.Server != nil {
+		c.Server.GracefulStop()
+	}
+
+	// Close the listener
+	if c.Listener != nil {
+		c.Listener.Close()
+	}
+
+	// Close the backend
+	if err := c.Backend.Close(); err != nil {
+		log.Errorf("Error closing backend: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 
 	var err error

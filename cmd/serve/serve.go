@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"syscall"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
 
@@ -29,16 +30,49 @@ var ServeCmd = &cobra.Command{
 		o := server.CartographerServerOptions{
 			ConfigFile: config,
 		}
+
+		// Set up signal handling for graceful shutdown
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+		// Create a channel for pprof shutdown coordination
+		pprofDone := make(chan struct{})
+
+		// Start pprof if enabled
 		if profile {
-			go Pprof()
+			go Pprof(pprofDone)
 		}
+
 		c := server.NewCartographerServer(&o)
-		c.Serve()
+
+		// Start cartographer server
+		go func() {
+			c.Serve()
+		}()
+
+		// Wait for shutdown signal
+		<-sigChan
+
+		log.Infof("Received shutdown signal, starting graceful shutdown...")
+
+		// Close the server gracefully
+		if err := c.Close(); err != nil {
+			log.Errorf("Error during shutdown: %v", err)
+			os.Exit(1)
+		}
+
+		// If pprof is enabled, wait for it to complete its work
+		if profile {
+			log.Infof("Waiting for pprof to complete...")
+			<-pprofDone
+			log.Infof("Pprof completed")
+		}
+
+		log.Infof("Server shutdown complete")
 	},
 }
 
-// Make optional
-func Pprof() {
+func Pprof(done chan<- struct{}) {
 	// Create a CPU profile file
 	f, err := os.Create("profile.prof")
 	if err != nil {
@@ -62,7 +96,7 @@ func Pprof() {
 
 	// Listen for OS signals to gracefully shutdown
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	<-sigChan
 
@@ -80,7 +114,8 @@ func Pprof() {
 
 	fmt.Println("Memory profile written to mem.prof")
 
-	os.Exit(0)
+	// Signal that pprof work is complete
+	done <- struct{}{}
 }
 
 func init() {
