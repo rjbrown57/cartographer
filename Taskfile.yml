@@ -62,3 +62,14 @@ tasks:
     desc: "generate swagger"
     cmds:
     - swag init -g pkg/types/ui/v1.go -d . -o ./pkg/types/ui/docs
+  kind:
+    desc: "create kind cluster and install cartographer"
+    cmds:
+    - kind create cluster --name cartographer
+    - kind load docker-image ghcr.io/rjbrown57/cartographer:latest --name cartographer
+    - helm install cartographer ./charts/cartographer --namespace cartographer --create-namespace
+    - kubectl port-forward svc/cartographer 8081:8081 --namespace cartographer
+  kindclean:
+    desc: "remove kind cluster"
+    cmds:
+    - kind delete cluster --name cartographer
