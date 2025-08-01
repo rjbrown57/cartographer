@@ -36,15 +36,15 @@ func TestPublish(t *testing.T) {
 	response := proto.CartographerResponse{
 		Msg: []string{"test"},
 	}
-	go notifier.Publish(response)
+	go notifier.Publish(&response)
 
 	select {
 	case res := <-subscriber.Channel:
-		if _, ok := res.(proto.CartographerResponse); !ok {
-			t.Fatalf("Expected response to be of type proto.CartographerResponse, got %T", res)
+		if _, ok := res.(*proto.CartographerResponse); !ok {
+			t.Fatalf("Expected response to be of type *proto.CartographerResponse, got %T", res)
 		}
-		if res.(proto.CartographerResponse).Msg[0] != "test" {
-			t.Fatalf("Expected response to contain 'test', got %s", res.(proto.CartographerResponse).Msg[0])
+		if res.(*proto.CartographerResponse).Msg[0] != "test" {
+			t.Fatalf("Expected response to contain 'test', got %s", res.(*proto.CartographerResponse).Msg[0])
 		}
 	case <-time.After(time.Second):
 		t.Fatal("Expected to receive a response, but timed out")

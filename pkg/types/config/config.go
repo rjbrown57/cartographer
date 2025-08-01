@@ -9,9 +9,10 @@ import (
 const ApiVersion string = "v1beta"
 
 type ServerConfig struct {
-	Address   string    `yaml:"address,omitempty"`
-	Port      int       `yaml:"port,omitempty"`
-	WebConfig WebConfig `yaml:"web,omitempty"`
+	Address   string        `yaml:"address,omitempty"`
+	Port      int           `yaml:"port,omitempty"`
+	WebConfig WebConfig     `yaml:"web,omitempty"`
+	Backend   BackendConfig `yaml:"backend,omitempty"`
 }
 
 type WebConfig struct {

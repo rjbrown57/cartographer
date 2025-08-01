@@ -6,6 +6,9 @@ cartographer:
     address: 0.0.0.0
     port: 8081
     siteName: "Cartographer"
+  backend:
+    type: boltdb
+    path: /tmp/cartographer.db
 groups:
   - name: example
     tags: ["tools","k8s"]

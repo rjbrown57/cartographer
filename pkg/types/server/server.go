@@ -6,7 +6,6 @@ import (
 
 	"net"
 
-	"github.com/rjbrown57/cartographer/pkg/backends/inmemory"
 	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
@@ -45,6 +44,29 @@ func (c *CartographerServer) Serve() {
 	}
 }
 
+// Close gracefully shuts down the server and closes the backend
+func (c *CartographerServer) Close() error {
+	log.Infof("Shutting down cartographer server...")
+
+	// Gracefully stop the gRPC server
+	if c.Server != nil {
+		c.Server.GracefulStop()
+	}
+
+	// Close the listener
+	if c.Listener != nil {
+		c.Listener.Close()
+	}
+
+	// Close the backend
+	if err := c.Backend.Close(); err != nil {
+		log.Errorf("Error closing backend: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 
 	var err error
@@ -52,7 +74,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 	conf := config.NewCartographerConfig(o.ConfigFile)
 
 	c := CartographerServer{
-		Backend:   inmemory.NewInMemoryBackend(),
+		Backend:   conf.ServerConfig.Backend.GetBackend(),
 		Options:   o,
 		Notifier:  notifier.NewNotifier(),
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),

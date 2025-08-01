@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,6 +55,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	for _, v := range in.Request.GetLinks() {
 		newData[v.GetKey()] = v
 		c.AddToCache(v)
+		metrics.IncrementObjectCount("link", 1)
 	}
 
 	// Add Groups
@@ -61,6 +63,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		log.Debugf("Adding group %+v", v)
 		newData[v.Name] = v
 		c.AddToCache(v)
+		metrics.IncrementObjectCount("group", 1)
 	}
 
 	ar := backend.NewBackendAddRequest(newData)
@@ -72,20 +75,13 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	r := proto.NewCartographerResponse()
 
 	for _, v := range b.Data {
-		switch v := v.(type) {
-		case *proto.Link:
-			l := v
-			r.Links = append(r.Links, l)
-		case *proto.Group:
-			g := v
-			r.Groups = append(r.Groups, g.Name)
-		}
+		l := &proto.Link{}
+
+		json.Unmarshal(v, l)
+		r.Links = append(r.Links, l)
 	}
 
-	metrics.IncrementObjectCount("link", float64(len(r.Links)))
-	metrics.IncrementObjectCount("group", float64(len(r.Groups)))
-
-	go c.Notifier.Publish(b)
+	go c.Notifier.Publish(r)
 
 	return &proto.CartographerAddResponse{Response: r}, nil
 }
@@ -172,7 +168,6 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 
 	c.DeleteFromCache(keys...)
 
-	// TODO FIX
 	r := c.Backend.Delete(backend.NewBackendRequest(keys...))
 
 	if len(r.Errors) > 0 {
