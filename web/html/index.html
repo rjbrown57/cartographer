@@ -42,6 +42,25 @@
 .spacing-md { margin: 1rem; padding: 1rem; }
 .spacing-lg { margin: 1.5rem; padding: 1.5rem; }
 .spacing-xl { margin: 2rem; padding: 2rem; }
+
+/* Maximize/minimize functionality */
+.link-card.maximized {
+	z-index: 10;
+}
+
+.data-container {
+	transition: all 0.3s ease-in-out;
+}
+
+.data-container pre {
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	line-height: 1.4;
+}
+
+/* Ensure the icon stays on top */
+.link-card .absolute {
+	z-index: 20;
+}
 </style>
 <head>
 	<meta charset="UTF-8">

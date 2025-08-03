@@ -24,7 +24,7 @@ export class Cartographer {
         QueryMainData().then(() => {
             CartographerData.links.forEach((link) => {
                 if (link.url) {
-                    this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags));
+                    this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags, link.data));
                 }
             });
             this.renderCards();

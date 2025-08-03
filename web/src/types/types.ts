@@ -18,8 +18,17 @@ const GroupId = 'groupList'
 const buttonId = 'groupButton'
 
 export type CartoResponse = {
-    links: Link[];
+    links: LinkData[];
     groups: string[];
+}
+
+export type LinkData = {
+    id: string;
+    displayname: string;
+    url: string;
+    description: string;
+    tags: string[];
+    data?: Record<string, any>;
 }
 
 // Cartographer class is used to represent a collection of cards
@@ -42,7 +51,8 @@ export class Cartographer {
                             link.displayname, 
                             link.url, 
                             link.description, 
-                            link.tags
+                            link.tags,
+                            link.data
                         )
                     );
                 }
@@ -53,11 +63,13 @@ export class Cartographer {
         });
         this.SearchBar = new SearchBar(this.Cards);
     }
+    
     showCards(): void {
         this.Cards.forEach((card) => {
             card.log();
         });
     }
+    
     renderCards(): void {
         const container = document.getElementById("linkgrid");
         if (!container) {
