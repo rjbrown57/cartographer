@@ -18,3 +18,14 @@ func GetJSFS() fs.FS {
 	}
 	return f
 }
+
+//go:embed assets/*
+var AssetsFS embed.FS
+
+func GetAssetsFS() fs.FS {
+	f, err := fs.Sub(AssetsFS, "assets")
+	if err != nil {
+		panic(err)
+	}
+	return f
+}

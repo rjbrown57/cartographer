@@ -81,6 +81,9 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/healthz", healthzFunc())
 	g.GET("/metrics", prometheusHandler())
 
+	// Global favicon route - browsers automatically request this
+	g.GET("/favicon.ico", faviconFunc())
+
 	// Json Endpoints
 	g.GET("/v1/ping", pingFunc(carto))
 	g.GET("/v1/get", getFunc(carto))

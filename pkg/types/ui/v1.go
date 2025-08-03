@@ -11,6 +11,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/utils"
+	"github.com/rjbrown57/cartographer/web"
 )
 
 var (
@@ -256,6 +257,18 @@ func aboutFunc(siteName string) gin.HandlerFunc {
 			"commit":  commit,
 			"date":    date,
 		})
+	}
+}
+
+func faviconFunc() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		faviconData, err := web.AssetsFS.ReadFile("assets/favicon.ico")
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Header("Content-Type", "image/x-icon")
+		c.Data(http.StatusOK, "image/x-icon", faviconData)
 	}
 }
 
