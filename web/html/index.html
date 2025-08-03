@@ -16,7 +16,32 @@
 
 .link-card {
 	animation: fadeIn 0.5s ease-in-out;
+	transition: all 0.2s ease-in-out;
 }
+
+.link-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Consistent color system */
+.text-primary { color: #1f2937; }
+.text-secondary { color: #6b7280; }
+.text-accent { color: #3b82f6; }
+.text-accent-hover { color: #2563eb; }
+.bg-primary { background-color: #ffffff; }
+.bg-secondary { background-color: #f9fafb; }
+.bg-accent { background-color: #3b82f6; }
+.bg-accent-hover { background-color: #2563eb; }
+.border-primary { border-color: #e5e7eb; }
+.border-accent { border-color: #3b82f6; }
+
+/* Improved spacing */
+.spacing-xs { margin: 0.25rem; padding: 0.25rem; }
+.spacing-sm { margin: 0.5rem; padding: 0.5rem; }
+.spacing-md { margin: 1rem; padding: 1rem; }
+.spacing-lg { margin: 1.5rem; padding: 1.5rem; }
+.spacing-xl { margin: 2rem; padding: 2rem; }
 </style>
 <head>
 	<meta charset="UTF-8">
@@ -27,35 +52,43 @@
 	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
+<body class="bg-secondary min-h-screen">
 	<!-- Navbar -->
-    <nav class="bg-gray-800 p-4">
+    <nav class="bg-gray-800 p-4 shadow-lg">
         <div class="container mx-auto flex items-center">
             <div id="home" class="mr-4">
-                <a class="active text-white" href="/"><i class="fa fa-compass-drafting p-2"></i>{{ .sitename }}</a> 
+                <a class="text-white hover:text-blue-300 transition-colors flex items-center" href="/">
+                    <i class="fa fa-compass-drafting p-2 text-blue-400"></i>
+                    <span class="font-semibold">{{ .sitename }}</span>
+                </a> 
             </div>
             <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
             <div id="searchBarDiv" class="flex-grow mr-4">
-                <input id="searchBar" type="text" placeholder="Enter space seperated filter terms..." class="w-full p-2 rounded">
+                <div class="relative">
+                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input id="searchBar" type="text" placeholder="Search links and tags..." class="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </div>
             </div>
             <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
             <div class="relative flex-grow">
-                <button id="groupButton" class="text-gray-300 hover:text-white focus:outline-none flex items-center">
+                <button id="groupButton" class="text-gray-300 hover:text-white focus:outline-none flex items-center px-3 py-2 rounded-lg transition-colors">
                     <i class="fa fa-caret-down mr-2"></i>
-                    Groups
+                    <span>Groups</span>
                 </button>
-                <div id="groupdropdown" class="hidden absolute bg-gray-700 text-white rounded shadow-lg mt-2 w-48">
-                    <div id="groupList" class="max-h-48 overflow-y-auto"></div>
+                <div id="groupdropdown" class="hidden absolute bg-gray-700 text-white rounded-lg shadow-xl mt-2 w-48 border border-gray-600">
+                    <div id="groupList" class="max-h-48 overflow-y-auto p-2"></div>
                 </div>
             </div>
-                <a class="active text-white text-2xl" href="https://github.com/rjbrown57/cartographer"><i class="fa-brands fa-github p-2"></i></a>
-            </div>
+            <a class="text-white hover:text-blue-300 text-2xl transition-colors" href="https://github.com/rjbrown57/cartographer">
+                <i class="fa-brands fa-github p-2"></i>
+            </a>
         </div>
     </nav>
-	<div class="flex justify-center mt-4">
-		<div class="w-3/4 p-4">
-			<div id="link" class="links mb-4">
-				<div id="linkgrid" class="grid grid-cols-3 gap-4">
-</div>
+	<div class="container mx-auto px-4 py-6">
+		<div id="link" class="links">
+			<div id="linkgrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+			</div>
+		</div>
+	</div>
 </body>
 </html>
