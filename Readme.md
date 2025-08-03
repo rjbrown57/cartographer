@@ -23,11 +23,4 @@ A [helm chart](charts/cartographer/values.yaml)  is provided for running in kube
 
 See the [TaskFile](Taskfile.yml) for basic steps and required tools.
 
-To run use `task serve` or `./cartographer -c example`
-
-## TODO
-
-* GRPC refactors
-  * Auth for GRPC
-* Form for adding new links via web UI
-* Docs
+To run use `task serve` or `./cartographer serve -c example`
