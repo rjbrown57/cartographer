@@ -13,11 +13,14 @@ func (c *CartographerServer) AddToCache(v any) {
 		log.Debugf("Adding link %s to cache", v.GetKey())
 		c.cache[v.GetKey()] = v
 		for _, tag := range v.Tags {
-			c.tagCache[tag] = proto.NewProtoTag(tag, "")
+			// initialize the tag cache if it doesn't exist
+			if _, ok := c.tagCache[tag]; !ok {
+				c.tagCache[tag] = make([]*proto.Link, 0)
+			}
+			c.tagCache[tag] = append(c.tagCache[tag], v)
 		}
 	case *proto.Group:
 		log.Debugf("Adding group %s to cache", v.Name)
-		c.cache[v.Name] = v
 		c.groupCache[v.Name] = v
 	}
 	c.mu.Unlock()

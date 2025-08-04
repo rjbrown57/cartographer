@@ -107,25 +107,19 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 			return nil, err
 		}
 
-		for _, v := range c.cache {
-			switch v := v.(type) {
-			case *proto.Link:
-				// if we have no tags send all inks
-				if len(tagFilters) == 0 {
-					r.Response.Links = append(r.Response.Links, v)
-					continue
-				}
-
-				// if we have tags, we need to filter the links
-				for _, tag := range v.Tags {
-					if _, ok := tagFilters[tag]; ok {
-						r.Response.Links = append(r.Response.Links, v)
-					}
-				}
-			case *proto.Group:
-				r.Response.Groups = append(r.Response.Groups, v.Name)
+		// If no tags are supplied, send all links
+		if len(tagFilters) == 0 {
+			for _, link := range c.cache {
+				r.Response.Links = append(r.Response.Links, link)
 			}
+			return r, nil
 		}
+
+		// If tags are supplied, send the links that match the tags
+		for tag := range tagFilters {
+			r.Response.Links = append(r.Response.Links, c.tagCache[tag]...)
+		}
+
 	// RequestType_REQUEST_TYPE_GROUP returns a list of groups from the cache
 	case proto.RequestType_REQUEST_TYPE_GROUP:
 		for _, group := range c.groupCache {
@@ -133,8 +127,8 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		}
 	// RequestType_REQUEST_TYPE_TAG returns a list of tags from the cache
 	case proto.RequestType_REQUEST_TYPE_TAG:
-		for _, tag := range c.tagCache {
-			r.Response.Tags = append(r.Response.Tags, tag.Name)
+		for tag := range c.tagCache {
+			r.Response.Tags = append(r.Response.Tags, tag)
 		}
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
@@ -194,12 +188,7 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	}
 
 	for _, v := range c.cache {
-		switch v := v.(type) {
-		case *proto.Link:
-			s.Response.Links = append(s.Response.Links, v)
-		case *proto.Group:
-			s.Response.Groups = append(s.Response.Groups, v.Name)
-		}
+		s.Response.Links = append(s.Response.Links, v)
 	}
 
 	if err := stream.Send(&s); err != nil {
@@ -214,12 +203,7 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	for {
 		<-notifier.Channel
 		for _, v := range c.cache {
-			switch v := v.(type) {
-			case *proto.Link:
-				s.Response.Links = append(s.Response.Links, v)
-			case *proto.Group:
-				s.Response.Groups = append(s.Response.Groups, v.Name)
-			}
+			s.Response.Links = append(s.Response.Links, v)
 		}
 
 		if err := stream.Send(&s); err != nil {

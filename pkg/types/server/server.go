@@ -31,9 +31,9 @@ type CartographerServer struct {
 	WebServer *ui.CartographerUI
 
 	config     *config.CartographerConfig
-	cache      map[string]any
-	groupCache map[string]*proto.Group
-	tagCache   map[string]*proto.Tag
+	cache      map[string]*proto.Link   // cache by key of all links
+	groupCache map[string]*proto.Group  // cache by name of all groups, should be refactored to provide links
+	tagCache   map[string][]*proto.Link // cache by tag string that links to all known matching links
 	mu         sync.Mutex
 }
 
@@ -80,9 +80,9 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
 
 		config:     conf,
-		cache:      make(map[string]any),
+		cache:      make(map[string]*proto.Link),
 		groupCache: make(map[string]*proto.Group),
-		tagCache:   make(map[string]*proto.Tag),
+		tagCache:   make(map[string][]*proto.Link),
 		mu:         sync.Mutex{},
 	}
 
