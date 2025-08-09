@@ -63,15 +63,21 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			Type: proto.RequestType_REQUEST_TYPE_DATA,
 		}
 
-		// Get the group from the query parameter
-		for _, group := range c.QueryArray("group") {
+		// Get the group(s) from the query parameter
+		for _, group := range SplitQueryArray(c.QueryArray("group")) {
 			gr.Request.Groups = append(gr.Request.Groups, &proto.Group{Name: group})
 		}
 
-		// Get the tag from the query parameter
-		for _, tag := range c.QueryArray("tag") {
+		// http://localhost:8081/v1/get?tag=oci,k8s&tag=gitlab
+		// [{"name":"oci,k8s"},{"name":"gitlab"}]
+
+		// Get the tag(s) from the query parameter
+		for _, tag := range SplitQueryArray(c.QueryArray("tag")) {
 			gr.Request.Tags = append(gr.Request.Tags, &proto.Tag{Name: tag})
 		}
+
+		// Get the Terms(s) from the query parameter
+		gr.Request.Terms = SplitQueryArray(c.QueryArray("term"))
 
 		pr, err := carto.Client.Get(carto.Ctx, gr)
 
@@ -85,6 +91,7 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, pr)
+
 	}
 }
 
