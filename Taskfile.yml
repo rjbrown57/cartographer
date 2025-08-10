@@ -25,6 +25,7 @@ tasks:
     cmds:
     - task buf
     - task ts
+    - task swagger
     - task snapshot
   snapshot:
     desc: "Snapshot"
