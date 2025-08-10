@@ -19,6 +19,14 @@ func (c *CartographerServer) AddToCache(v any) {
 			}
 			c.tagCache[tag] = append(c.tagCache[tag], v)
 		}
+
+		// Add link to bleve
+		log.Debugf("Indexing link %s", v.GetKey())
+		err := c.bleve.Index(v.GetKey(), v)
+		if err != nil {
+			log.Errorf("Error indexing link %s: %v", v.GetKey(), err)
+		}
+
 	case *proto.Group:
 		log.Debugf("Adding group %s to cache", v.Name)
 		c.groupCache[v.Name] = v

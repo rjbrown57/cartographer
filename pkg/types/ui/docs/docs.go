@@ -48,6 +48,16 @@ const docTemplate = `{
                         "description": "Additional group names",
                         "name": "group",
                         "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Additional term names",
+                        "name": "term",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -86,7 +96,7 @@ const docTemplate = `{
         },
         "/v1/get": {
             "get": {
-                "description": "Retrieve all links, groups, and tags with optional filtering by tags and groups via query parameters",
+                "description": "Retrieve all links, groups, and tags with optional filtering by tags, groups and terms via query parameters",
                 "consumes": [
                     "application/json"
                 ],
@@ -110,6 +120,13 @@ const docTemplate = `{
                         "example": "\"gitlab,github\"",
                         "description": "Filter by group names (comma-separated)",
                         "name": "group",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"ko,binman\"",
+                        "description": "Filter by term (comma-separated)",
+                        "name": "term",
                         "in": "query"
                     }
                 ],

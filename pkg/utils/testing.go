@@ -19,6 +19,9 @@ cartographer:
     address: 0.0.0.0
     port: 8081
     siteName: cartographer
+  backend:
+    type: boltdb
+    path: /tmp/debugcartographer.db
 groups:
   - name: example
     tags: ["tools","k8s"]
@@ -26,13 +29,14 @@ links:
   - url: https://github.com/kubernetes/kubernetes
     tags: ["k8s"]
     description: |-
-      kubernetes core github repository
+      kubernetes core github repository. descriptionmatchterm
     displayname: github kube
   - url: https://github.com/goharbor/harbor
     tags: ["oci", "k8s"]
     displayname: "github.com/goharbor/harbor"
-  - data:
-      example: "data"
+  - id: dataexample
+    data:
+      example: "datamatchterm"
 `
 
 var LinkOnly1Config string = `

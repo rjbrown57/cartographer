@@ -6,6 +6,7 @@ import (
 
 	"net"
 
+	"github.com/blevesearch/bleve"
 	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
@@ -35,6 +36,7 @@ type CartographerServer struct {
 	groupCache map[string]*proto.Group  // cache by name of all groups, should be refactored to provide links
 	tagCache   map[string][]*proto.Link // cache by tag string that links to all known matching links
 	mu         sync.Mutex
+	bleve      bleve.Index
 }
 
 func (c *CartographerServer) Serve() {
@@ -64,6 +66,11 @@ func (c *CartographerServer) Close() error {
 		return err
 	}
 
+	if err := c.bleve.Close(); err != nil {
+		log.Errorf("Error closing bleve index: %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -84,6 +91,12 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		groupCache: make(map[string]*proto.Group),
 		tagCache:   make(map[string][]*proto.Link),
 		mu:         sync.Mutex{},
+	}
+
+	mapping := bleve.NewIndexMapping()
+	c.bleve, err = bleve.NewMemOnly(mapping)
+	if err != nil {
+		log.Fatalf("Error creating bleve index: %v", err)
 	}
 
 	err = c.Initialize()

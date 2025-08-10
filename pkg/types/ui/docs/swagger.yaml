@@ -21,6 +21,13 @@ paths:
           type: string
         name: group
         type: array
+      - collectionFormat: multi
+        description: Additional term names
+        in: query
+        items:
+          type: string
+        name: term
+        type: array
       produces:
       - text/html
       responses:
@@ -53,7 +60,7 @@ paths:
       consumes:
       - application/json
       description: Retrieve all links, groups, and tags with optional filtering by
-        tags and groups via query parameters
+        tags, groups and terms via query parameters
       parameters:
       - description: Filter by tag names (comma-separated)
         example: '"oci,k8s"'
@@ -64,6 +71,11 @@ paths:
         example: '"gitlab,github"'
         in: query
         name: group
+        type: string
+      - description: Filter by term (comma-separated)
+        example: '"ko,binman"'
+        in: query
+        name: term
         type: string
       produces:
       - application/json

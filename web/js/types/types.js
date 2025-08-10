@@ -54,21 +54,24 @@ function GetQueryPath() {
     const urlParams = new URLSearchParams(window.location.search);
     const tag = urlParams.getAll('tag');
     const group = urlParams.getAll('group');
+    const term = urlParams.getAll('term');
     if (tag.length > 0) {
-        queryUrl += "/tags/";
-        queryUrl += tag[0];
-        queryUrl += "?";
+        queryUrl += "?tag=" + tag[0];
         tag.slice(1).forEach((t) => {
             queryUrl += "&tag=" + t;
         });
-        return queryUrl;
     }
     if (group.length > 0) {
-        queryUrl += "/groups/" + group[0];
+        queryUrl += "?group=" + group[0];
         group.slice(1).forEach((g) => {
             queryUrl += "&group=" + g;
         });
-        return queryUrl;
+    }
+    if (term.length > 0) {
+        queryUrl += "?term=" + term[0];
+        term.slice(1).forEach((t) => {
+            queryUrl += "&term=" + t;
+        });
     }
     return queryUrl;
 }

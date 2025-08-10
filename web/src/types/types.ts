@@ -88,28 +88,31 @@ function GetQueryPath(): string {
      const urlParams = new URLSearchParams(window.location.search);
      const tag = urlParams.getAll('tag');
      const group = urlParams.getAll('group');
- 
-     // http://localhost:8081/v1/get/tags/oci?tag=github
+     const term = urlParams.getAll('term');
+
+     // http://localhost:8081/v1/get/?tag=oci&tag=github
      if (tag.length > 0) {
-        queryUrl += "/tags/";
-        // need to use the first tag as the query param
-        queryUrl += tag[0];
-        // add a ? to the query url
-        queryUrl += "?";
+        queryUrl += "?tag=" + tag[0];
         // add the rest of the tags as query params
         tag.slice(1).forEach((t) => {
             queryUrl += "&tag=" + t;
         });
-        return queryUrl;
      }
 
      if (group.length > 0) {
-        queryUrl += "/groups/" + group[0];
+        queryUrl += "?group=" + group[0];
         // add the rest of the groups as query params
         group.slice(1).forEach((g) => {
             queryUrl += "&group=" + g;
         });
-        return queryUrl;
+     }
+
+     if (term.length > 0) {
+        queryUrl += "?term=" + term[0];
+        // add the rest of the terms as query params
+        term.slice(1).forEach((t) => {
+            queryUrl += "&term=" + t;
+        });
      }
 
      return queryUrl

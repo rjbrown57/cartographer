@@ -43,12 +43,13 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 // GetHandler godoc
 // @Summary Get all data with optional filtering
-// @Description Retrieve all links, groups, and tags with optional filtering by tags and groups via query parameters
+// @Description Retrieve all links, groups, and tags with optional filtering by tags, groups and terms via query parameters
 // @Tags get
 // @Accept json
 // @Produce json
 // @Param tag query string false "Filter by tag names (comma-separated)" example("oci,k8s")
 // @Param group query string false "Filter by group names (comma-separated)" example("gitlab,github")
+// @Param term query string false "Filter by term (comma-separated)" example("ko,binman")
 // @Success 200 {object} map[string]interface{} "Filtered data"
 // @Failure 404 {object} map[string]interface{} "Group not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -67,9 +68,6 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		for _, group := range SplitQueryArray(c.QueryArray("group")) {
 			gr.Request.Groups = append(gr.Request.Groups, &proto.Group{Name: group})
 		}
-
-		// http://localhost:8081/v1/get?tag=oci,k8s&tag=gitlab
-		// [{"name":"oci,k8s"},{"name":"gitlab"}]
 
 		// Get the tag(s) from the query parameter
 		for _, tag := range SplitQueryArray(c.QueryArray("tag")) {
@@ -239,6 +237,7 @@ func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Tags web
 // @Param tag query []string false "Additional tag names" collectionFormat(multi)
 // @Param group query []string false "Additional group names" collectionFormat(multi)
+// @Param term query []string false "Additional term names" collectionFormat(multi)
 // @Accept html
 // @Produce html
 // @Success 200 {string} string "HTML page"
