@@ -61,7 +61,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// Add Groups
 	for _, v := range in.Request.Groups {
 		log.Debugf("Adding group %+v", v)
-		newData[v.Name] = v
+		// currently groups are not stored in the backend
 		c.AddToCache(v)
 		metrics.IncrementObjectCount("group", 1)
 	}
