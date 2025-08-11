@@ -2,6 +2,8 @@ import * as cards from '../cards/cards.js';
 
 const searchId = 'searchBar';
 
+
+
 export class SearchBar {
     filter: string[] = [];
     constructor(deck: cards.Card[]) {
@@ -11,6 +13,37 @@ export class SearchBar {
             this.filter = PrepareTerms(search.value.toUpperCase());
             FilterCards(deck, this.filter);
         });
+        
+        // Handle Enter key press to add terms to URL
+        search.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.addTermsToURL();
+            }
+        });
+    }
+    
+    private addTermsToURL(): void {
+        const search = document.getElementById(searchId) as HTMLInputElement;
+        const terms = PrepareTerms(search.value);
+        
+        if (terms.length === 0) {
+            return;
+        }
+        
+        // Create URL with search terms as query parameters
+        const url = new URL(window.location.href);
+        
+        // Remove existing term parameters
+        url.searchParams.delete('term');
+        
+        // Add each term as a separate term parameter
+        terms.forEach(term => {
+            url.searchParams.append('term', term);
+        });
+        
+        // Update the URL without reloading the page
+        window.history.pushState({}, '', url.toString());
     }
 }
 
