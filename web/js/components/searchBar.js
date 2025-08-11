@@ -8,6 +8,25 @@ export class SearchBar {
             this.filter = PrepareTerms(search.value.toUpperCase());
             FilterCards(deck, this.filter);
         });
+        search.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.addTermsToURL();
+            }
+        });
+    }
+    addTermsToURL() {
+        const search = document.getElementById(searchId);
+        const terms = PrepareTerms(search.value);
+        if (terms.length === 0) {
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.delete('term');
+        terms.forEach(term => {
+            url.searchParams.append('term', term);
+        });
+        window.history.pushState({}, '', url.toString());
     }
 }
 function FilterCards(deck, filter) {

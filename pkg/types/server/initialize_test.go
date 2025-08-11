@@ -1,34 +1,40 @@
 package server
 
 import (
-	"os"
 	"testing"
-
-	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
-// TODO make this a proper test
 func TestInitialize(t *testing.T) {
-
-	config, err := utils.WriteTestConfig()
-	if err != nil {
-		t.Fatalf("Failed to write test config: %v", err)
+	tests := []struct {
+		name          string
+		configFile    string
+		expectedLinks int
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "successful initialization with valid config",
+			configFile:    "",
+			expectedLinks: 5,
+			expectError:   false,
+		},
 	}
 
-	t.Cleanup(func() {
-		os.Remove(config.Name())
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	server := NewCartographerServer(&CartographerServerOptions{
-		ConfigFile: config.Name(),
-	})
+			if len(testServer.cache) == 0 {
+				t.Fatalf("Cache is empty")
+			}
 
-	err = server.Initialize()
-	if err != nil {
-		t.Fatalf("Failed to initialize server: %v", err)
-	}
+			links, err := testServer.GetBackendData()
+			if err != nil {
+				t.Fatalf("Failed to get backend data: %v", err)
+			}
 
-	if len(server.cache) == 0 {
-		t.Fatalf("Cache is empty")
+			if len(links) != tt.expectedLinks {
+				t.Fatalf("Expected %d links, got %d", tt.expectedLinks, len(links))
+			}
+		})
 	}
 }

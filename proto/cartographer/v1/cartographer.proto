@@ -73,6 +73,7 @@ message CartographerRequest {
   repeated Tag tags = 1;
   repeated Group groups = 2;
   repeated Link links = 3;
+  repeated string terms = 4;
 }
 
 // The response message 

@@ -40,6 +40,7 @@ func NewCartographerUI(o *config.ServerConfig) *CartographerUI {
 	return &c
 }
 
+// We should refactor this to use the http.Server instead of the gin.Engine to allow for graceful shutdown
 func (c *CartographerUI) Serve() {
 	log.Fatalf("%v", c.Server.Run(fmt.Sprintf(":%d", c.Port)))
 }
