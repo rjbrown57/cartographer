@@ -29,11 +29,16 @@ var GenerateCmd = &cobra.Command{
 
 		genLinks := make([]*proto.Link, 0)
 		for i := 0; i < num; i++ {
-			genLinks = append(genLinks, proto.NewLinkBuilder().
+
+			pl, err := proto.NewLinkBuilder().
 				WithURL(utils.GenerateFakeURL()).
 				WithTags([]string{"default"}).
 				WithData(utils.GenerateFakeData()).
-				Build())
+				Build()
+			if err != nil {
+				log.Fatalf("Error building link: %s", err)
+			}
+			genLinks = append(genLinks, pl)
 		}
 
 		c := config.CartographerConfig{

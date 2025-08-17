@@ -61,17 +61,24 @@ func TestNewCartographerRequest(t *testing.T) {
 			groups: []string{"group1"},
 			tags:   []string{"tag1"},
 			expected: &CartographerRequest{
-				Links: []*Link{NewLinkBuilder().
-					WithURL("http://example.com").
-					WithTags([]string{"tag1"}).
-					Build()},
+				Links: []*Link{
+					{
+						Url:         "http://example.com",
+						Id:          "http://example.com",
+						Displayname: "example.com",
+						Tags:        []string{"tag1"},
+					},
+				},
 				Groups: []*Group{NewProtoGroup("group1", []string{"tag1"}, "")},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		result := NewCartographerRequest(test.links, test.tags, test.groups)
+		result, err := NewCartographerRequest(test.links, test.tags, test.groups)
+		if err != nil {
+			t.Errorf("Error building link: %s", err)
+		}
 		if !reflect.DeepEqual(result, test.expected) {
 			t.Errorf("\nGot %v\nwant %v", result, test.expected)
 		}

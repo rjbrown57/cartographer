@@ -1,5 +1,7 @@
 package proto
 
+import "github.com/rjbrown57/cartographer/pkg/log"
+
 func NewProtoGroup(groupName string, tags []string, description string) *Group {
 	g := Group{Name: groupName, Tags: tags, Description: description}
 	return &g
@@ -10,17 +12,21 @@ func NewProtoTag(tagName, description string) *Tag {
 	return &t
 }
 
-func NewCartographerRequest(links, tags, groups []string) *CartographerRequest {
+func NewCartographerRequest(links, tags, groups []string) (*CartographerRequest, error) {
 	newlinks := make([]*Link, 0)
 
 	deDupMap := make(map[string]struct{})
 
 	for _, link := range links {
 		if _, ok := deDupMap[link]; !ok {
-			newlinks = append(newlinks, NewLinkBuilder().
+			pl, err := NewLinkBuilder().
 				WithURL(link).
 				WithTags(tags).
-				Build())
+				Build()
+			if err != nil {
+				return nil, err
+			}
+			newlinks = append(newlinks, pl)
 		}
 		deDupMap[link] = struct{}{}
 	}
@@ -39,7 +45,7 @@ func NewCartographerRequest(links, tags, groups []string) *CartographerRequest {
 		Groups: newGroups,
 	}
 
-	return &r
+	return &r, nil
 }
 
 func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetRequest {
@@ -54,14 +60,22 @@ func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetReque
 }
 
 func NewCartographerGetRequest(links, tags, groups []string) *CartographerGetRequest {
+	r, err := NewCartographerRequest(links, tags, groups)
+	if err != nil {
+		log.Fatalf("Error building cartographer request: %s", err)
+	}
 	return &CartographerGetRequest{
-		Request: NewCartographerRequest(links, tags, groups),
+		Request: r,
 	}
 }
 
 func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddRequest {
+	r, err := NewCartographerRequest(links, tags, groups)
+	if err != nil {
+		log.Fatalf("Error building cartographer request: %s", err)
+	}
 	return &CartographerAddRequest{
-		Request: NewCartographerRequest(links, tags, groups),
+		Request: r,
 	}
 }
 

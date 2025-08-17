@@ -27,15 +27,17 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 	pl := []*proto.Link{}
 	for _, l := range i.Links {
 
-		protoLink := proto.NewLinkBuilder().
+		protoLink, err := proto.NewLinkBuilder().
 			WithURL(l.URL).
 			WithDisplayName(l.Displayname).
 			WithDescription(l.Description).
 			WithTags(l.Tags).
-			WithId(l.Id).
 			WithData(l.Data).
+			WithId(l.Id).
 			Build()
-
+		if err != nil {
+			log.Fatalf("Error building link: %s", err)
+		}
 		pl = append(pl, protoLink)
 	}
 
