@@ -2,11 +2,6 @@ package proto
 
 import "github.com/rjbrown57/cartographer/pkg/log"
 
-func NewProtoGroup(groupName string, tags []string, description string) *Group {
-	g := Group{Name: groupName, Tags: tags, Description: description}
-	return &g
-}
-
 func NewProtoTag(tagName, description string) *Tag {
 	t := Tag{Name: tagName}
 	return &t

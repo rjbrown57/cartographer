@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option go_package = "github.com/rjbrown57/cartographer/pkg/proto";
+
+package cartographer.v1;
+
+import "google/protobuf/struct.proto";
+
+// Link represents a bookmark or link with metadata
+message Link {
+  string url = 1;
+  string displayname = 2;
+  string description = 3;
+  repeated string tags = 4; // need to fix this to use repeated Tag tags
+  google.protobuf.Struct data = 5;
+  string id = 6; 
+}
+
+// Tag represents a label or category for organizing links
+message Tag {
+  string name = 1;
+  string description = 2;
+}
+
+// Group represents a collection of related links
+message Group {
+  string name = 1;
+  string description = 2;
+  repeated string tags = 3;
+}

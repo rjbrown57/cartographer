@@ -43,12 +43,18 @@ const (
 // CartographerClient is the client API for Cartographer service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Cartographer service provides methods for managing bookmarks, links, and tags
 type CartographerClient interface {
-	// Connectivity Test
+	// Ping is used for health check and connectivity testing
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	// Get retrieves data based on the specified request type and filters
 	Get(ctx context.Context, in *CartographerGetRequest, opts ...grpc.CallOption) (*CartographerGetResponse, error)
+	// Add creates new links, groups, or tags
 	Add(ctx context.Context, in *CartographerAddRequest, opts ...grpc.CallOption) (*CartographerAddResponse, error)
+	// Delete removes existing links, groups, or tags by ID
 	Delete(ctx context.Context, in *CartographerDeleteRequest, opts ...grpc.CallOption) (*CartographerDeleteResponse, error)
+	// StreamGet provides a streaming interface for real-time data updates
 	StreamGet(ctx context.Context, in *CartographerStreamGetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CartographerStreamGetResponse], error)
 }
 
@@ -122,12 +128,18 @@ type Cartographer_StreamGetClient = grpc.ServerStreamingClient[CartographerStrea
 // CartographerServer is the server API for Cartographer service.
 // All implementations must embed UnimplementedCartographerServer
 // for forward compatibility.
+//
+// Cartographer service provides methods for managing bookmarks, links, and tags
 type CartographerServer interface {
-	// Connectivity Test
+	// Ping is used for health check and connectivity testing
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	// Get retrieves data based on the specified request type and filters
 	Get(context.Context, *CartographerGetRequest) (*CartographerGetResponse, error)
+	// Add creates new links, groups, or tags
 	Add(context.Context, *CartographerAddRequest) (*CartographerAddResponse, error)
+	// Delete removes existing links, groups, or tags by ID
 	Delete(context.Context, *CartographerDeleteRequest) (*CartographerDeleteResponse, error)
+	// StreamGet provides a streaming interface for real-time data updates
 	StreamGet(*CartographerStreamGetRequest, grpc.ServerStreamingServer[CartographerStreamGetResponse]) error
 	mustEmbedUnimplementedCartographerServer()
 }
