@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
-	"github.com/rjbrown57/cartographer/pkg/utils"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -67,16 +66,21 @@ func (b *LinkBuilder) WithData(data map[string]any) *LinkBuilder {
 }
 
 // Build creates a new Link from the builder
-func (b *LinkBuilder) Build() *Link {
+func (b *LinkBuilder) Build() (*Link, error) {
 	if b.link.Displayname == "" && b.link.Url != "" {
 		b.link.SetDisplayName()
 	}
 
-	if b.link.Id == "" && b.link.Url == "" {
-		b.link.Id = utils.GenerateDataHash(b.link.Data.AsMap())
+	// If the id is not set and the url is set, set the id to the url
+	if b.link.Id == "" && b.link.Url != "" {
+		b.link.Id = b.link.Url
 	}
 
-	return b.link
+	if b.link.Id == "" {
+		return nil, fmt.Errorf("id is required - %v", b.link)
+	}
+
+	return b.link, nil
 }
 
 // SetDisplayName sets the display name for the link
@@ -96,12 +100,5 @@ func (l *Link) SetDisplayName() {
 
 // GetKey returns the key for the link to be used in cache/backend
 func (l *Link) GetKey() string {
-	switch {
-	case l.Id != "":
-		return l.Id
-	case l.Url != "":
-		return l.Url
-	default:
-		return "unknown"
-	}
+	return l.Id
 }

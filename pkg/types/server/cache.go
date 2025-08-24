@@ -39,6 +39,10 @@ func (c *CartographerServer) DeleteFromCache(key ...string) {
 	log.Debugf("Deleting %s from cache", key)
 	for _, k := range key {
 		delete(c.cache, k)
+		err := c.bleve.Delete(k)
+		if err != nil {
+			log.Errorf("Error deleting %s from bleve: %v", k, err)
+		}
 	}
 	c.mu.Unlock()
 }

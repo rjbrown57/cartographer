@@ -14,106 +14,27 @@
 
 syntax = "proto3";
 
-import "google/protobuf/struct.proto"; // <-- Import Struct
-
 option go_package = "github.com/rjbrown57/cartographer/pkg/proto";
-option java_multiple_files = true;
-option java_package = "io.grpc.rjbrown57.cartographer";
-option java_outer_classname = "cartographerProto";
 
 package cartographer.v1;
 
+import "cartographer/v1/models.proto";
+import "cartographer/v1/requests.proto";
+
+// Cartographer service provides methods for managing bookmarks, links, and tags
 service Cartographer {
-  // Connectivity Test
+  // Ping is used for health check and connectivity testing
   rpc Ping (PingRequest) returns (PingResponse) {}
+  
+  // Get retrieves data based on the specified request type and filters
   rpc Get (CartographerGetRequest) returns (CartographerGetResponse) {}
+  
+  // Add creates new links, groups, or tags
   rpc Add (CartographerAddRequest) returns (CartographerAddResponse) {}
+  
+  // Delete removes existing links, groups, or tags by ID
   rpc Delete (CartographerDeleteRequest) returns (CartographerDeleteResponse) {}
+  
+  // StreamGet provides a streaming interface for real-time data updates
   rpc StreamGet (CartographerStreamGetRequest) returns (stream CartographerStreamGetResponse) {}
-}
-
-// Ping Method used for health check
-message PingRequest {
-  string name = 1;
-}
-
-message PingResponse {
-  string message = 1;
-}
-
-message Link {
-  string url = 1;
-  string displayname = 2;
-  string description = 3;
-  repeated string tags = 4; // need to fix this to use repeated Tag tags
-  google.protobuf.Struct data = 5;
-  string id = 6; // optional ID field for indexing in backends
-}
-
-message Tag {
-  string name = 1;
-  string description = 2;
-}
-
-message Group {
-  string name = 1;
-  string description = 2;
-  repeated string tags = 3;
-}
-
-enum RequestType {
-  REQUEST_TYPE_UNSPECIFIED = 0;
-  REQUEST_TYPE_DATA = 1; // requests that will include links
-  REQUEST_TYPE_GROUP = 2; // group creation/querying for existing groups
-  REQUEST_TYPE_TAG = 3; // tag creations/queriying for existing groups
-}
-
-// Generic request message re-used in get/delete/add
-message CartographerRequest {
-  repeated Tag tags = 1;
-  repeated Group groups = 2;
-  repeated Link links = 3;
-  repeated string terms = 4;
-}
-
-// The response message 
-message CartographerResponse {
-  repeated string msg = 1;
-  repeated string tags = 2;
-  repeated string groups = 3;
-  repeated Link links = 4;
-}
-
-message CartographerGetRequest {
-  CartographerRequest request = 1;
-  RequestType type = 2;
-}
-
-message CartographerGetResponse {
-  CartographerResponse response = 1;
-}
-
-message CartographerStreamGetRequest {
-  CartographerRequest request = 1;
-  RequestType type = 2;
-}
-
-message CartographerStreamGetResponse {
-  CartographerResponse response = 1;
-}
-
-message CartographerAddRequest {
-  CartographerRequest request = 1;
-}
-
-message CartographerAddResponse {
-  CartographerResponse response = 1;
-}
-
-message CartographerDeleteRequest {
-  CartographerRequest request = 1;
-}
-
-message CartographerDeleteResponse {
-  CartographerResponse response = 1;
 }

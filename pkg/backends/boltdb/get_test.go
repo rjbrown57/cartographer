@@ -22,22 +22,23 @@ func TestGet(t *testing.T) {
 		os.RemoveAll(tempDir)
 	})
 
-	link := &proto.Link{
+	testLink := &proto.Link{
 		Url:         "https://github.com/rjbrown57/cartographer",
 		Displayname: "Cartographer",
 		Description: "Cartographer is a tool for managing links",
 		Tags:        []string{"test", "test2"},
+		Id:          "https://github.com/rjbrown57/cartographer",
 		Data:        nil,
 	}
 
-	linkBytes, err := json.Marshal(link)
+	linkBytes, err := json.Marshal(testLink)
 	if err != nil {
 		t.Fatalf("Expected no errors, got %v", err)
 	}
 
 	mapData := map[string]any{
 		"test": "test",
-		"https://github.com/rjbrown57/cartographer": link,
+		"https://github.com/rjbrown57/cartographer": testLink,
 	}
 
 	var tests = []struct {
@@ -45,7 +46,15 @@ func TestGet(t *testing.T) {
 		keys []string
 		want *backend.BackendResponse
 	}{
-		{name: "proto link 1", keys: []string{link.GetKey()}, want: &backend.BackendResponse{Data: map[string][]byte{link.GetKey(): linkBytes}}},
+		{
+			name: "proto link 1",
+			keys: []string{testLink.GetKey()},
+			want: &backend.BackendResponse{
+				Data: map[string][]byte{
+					testLink.GetKey(): linkBytes,
+				},
+			},
+		},
 	}
 
 	// Add all cases to the database
@@ -71,17 +80,15 @@ func TestGet(t *testing.T) {
 				t.Fatalf("Expected %d data, got %d", len(tt.want.Data), len(resp.Data))
 			}
 
-			l := &proto.Link{
-				Url: link.GetUrl(),
-			}
+			datalink := &proto.Link{}
 
-			err := json.Unmarshal(resp.Data[l.GetKey()], l)
+			err := json.Unmarshal(resp.Data[testLink.GetId()], datalink)
 			if err != nil {
 				t.Fatalf("Expected no errors, got %v", err)
 			}
 
-			if !reflect.DeepEqual(l, link) {
-				t.Fatalf("%s: Expected %s, got %s", tt.name, l, link)
+			if !reflect.DeepEqual(datalink, testLink) {
+				t.Fatalf("%s: Expected %s, got %s", tt.name, datalink, testLink)
 			}
 		})
 	}

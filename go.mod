@@ -42,7 +42,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/glycerine/go-unsnap-stream v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
@@ -59,11 +58,9 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
-	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/steveyen/gtreap v0.1.0 // indirect
-	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/mod v0.26.0 // indirect

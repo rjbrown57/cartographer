@@ -58,11 +58,14 @@ func (e *BasicExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 		return nil, err
 	}
 
-	protoLink := proto.NewLinkBuilder().
+	protoLink, err := proto.NewLinkBuilder().
 		WithTags([]string{"explorer"}).
 		WithData(map[string]any{"data": parsedData}).
 		WithId(e.options.TargetUrl).
 		Build()
+	if err != nil {
+		return nil, err
+	}
 
 	r.Request.Links = append(r.Request.Links, protoLink)
 

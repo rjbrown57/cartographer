@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+option go_package = "github.com/rjbrown57/cartographer/pkg/proto";
+
+package cartographer.v1;
+
+import "cartographer/v1/models.proto";
+
+// RequestType defines the type of request being made
+enum RequestType {
+  REQUEST_TYPE_UNSPECIFIED = 0;
+  REQUEST_TYPE_DATA = 1; // requests that will include links
+  REQUEST_TYPE_GROUP = 2; // group creation/querying for existing groups
+  REQUEST_TYPE_TAG = 3; // tag creations/querying for existing groups
+}
+
+// CartographerRequest is a generic request message re-used in get/delete/add
+message CartographerRequest {
+  repeated Tag tags = 1;
+  repeated Group groups = 2;
+  repeated Link links = 3;
+  repeated string terms = 4;
+}
+
+// CartographerResponse is the generic response message
+message CartographerResponse {
+  repeated string msg = 1;
+  repeated string tags = 2;
+  repeated string groups = 3;
+  repeated Link links = 4;
+}
+
+// PingRequest is used for health check
+message PingRequest {
+  string name = 1;
+}
+
+// PingResponse is the health check response
+message PingResponse {
+  string message = 1;
+}
+
+// CartographerGetRequest is used for retrieving data
+message CartographerGetRequest {
+  CartographerRequest request = 1;
+  RequestType type = 2;
+}
+
+// CartographerGetResponse contains the retrieved data
+message CartographerGetResponse {
+  CartographerResponse response = 1;
+}
+
+// CartographerStreamGetRequest is used for streaming data
+message CartographerStreamGetRequest {
+  CartographerRequest request = 1;
+  RequestType type = 2;
+}
+
+// CartographerStreamGetResponse contains streamed data
+message CartographerStreamGetResponse {
+  CartographerResponse response = 1;
+}
+
+// CartographerAddRequest is used for adding new data
+message CartographerAddRequest {
+  CartographerRequest request = 1;
+}
+
+// CartographerAddResponse confirms the addition
+message CartographerAddResponse {
+  CartographerResponse response = 1;
+}
+
+// CartographerDeleteRequest is used for deleting data
+message CartographerDeleteRequest {
+  repeated string ids = 1;
+}
+
+// CartographerDeleteResponse confirms the deletion
+message CartographerDeleteResponse {
+  repeated string ids = 1;
+  repeated string errors = 2;
+}
