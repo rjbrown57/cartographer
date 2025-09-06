@@ -26,7 +26,10 @@ func (l SearchLimit) String() string {
 
 // SearchOptions contains configuration for search operations
 type SearchOptions struct {
+	// SearchLimit are used to scope the search to a specific field
 	Limit SearchLimit `json:"limit" yaml:"limit"`
+	// Size is the number of results to return
+	Size int `json:"size" yaml:"size"`
 }
 
 func (o *SearchOptions) GetSearchRequest(terms []string) *bleve.SearchRequest {
@@ -42,7 +45,16 @@ func (o *SearchOptions) GetSearchRequest(terms []string) *bleve.SearchRequest {
 		queries = append(queries, q)
 	}
 
-	return bleve.NewSearchRequest(bleve.NewConjunctionQuery(queries...))
+	request := bleve.NewSearchRequest(bleve.NewConjunctionQuery(queries...))
+
+	// if size is not set, use a default of 500
+	if o.Size == 0 {
+		request.Size = 500
+	} else {
+		request.Size = o.Size
+	}
+
+	return request
 }
 
 func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[string]struct{}, error) {
