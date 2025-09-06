@@ -9,10 +9,10 @@ import (
 
 var (
 	// Backend operation counters
-	CartographerObjects = promauto.NewCounterVec(
-		prometheus.CounterOpts{
+	CartographerObjects = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Name: "cartographer_objects",
-			Help: "Total number of objects",
+			Help: "Current number of objects",
 		},
 		[]string{"type"},
 	)
@@ -30,6 +30,11 @@ var (
 // Metrics helper functions
 func IncrementObjectCount(objectType string, count float64) {
 	CartographerObjects.WithLabelValues(objectType).Add(count)
+}
+
+// DecrementObjectCount decrements the count of an object type
+func DecrementObjectCount(objectType string, count float64) {
+	CartographerObjects.WithLabelValues(objectType).Add(-count)
 }
 
 func RecordBackendOperationDuration(operation string, duration float64) {

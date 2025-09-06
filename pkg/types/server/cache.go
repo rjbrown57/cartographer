@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/rjbrown57/cartographer/pkg/log"
+	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
@@ -27,6 +28,8 @@ func (c *CartographerServer) AddToCache(v any) {
 			log.Errorf("Error indexing link %s: %v", v.GetKey(), err)
 		}
 
+		metrics.IncrementObjectCount("searchIndexCount", 1)
+
 	case *proto.Group:
 		log.Debugf("Adding group %s to cache", v.Name)
 		c.groupCache[v.Name] = v
@@ -42,6 +45,8 @@ func (c *CartographerServer) DeleteFromCache(key ...string) {
 		err := c.bleve.Delete(k)
 		if err != nil {
 			log.Errorf("Error deleting %s from bleve: %v", k, err)
+		} else {
+			metrics.DecrementObjectCount("searchIndexCount", 1)
 		}
 	}
 	c.mu.Unlock()

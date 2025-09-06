@@ -70,6 +70,7 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 }
 
 func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *SearchOptions) ([]*proto.Link, error) {
+
 	terms := in.Request.GetTerms()
 
 	tagMap, err := c.GetTagMap(in)
@@ -91,6 +92,8 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 	}
 
 	links := make([]*proto.Link, 0)
+
+	log.Tracef("Search Results(%v): %+v", results.Took, results.Total)
 
 	// add the hits to the links
 	for _, hit := range results.Hits {
