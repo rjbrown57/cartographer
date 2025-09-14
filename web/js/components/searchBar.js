@@ -14,6 +14,12 @@ export class SearchBar {
                 this.addTermsToURL();
             }
         });
+        document.addEventListener('keydown', (event) => {
+            if ((event.metaKey && event.key === 'k') || (event.ctrlKey && event.key === 'k')) {
+                event.preventDefault();
+                search.focus();
+            }
+        });
     }
     addTermsToURL() {
         const search = document.getElementById(searchId);

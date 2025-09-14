@@ -8,6 +8,11 @@ export class SearchBar {
     filter: string[] = [];
     constructor(deck: cards.Card[]) {
         const search = document.getElementById(searchId) as HTMLInputElement;
+        if (!search) {
+            console.error('Search bar element not found');
+            return;
+        }
+        
         search.addEventListener('keyup', () => {
             // https://www.w3schools.com/jsref/jsref_touppercase.asp
             this.filter = PrepareTerms(search.value.toUpperCase());
@@ -21,6 +26,26 @@ export class SearchBar {
                 this.addTermsToURL();
             }
         });
+
+        // Add global keyboard shortcut listener for Cmd+K (Mac) or Ctrl+K (Windows)
+        // Only add if not already added to prevent multiple listeners
+        if (!(window as any).searchBarKeyboardListenerAdded) {
+            const handleKeyboardShortcut = (event: KeyboardEvent) => {
+                // Check for Cmd+K on Mac or Ctrl+K on Windows/Linux
+                if ((event.metaKey && event.key === 'k') || (event.ctrlKey && event.key === 'k')) {
+                    event.preventDefault();
+                    const searchElement = document.getElementById(searchId) as HTMLInputElement;
+                    if (searchElement) {
+                        searchElement.focus();
+                        // Select all text in the search bar for easy replacement
+                        searchElement.select();
+                    }
+                }
+            };
+            
+            document.addEventListener('keydown', handleKeyboardShortcut);
+            (window as any).searchBarKeyboardListenerAdded = true;
+        }
     }
     
     private addTermsToURL(): void {
