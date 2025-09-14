@@ -138,24 +138,45 @@ export class Link {
         const dataContainer = card.querySelector('.data-container');
         this.originalParent = card.parentElement;
         this.originalNextSibling = card.nextSibling;
-        const gridContainer = document.getElementById("linkgrid");
-        const linkContainer = document.getElementById("link");
-        if (gridContainer && linkContainer) {
-            card.remove();
-            linkContainer.insertBefore(card, gridContainer);
-            card.className = 'link-card bg-white shadow-xl rounded-lg p-6 flex flex-col justify-between ring-1 ring-gray-900/5 relative w-full mb-6';
-            if (dataContainer) {
-                dataContainer.classList.remove('hidden');
-            }
-            icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
-            icon.title = 'Minimize';
-            this.isMaximized = true;
+        let overlay = document.getElementById('maximized-card-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'maximized-card-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            overlay.style.display = 'none';
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.minimize();
+                }
+            });
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape' && overlay && overlay.style.display !== 'none') {
+                    this.minimize();
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+            overlay.keyHandler = handleKeyDown;
         }
+        card.remove();
+        overlay.appendChild(card);
+        card.className = 'link-card bg-white shadow-xl rounded-lg p-6 flex flex-col justify-between ring-1 ring-gray-900/5 relative w-full max-w-4xl max-h-[90vh] overflow-y-auto';
+        if (dataContainer) {
+            dataContainer.classList.remove('hidden');
+        }
+        icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.title = 'Minimize';
+        overlay.style.display = 'flex';
+        this.isMaximized = true;
     }
     minimize() {
         const card = this.self;
         const icon = card.querySelector('.fa-compress');
         const dataContainer = card.querySelector('.data-container');
+        const overlay = document.getElementById('maximized-card-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
         card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
         if (dataContainer) {
             dataContainer.classList.add('hidden');

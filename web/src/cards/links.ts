@@ -179,37 +179,68 @@ export class Link implements cards.Card {
         this.originalParent = card.parentElement;
         this.originalNextSibling = card.nextSibling;
         
-        // Move card outside the grid to take full width
-        const gridContainer = document.getElementById("linkgrid");
-        const linkContainer = document.getElementById("link");
-        
-        if (gridContainer && linkContainer) {
-            // Remove card from grid
-            card.remove();
+        // Create a fixed overlay container if it doesn't exist
+        let overlay = document.getElementById('maximized-card-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'maximized-card-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            overlay.style.display = 'none';
+            document.body.appendChild(overlay);
             
-            // Insert card directly into the link container, before the grid
-            linkContainer.insertBefore(card, gridContainer);
+            // Close overlay when clicking outside the card
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.minimize();
+                }
+            });
             
-            // Update card styles for full width
-            card.className = 'link-card bg-white shadow-xl rounded-lg p-6 flex flex-col justify-between ring-1 ring-gray-900/5 relative w-full mb-6';
+            // Close overlay with ESC key
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape' && overlay && overlay.style.display !== 'none') {
+                    this.minimize();
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
             
-            // Show data container
-            if (dataContainer) {
-                dataContainer.classList.remove('hidden');
-            }
-            
-            // Update icon
-            icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
-            icon.title = 'Minimize';
-            
-            this.isMaximized = true;
+            // Store the handler so we can remove it later if needed
+            (overlay as any).keyHandler = handleKeyDown;
         }
+        
+        // Remove card from grid
+        card.remove();
+        
+        // Add card to overlay
+        overlay.appendChild(card);
+        
+        // Update card styles for overlay display
+        card.className = 'link-card bg-white shadow-xl rounded-lg p-6 flex flex-col justify-between ring-1 ring-gray-900/5 relative w-full max-w-4xl max-h-[90vh] overflow-y-auto';
+        
+        // Show data container
+        if (dataContainer) {
+            dataContainer.classList.remove('hidden');
+        }
+        
+        // Update icon
+        icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.title = 'Minimize';
+        
+        // Show overlay
+        overlay.style.display = 'flex';
+        
+        this.isMaximized = true;
     }
     
     minimize(): void {
         const card = this.self;
         const icon = card.querySelector('.fa-compress') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
+        const overlay = document.getElementById('maximized-card-overlay');
+        
+        // Hide overlay
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
         
         // Restore original card styles
         card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
@@ -226,7 +257,7 @@ export class Link implements cards.Card {
         // Move card back to original position in grid
         const gridContainer = document.getElementById("linkgrid");
         if (gridContainer && this.originalParent) {
-            // Remove card from its current position
+            // Remove card from overlay
             card.remove();
             
             // Insert back into grid at original position
