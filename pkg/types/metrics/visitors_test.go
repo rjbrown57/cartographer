@@ -14,7 +14,7 @@ func TestTrackUniqueVisitor(t *testing.T) {
 	TrackUniqueVisitor("192.168.1.1", "web-ui") // Duplicate IP
 
 	// Check unique count
-	count := GetUniqueVisitorCount("web-ui")
+	count := GetUniqueVisitorCount()
 	if count != 2 {
 		t.Errorf("Expected 2 unique visitors, got %f", count)
 	}

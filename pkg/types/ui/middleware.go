@@ -4,7 +4,6 @@ import (
 	"slices"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rjbrown57/cartographer/pkg/log"
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 )
 
@@ -23,7 +22,6 @@ func TrackingMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		log.Tracef("Tracking visitor %s", c.ClientIP())
 		metrics.TrackUniqueVisitor(c.ClientIP(), "web-ui")
 		c.Next()
 	}

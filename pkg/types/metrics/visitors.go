@@ -37,17 +37,12 @@ func TrackUniqueVisitor(ip string, source string) {
 }
 
 // GetUniqueVisitorCount returns the current count of unique visitors
-func GetUniqueVisitorCount(source string) float64 {
+func GetUniqueVisitorCount() float64 {
 	visitorMutex.RLock()
 	defer visitorMutex.RUnlock()
 
-	count := 0
-	for _, seen := range seenVisitors {
-		if seen {
-			count++
-		}
-	}
-	return float64(count)
+	// Since all values in seenVisitors are true, the map length equals the count
+	return float64(len(seenVisitors))
 }
 
 // GetSeenVisitors returns a copy of the seen visitors map for debugging

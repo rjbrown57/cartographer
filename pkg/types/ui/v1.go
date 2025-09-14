@@ -10,6 +10,7 @@ import (
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
+	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 	"github.com/rjbrown57/cartographer/pkg/utils"
 	"github.com/rjbrown57/cartographer/web"
 )
@@ -259,9 +260,10 @@ func indexFunc(name string) gin.HandlerFunc {
 func aboutFunc(siteName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"site": siteName,
-			"version": version,
-			"commit":  commit,
-			"date":    date,
+			"version":         version,
+			"commit":          commit,
+			"date":            date,
+			"unique_visitors": metrics.GetUniqueVisitorCount(),
 		})
 	}
 }
