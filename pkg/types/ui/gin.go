@@ -45,6 +45,8 @@ func healthzFunc() gin.HandlerFunc {
 // @BasePath /v1
 // @schemes http,https
 
+var excludePaths = []string{"/healthz", "/metrics", "/v1/ping"}
+
 func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -53,9 +55,10 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Skip: GetSkipper(),
 	}), SiteNameMiddleware(o.SiteName),
+		TrackingMiddleware(),
 		gin.Recovery(),
 		gzip.Gzip(gzip.DefaultCompression,
-			gzip.WithExcludedPaths([]string{"/healthz", "/metrics", "/v1/ping"})))
+			gzip.WithExcludedPaths(excludePaths)))
 
 	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
 	g.StaticFS("/scripts/", http.FS(web.GetJSFS()))
