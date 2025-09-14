@@ -6,7 +6,6 @@ services:
     ports:
       - "8080:8080"  # gRPC server
       - "8081:8081"  # Web UI
-      - "8082:8082"  # Health check
     volumes:
       - ./example:/app/config:ro
     environment:

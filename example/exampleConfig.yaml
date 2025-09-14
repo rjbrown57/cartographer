@@ -5,28 +5,214 @@ cartographer:
   web:
     address: 0.0.0.0
     port: 8081
-    siteName: "Cartographer"
+    siteName: "Cartographer Demo"
   backend:
     type: boltdb
     path: /tmp/cartographer.db
+
 groups:
-  - name: example
-    tags: ["tools","k8s"]
-links: 
-  - url: https://kernel.org
-    description: "kubernetes main github repo"
-    tags: ["linux"]
-  - id: example1
-    data:
-      example: data
-      list:
-      - item1
-      - item2
-      - item3
-  - id: example2
-    data:
-      example: data2
-      list:
-      - item1a
-      - item2b
-      - item3c
+  - name: "Development"
+    tags: ["staging", "testing", "dev-tools", "documentation"]
+  - name: "Production"
+    tags: ["production", "monitoring", "alerts", "dashboards"]
+  - name: "Infrastructure"
+    tags: ["kubernetes", "docker", "cloud", "networking"]
+  - name: "Team Resources"
+    tags: ["onboarding", "processes", "meetings", "planning"]
+
+links:
+  # Development Tools & Platforms
+  - url: https://github.com
+    description: "GitHub - Code hosting and collaboration platform"
+    tags: ["dev-tools", "git", "source-control"]
+
+  - url: https://gitlab.com
+    description: "GitLab - DevOps platform with CI/CD"
+    tags: ["dev-tools", "git", "ci-cd"]
+
+  - url: https://bitbucket.org
+    description: "Bitbucket - Git repository management"
+    tags: ["dev-tools", "git", "source-control"]
+
+  # Cloud Platforms
+  - url: https://console.aws.amazon.com
+    description: "AWS Management Console"
+    tags: ["cloud", "aws", "infrastructure"]
+
+  - url: https://console.cloud.google.com
+    description: "Google Cloud Platform Console"
+    tags: ["cloud", "gcp", "infrastructure"]
+
+  - url: https://portal.azure.com
+    description: "Microsoft Azure Portal"
+    tags: ["cloud", "azure", "infrastructure"]
+
+  - url: https://cloud.digitalocean.com
+    description: "DigitalOcean Cloud Platform"
+    tags: ["cloud", "infrastructure", "vps"]
+
+  # Monitoring & Observability
+  - url: https://grafana.com
+    description: "Grafana - Metrics visualization and monitoring"
+    tags: ["monitoring", "dashboards", "metrics"]
+
+  - url: https://prometheus.io
+    description: "Prometheus - Monitoring and alerting toolkit"
+    tags: ["monitoring", "metrics", "alerts"]
+
+  - url: https://www.elastic.co/kibana
+    description: "Kibana - Data visualization and exploration"
+    tags: ["monitoring", "logs", "visualization"]
+
+  - url: https://www.datadoghq.com
+    description: "Datadog - Cloud monitoring and security"
+    tags: ["monitoring", "apm", "logs"]
+
+  - url: https://newrelic.com
+    description: "New Relic - Application performance monitoring"
+    tags: ["monitoring", "apm", "performance"]
+
+  # Container & Orchestration
+  - url: https://kubernetes.io
+    description: "Kubernetes - Container orchestration platform"
+    tags: ["kubernetes", "containers", "orchestration"]
+
+  - url: https://www.docker.com
+    description: "Docker - Container platform and tools"
+    tags: ["docker", "containers", "dev-tools"]
+
+  - url: https://helm.sh
+    description: "Helm - Kubernetes package manager"
+    tags: ["kubernetes", "packaging", "dev-tools"]
+
+  - url: https://argo-cd.readthedocs.io
+    description: "ArgoCD - GitOps continuous delivery"
+    tags: ["kubernetes", "gitops", "deployment"]
+
+  # CI/CD & Automation
+  - url: https://www.jenkins.io
+    description: "Jenkins - Open source automation server"
+    tags: ["ci-cd", "automation", "dev-tools"]
+
+  - url: https://circleci.com
+    description: "CircleCI - Continuous integration and delivery"
+    tags: ["ci-cd", "automation", "testing"]
+
+  - url: https://github.com/features/actions
+    description: "GitHub Actions - CI/CD platform"
+    tags: ["ci-cd", "github", "automation"]
+
+  - url: https://gitlab.com/features/ci
+    description: "GitLab CI/CD - Integrated DevOps platform"
+    tags: ["ci-cd", "gitlab", "devops"]
+
+  # Documentation & Knowledge
+  - url: https://www.atlassian.com/software/confluence
+    description: "Confluence - Team collaboration and documentation"
+    tags: ["documentation", "collaboration", "knowledge"]
+
+  - url: https://www.notion.so
+    description: "Notion - All-in-one workspace for notes and docs"
+    tags: ["documentation", "notes", "collaboration"]
+
+  - url: https://gitbook.com
+    description: "GitBook - Modern documentation platform"
+    tags: ["documentation", "publishing", "knowledge"]
+
+  - url: https://www.docusaurus.io
+    description: "Docusaurus - Documentation website generator"
+    tags: ["documentation", "static-site", "open-source"]
+
+  # Communication & Collaboration
+  - url: https://slack.com
+    description: "Slack - Team communication platform"
+    tags: ["communication", "collaboration", "chat"]
+
+  - url: https://www.microsoft.com/en-us/microsoft-teams
+    description: "Microsoft Teams - Collaboration and communication"
+    tags: ["communication", "meetings", "collaboration"]
+
+  - url: https://discord.com
+    description: "Discord - Voice, video and text communication"
+    tags: ["communication", "voice", "gaming"]
+
+  - url: https://zoom.us
+    description: "Zoom - Video conferencing and webinars"
+    tags: ["communication", "meetings", "video"]
+
+  # Security & Authentication
+  - url: https://auth0.com
+    description: "Auth0 - Identity and access management"
+    tags: ["security", "authentication", "identity"]
+
+  - url: https://www.okta.com
+    description: "Okta - Identity and access management"
+    tags: ["security", "authentication", "sso"]
+
+  - url: https://www.hashicorp.com/products/vault
+    description: "HashiCorp Vault - Secrets management"
+    tags: ["security", "secrets", "infrastructure"]
+
+  # Database & Storage
+  - url: https://www.mongodb.com
+    description: "MongoDB - NoSQL database platform"
+    tags: ["database", "nosql", "document-store"]
+
+  - url: https://www.postgresql.org
+    description: "PostgreSQL - Open source relational database"
+    tags: ["database", "sql", "relational"]
+
+  - url: https://redis.io
+    description: "Redis - In-memory data structure store"
+    tags: ["database", "cache", "in-memory"]
+
+  - url: https://min.io
+    description: "MinIO - High performance object storage"
+    tags: ["storage", "s3", "object-storage"]
+
+  # External Status & Dependencies
+  - url: https://www.githubstatus.com
+    description: "GitHub Service Status"
+    tags: ["external", "status", "dependencies"]
+
+  - url: https://status.aws.amazon.com
+    description: "AWS Service Health Dashboard"
+    tags: ["external", "status", "aws", "dependencies"]
+
+  - url: https://status.cloud.google.com
+    description: "Google Cloud Status"
+    tags: ["external", "status", "gcp", "dependencies"]
+
+  - url: https://status.azure.com
+    description: "Azure Service Health"
+    tags: ["external", "status", "azure", "dependencies"]
+
+  # Testing & Quality
+  - url: https://www.sonarqube.org
+    description: "SonarQube - Code quality and security analysis"
+    tags: ["testing", "quality", "security", "code-analysis"]
+
+  - url: https://codecov.io
+    description: "Codecov - Code coverage reporting"
+    tags: ["testing", "quality", "coverage"]
+
+  - url: https://k6.io
+    description: "k6 - Load testing and performance monitoring"
+    tags: ["testing", "performance", "load-testing"]
+
+  # Development Resources
+  - url: https://stackoverflow.com
+    description: "Stack Overflow - Developer Q&A community"
+    tags: ["dev-tools", "community", "help"]
+
+  - url: https://developer.mozilla.org
+    description: "MDN Web Docs - Web development resources"
+    tags: ["dev-tools", "documentation", "web"]
+
+  - url: https://docs.docker.com
+    description: "Docker Documentation"
+    tags: ["dev-tools", "documentation", "docker"]
+
+  - url: https://kubernetes.io/docs
+    description: "Kubernetes Documentation"
+    tags: ["dev-tools", "documentation", "kubernetes"]
