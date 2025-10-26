@@ -43,6 +43,10 @@ func ProcessAutoTags(link *proto.Link, at []*AutoTag) {
 
 // Configure will compile the regex for the auto tag
 func (a *AutoTag) Configure() {
+	// If the regex is already compiled, return
+	if a.Regex != nil {
+		return
+	}
 	log.Infof("Configuring auto tag `%s` - %s", a.RegexString, a.Tags)
 	a.Regex = regexp.MustCompile(a.RegexString)
 }
