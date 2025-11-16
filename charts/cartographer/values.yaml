@@ -100,6 +100,28 @@ ingress:
 
 resources: {}
 
+# optional init containers
+initContainers: []
+# - name: init-cartographer
+#   image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+#   imagePullPolicy: Always
+#   args: ["serve", "-c", "/config"]
+#   volumeMounts:
+#     - name: config
+#       mountPath: "/config"
+#       readOnly: true
+
+# optional sidecar containers
+sidecarContainers: []
+# - name: sidecar-cartographer
+#   image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+#   imagePullPolicy: Always
+#   args: ["serve", "-c", "/config"]
+#   volumeMounts:
+#     - name: config
+#       mountPath: "/config"
+#       readOnly: true
+
 # Needs GRPC implementation and research into best practice
 livenessProbe: 
   httpGet:
