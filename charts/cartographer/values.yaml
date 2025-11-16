@@ -48,13 +48,23 @@ serviceAccount:
   # Annotations to add to the service account
   annotations: {}
 
+podSecurityContext:
+  runAsUser: 99999
+  runAsGroup: 99999
+  fsGroup: 99999
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
 securityContext: 
   capabilities:
     drop:
     - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 99999
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
@@ -89,6 +99,28 @@ ingress:
   #      - chart-example.local
 
 resources: {}
+
+# optional init containers
+initContainers: []
+# - name: init-cartographer
+#   image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+#   imagePullPolicy: Always
+#   args: ["serve", "-c", "/config"]
+#   volumeMounts:
+#     - name: config
+#       mountPath: "/config"
+#       readOnly: true
+
+# optional sidecar containers
+sidecarContainers: []
+# - name: sidecar-cartographer
+#   image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+#   imagePullPolicy: Always
+#   args: ["serve", "-c", "/config"]
+#   volumeMounts:
+#     - name: config
+#       mountPath: "/config"
+#       readOnly: true
 
 # Needs GRPC implementation and research into best practice
 livenessProbe: 

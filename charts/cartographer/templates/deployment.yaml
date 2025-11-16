@@ -29,6 +29,10 @@ spec:
       serviceAccountName: {{ include "cartographer.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if (gt (len .Values.initContainers) 0) }}
+      initContainers:
+        {{- tpl (toYaml .Values.initContainers) . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -39,13 +43,22 @@ spec:
           livenessProbe: {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe: {{- toYaml .Values.readinessProbe | nindent 12 }}
           ports:
-            {{- toYaml .Values.ports | nindent 12 }}
+            {{- range .Values.service.ports }}
+            - containerPort: {{ .targetPort }}
+              protocol: {{ .protocol | default "TCP" }}
+              {{- if .name }}
+              name: {{ .name }}
+              {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+        {{- if (gt (len .Values.sidecarContainers) 0) }}
+        {{- tpl (toYaml .Values.sidecarContainers) . | nindent 8 }}
+        {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

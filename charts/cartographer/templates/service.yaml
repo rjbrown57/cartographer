@@ -7,11 +7,11 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    {{ range .Values.service.ports }}
+    {{- range .Values.service.ports }}
     - port: {{ .port }}
       targetPort: {{ .targetPort }}
       protocol: {{ .protocol }}
       name: {{ .name }}
-    {{ end }}
+    {{- end }}
   selector:
     {{- include "cartographer.selectorLabels" . | nindent 4 }}
