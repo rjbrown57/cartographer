@@ -2,6 +2,8 @@ import * as dropdown from   '../components/dropDown.js';
 import * as cards from '../cards/cards.js';
 import { Link } from '../cards/links.js';
 import { SearchBar } from '../components/searchBar.js';
+import * as cache from '../components/cache.js';
+import * as query from '../query/query.js';
 
 const EncodingHeader = {
     headers: {
@@ -12,8 +14,7 @@ const EncodingHeader = {
 let CartographerData: CartoResponse;
 let GroupData: CartoResponse;
 
-const GetEndpoint = '/v1/get';
-const GroupEndpoint = GetEndpoint + '/groups';
+const GroupEndpoint = query.GetEndpoint + '/groups';
 const GroupId = 'groupList'
 const buttonId = 'groupButton'
 
@@ -83,48 +84,35 @@ export class Cartographer {
     }
 }    
 
-function GetQueryPath(): string {
-    let queryUrl = GetEndpoint;
-     const urlParams = new URLSearchParams(window.location.search);
-     const tag = urlParams.getAll('tag');
-     const group = urlParams.getAll('group');
-     const term = urlParams.getAll('term');
-
-     // http://localhost:8081/v1/get/?tag=oci&tag=github
-     if (tag.length > 0) {
-        queryUrl += "?tag=" + tag[0];
-        // add the rest of the tags as query params
-        tag.slice(1).forEach((t) => {
-            queryUrl += "&tag=" + t;
-        });
-     }
-
-     if (group.length > 0) {
-        queryUrl += "?group=" + group[0];
-        // add the rest of the groups as query params
-        group.slice(1).forEach((g) => {
-            queryUrl += "&group=" + g;
-        });
-     }
-
-     if (term.length > 0) {
-        queryUrl += "?term=" + term[0];
-        // add the rest of the terms as query params
-        term.slice(1).forEach((t) => {
-            queryUrl += "&term=" + t;
-        });
-     }
-
-     return queryUrl
- }
- 
-
+ // QueryMainData will check the cache for the data and if it's valid, it will use the cached data.
+ // If it's not valid, it will fetch the data from the server and cache it.
 async function QueryMainData() {
+    const queryPath = query.GetQueryPath();
+    
+    // Check if we have valid cached data for this query path
+    console.log('Cache lookup for path:', queryPath, 'Cache size:', cache.getCacheSize(), 'Cache keys:', cache.getCacheKeys());
+    const cachedEntry = cache.getCacheEntry(queryPath);
+    
+    console.log('Cache entry retrieved:', cachedEntry);
+    if (cache.isCacheValid(cachedEntry)) {
+        // The `!` is TypeScript's non-null assertion operator. It tells TypeScript that `cachedEntry` is definitely not null/undefined
+        // at this point, even though `getCacheEntry()` returns `CacheEntry<CartoResponse> | undefined`. We can safely use `!` here because `isCacheValid()` 
+        // returns false if the cache entry is null/undefined, so we know it exists when we reach this line.
+        CartographerData = cachedEntry!.data;
+        console.log('Using cached data:', CartographerData);
+        return;
+    }
+
     try {
-        const response = await fetch(GetQueryPath(), EncodingHeader);
+        const response = await fetch(queryPath, EncodingHeader);
         const data = await response.json();
         CartographerData = data.response;
-        console.log(CartographerData);
+        
+        // Store in cache with timestamp, keyed by query path
+        cache.setCacheEntry(queryPath, CartographerData);
+        console.log('Cache set for path:', queryPath, 'Cache size:', cache.getCacheSize());
+        
+        console.log('Fetched and cached data:', CartographerData);
     } catch (err) {
         return console.error(err);
     }

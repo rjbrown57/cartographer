@@ -4,6 +4,10 @@ export class SearchBar {
     filter = [];
     constructor(deck) {
         const search = document.getElementById(searchId);
+        if (!search) {
+            console.error('Search bar element not found');
+            return;
+        }
         search.addEventListener('keyup', () => {
             this.filter = PrepareTerms(search.value.toUpperCase());
             FilterCards(deck, this.filter);
@@ -14,12 +18,20 @@ export class SearchBar {
                 this.addTermsToURL();
             }
         });
-        document.addEventListener('keydown', (event) => {
-            if ((event.metaKey && event.key === 'k') || (event.ctrlKey && event.key === 'k')) {
-                event.preventDefault();
-                search.focus();
-            }
-        });
+        if (!window.searchBarKeyboardListenerAdded) {
+            const handleKeyboardShortcut = (event) => {
+                if ((event.metaKey && event.key === 'k') || (event.ctrlKey && event.key === 'k')) {
+                    event.preventDefault();
+                    const searchElement = document.getElementById(searchId);
+                    if (searchElement) {
+                        searchElement.focus();
+                        searchElement.select();
+                    }
+                }
+            };
+            document.addEventListener('keydown', handleKeyboardShortcut);
+            window.searchBarKeyboardListenerAdded = true;
+        }
     }
     addTermsToURL() {
         const search = document.getElementById(searchId);
