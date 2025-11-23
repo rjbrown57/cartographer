@@ -76,7 +76,12 @@ links:
   - url: https://kubernetes.io
     description: "Kubernetes - Container orchestration platform"
     tags: ["kubernetes", "containers", "orchestration"]
-
+    annotations:
+      cartographer.io/project: "infrastructure"
+      cartographer.io/owner: "platform-team"
+      cartographer.io/last-reviewed: "2024-01-15"
+      cartographer.io/docs-version: "v1.28"
+        
   - url: https://www.docker.com
     description: "Docker - Container platform and tools"
     tags: ["docker", "containers", "dev-tools"]
