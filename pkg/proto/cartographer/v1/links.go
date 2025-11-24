@@ -65,6 +65,12 @@ func (b *LinkBuilder) WithData(data map[string]any) *LinkBuilder {
 	return b
 }
 
+// WithMetadata sets the metadata for the link
+func (b *LinkBuilder) WithAnnotations(annotations map[string]string) *LinkBuilder {
+	b.link.Annotations = annotations
+	return b
+}
+
 // Build creates a new Link from the builder
 func (b *LinkBuilder) Build() (*Link, error) {
 	if b.link.Displayname == "" && b.link.Url != "" {

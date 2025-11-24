@@ -34,11 +34,11 @@ tasks:
   generate:
     desc: "Generate Fake Data and add to cartographer. Can re-run to add more data"
     vars:
-      num: 1000
+      num: 5000
       dataPath: /tmp/data.yaml
     cmds:
-    - cartographer generate -c example -n ${num} > ${dataPath}
-    - cartographer client add -f ${dataPath}
+    - cartographer test generate -n {{.num}} > {{.dataPath}}
+    - cartographer client add -f {{.dataPath}}
   serve:
     desc: "start cartographer"
     cmds:

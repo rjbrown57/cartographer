@@ -34,6 +34,7 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 			WithTags(l.Tags).
 			WithData(l.Data).
 			WithId(l.Id).
+			WithAnnotations(l.Annotations).
 			Build()
 		if err != nil {
 			log.Fatalf("Error building link: %s", err)
@@ -57,12 +58,13 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 // YamlLink is a struct that is used to ingest data from a yaml file.
 // This is mainly for the map[string]any data in links.
 type YamlLink struct {
-	URL         string         `yaml:"url"`
-	Displayname string         `yaml:"displayname"`
-	Description string         `yaml:"description"`
-	Tags        []string       `yaml:"tags"`
-	Data        map[string]any `yaml:"data"`
-	Id          string         `yaml:"id"`
+	URL         string            `yaml:"url"`
+	Displayname string            `yaml:"displayname"`
+	Description string            `yaml:"description"`
+	Tags        []string          `yaml:"tags"`
+	Data        map[string]any    `yaml:"data"`
+	Id          string            `yaml:"id"`
+	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
 // WithIngest is a builder for the CartographerConfig struct to ingest data from a yaml file

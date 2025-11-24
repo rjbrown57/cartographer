@@ -1,6 +1,8 @@
 import * as dropdown from '../components/dropDown.js';
 import { Link } from '../cards/links.js';
 import { SearchBar } from '../components/searchBar.js';
+import * as cache from '../components/cache.js';
+import * as query from '../query/query.js';
 const EncodingHeader = {
     headers: {
         'Accept-Encoding': 'gzip'
@@ -8,8 +10,7 @@ const EncodingHeader = {
 };
 let CartographerData;
 let GroupData;
-const GetEndpoint = '/v1/get';
-const GroupEndpoint = GetEndpoint + '/groups';
+const GroupEndpoint = query.GetEndpoint + '/groups';
 const GroupId = 'groupList';
 const buttonId = 'groupButton';
 export class Cartographer {
@@ -44,43 +45,73 @@ export class Cartographer {
             console.error("Container element not found");
             return;
         }
-        this.Cards.forEach((card) => {
-            container.appendChild(card.render());
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasSearchParams = urlParams.has('tag') || urlParams.has('group') || urlParams.has('term');
+        const INITIAL_CARD_LIMIT = 100;
+        const CHUNK_SIZE = 50;
+        const initialFragment = document.createDocumentFragment();
+        const initialCards = this.Cards.slice(0, INITIAL_CARD_LIMIT);
+        initialCards.forEach((card) => {
+            initialFragment.appendChild(card.render());
         });
+        container.appendChild(initialFragment);
+        if (this.Cards.length > INITIAL_CARD_LIMIT && !hasSearchParams) {
+            const remainingCards = this.Cards.slice(INITIAL_CARD_LIMIT);
+            let currentIndex = 0;
+            const processChunk = () => {
+                const endIndex = Math.min(currentIndex + CHUNK_SIZE, remainingCards.length);
+                const chunk = remainingCards.slice(currentIndex, endIndex);
+                const chunkFragment = document.createDocumentFragment();
+                chunk.forEach((card) => {
+                    const renderedCard = card.render();
+                    card.hide();
+                    chunkFragment.appendChild(renderedCard);
+                });
+                container.appendChild(chunkFragment);
+                currentIndex = endIndex;
+                if (currentIndex < remainingCards.length) {
+                    if (window.requestIdleCallback) {
+                        window.requestIdleCallback(processChunk, { timeout: 1000 });
+                    }
+                    else {
+                        setTimeout(processChunk, 0);
+                    }
+                }
+            };
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(processChunk, { timeout: 1000 });
+            }
+            else {
+                setTimeout(processChunk, 0);
+            }
+        }
+        else if (this.Cards.length > INITIAL_CARD_LIMIT) {
+            const remainingFragment = document.createDocumentFragment();
+            const remainingCards = this.Cards.slice(INITIAL_CARD_LIMIT);
+            remainingCards.forEach((card) => {
+                remainingFragment.appendChild(card.render());
+            });
+            container.appendChild(remainingFragment);
+        }
     }
-}
-function GetQueryPath() {
-    let queryUrl = GetEndpoint;
-    const urlParams = new URLSearchParams(window.location.search);
-    const tag = urlParams.getAll('tag');
-    const group = urlParams.getAll('group');
-    const term = urlParams.getAll('term');
-    if (tag.length > 0) {
-        queryUrl += "?tag=" + tag[0];
-        tag.slice(1).forEach((t) => {
-            queryUrl += "&tag=" + t;
-        });
-    }
-    if (group.length > 0) {
-        queryUrl += "?group=" + group[0];
-        group.slice(1).forEach((g) => {
-            queryUrl += "&group=" + g;
-        });
-    }
-    if (term.length > 0) {
-        queryUrl += "?term=" + term[0];
-        term.slice(1).forEach((t) => {
-            queryUrl += "&term=" + t;
-        });
-    }
-    return queryUrl;
 }
 async function QueryMainData() {
+    const queryPath = query.GetQueryPath();
+    console.log('Cache lookup for path:', queryPath, 'Cache size:', cache.getCacheSize(), 'Cache keys:', cache.getCacheKeys());
+    const cachedEntry = cache.getCacheEntry(queryPath);
+    console.log('Cache entry retrieved:', cachedEntry);
+    if (cache.isCacheValid(cachedEntry)) {
+        CartographerData = cachedEntry.data;
+        console.log('Using cached data:', CartographerData);
+        return;
+    }
     try {
-        const response = await fetch(GetQueryPath(), EncodingHeader);
+        const response = await fetch(queryPath, EncodingHeader);
         const data = await response.json();
         CartographerData = data.response;
-        console.log(CartographerData);
+        cache.setCacheEntry(queryPath, CartographerData);
+        console.log('Cache set for path:', queryPath, 'Cache size:', cache.getCacheSize());
+        console.log('Fetched and cached data:', CartographerData);
     }
     catch (err) {
         return console.error(err);

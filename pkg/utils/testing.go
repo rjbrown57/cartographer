@@ -31,6 +31,8 @@ links:
     description: |-
       kubernetes core github repository. descriptionmatchterm
     displayname: github kube
+    annotations:
+      example: "annotationmatchterm"
   - url: https://github.com/goharbor/harbor
     tags: ["oci", "k8s"]
     displayname: "github.com/goharbor/harbor"

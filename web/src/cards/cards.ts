@@ -1,5 +1,5 @@
 export interface Card {
-    hide(filter: string): void;
+    hide(): void;
     log(): void;
     remove(): void;
     render(): Node;
