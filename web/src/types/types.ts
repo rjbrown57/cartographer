@@ -78,9 +78,74 @@ export class Cartographer {
             return;
         }
 
-        this.Cards.forEach((card) => {
-            container.appendChild(card.render());
+        // Check if URL has search parameters (tag, group, or term)
+        // If so, show all cards since backend has already filtered
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasSearchParams = urlParams.has('tag') || urlParams.has('group') || urlParams.has('term');
+        
+        const INITIAL_CARD_LIMIT = 100;
+        const CHUNK_SIZE = 50; // Process cards in chunks of 50 during idle time
+        
+        // Render and show the first 100 cards immediately
+        const initialFragment = document.createDocumentFragment();
+        const initialCards = this.Cards.slice(0, INITIAL_CARD_LIMIT);
+        
+        initialCards.forEach((card) => {
+            initialFragment.appendChild(card.render());
         });
+        
+        // Append first batch immediately - user sees content right away
+        container.appendChild(initialFragment);
+        
+        // If we have more cards and no search params, process the rest in background
+        if (this.Cards.length > INITIAL_CARD_LIMIT && !hasSearchParams) {
+            const remainingCards = this.Cards.slice(INITIAL_CARD_LIMIT);
+            let currentIndex = 0;
+            
+            // Helper function to process a chunk of cards
+            const processChunk = () => {
+                const endIndex = Math.min(currentIndex + CHUNK_SIZE, remainingCards.length);
+                const chunk = remainingCards.slice(currentIndex, endIndex);
+                
+                // Render cards in this chunk
+                const chunkFragment = document.createDocumentFragment();
+                chunk.forEach((card) => {
+                    const renderedCard = card.render();
+                    card.hide(); // Initially hide, will show when ready
+                    chunkFragment.appendChild(renderedCard);
+                });
+                
+                // Append chunk to DOM
+                container.appendChild(chunkFragment);
+                
+                currentIndex = endIndex;
+                
+                // If there are more cards to process, schedule next chunk
+                if (currentIndex < remainingCards.length) {
+                    // Use requestIdleCallback if available, otherwise fall back to setTimeout
+                    if (window.requestIdleCallback) {
+                        window.requestIdleCallback(processChunk, { timeout: 1000 });
+                    } else {
+                        setTimeout(processChunk, 0);
+                    }
+                }
+            };
+            
+            // Start processing remaining cards in background
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(processChunk, { timeout: 1000 });
+            } else {
+                setTimeout(processChunk, 0);
+            }
+        } else if (this.Cards.length > INITIAL_CARD_LIMIT) {
+            // If we have search params, render all cards immediately
+            const remainingFragment = document.createDocumentFragment();
+            const remainingCards = this.Cards.slice(INITIAL_CARD_LIMIT);
+            remainingCards.forEach((card) => {
+                remainingFragment.appendChild(card.render());
+            });
+            container.appendChild(remainingFragment);
+        }
     }
 }    
 
