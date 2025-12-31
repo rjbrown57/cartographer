@@ -10,6 +10,9 @@ export class Link {
     isMaximized = false;
     originalParent = null;
     originalNextSibling = null;
+    tagList;
+    tagsExpanded = false;
+    maxVisibleTags = 8;
     constructor(id, displayname, url, description, tags, data) {
         this.id = id;
         this.displayname = displayname;
@@ -102,27 +105,67 @@ export class Link {
         card.appendChild(body);
         const footer = document.createElement('div');
         footer.className = 'footer mt-2';
-        const ul = document.createElement('ul');
-        ul.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
+        this.tagList = document.createElement('ul');
+        this.tagList.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
+        this.renderTags();
+        footer.appendChild(this.tagList);
+        card.appendChild(footer);
+        return card;
+    }
+    renderTags(showAllOverride = false) {
+        if (!this.tagList) {
+            return;
+        }
+        this.tagList.innerHTML = '';
         const tagIcon = document.createElement('i');
         tagIcon.className = 'fa-solid fa-tag';
-        ul.appendChild(tagIcon);
-        this.tags.forEach(tag => {
+        this.tagList.appendChild(tagIcon);
+        const shouldShowAll = showAllOverride || this.tagsExpanded || this.tags.length <= this.maxVisibleTags;
+        const visibleTags = shouldShowAll ? this.tags : this.tags.slice(0, this.maxVisibleTags);
+        visibleTags.forEach(tag => {
             const li = document.createElement('li');
             li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100 mt-1';
             const tagLink = document.createElement('a');
             tagLink.href = "#";
             tagLink.className = 'text-black-500 break-words';
             tagLink.textContent = tag;
-            tagLink.onclick = function () {
+            tagLink.onclick = () => {
                 TagFilter(tag);
             };
             li.appendChild(tagLink);
-            ul.appendChild(li);
+            this.tagList.appendChild(li);
         });
-        footer.appendChild(ul);
-        card.appendChild(footer);
-        return card;
+        if (!shouldShowAll && this.tags.length > this.maxVisibleTags) {
+            const remaining = this.tags.length - this.maxVisibleTags;
+            const li = document.createElement('li');
+            li.className = 'mt-1';
+            const moreButton = document.createElement('button');
+            moreButton.type = 'button';
+            moreButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            moreButton.textContent = `+${remaining} more`;
+            moreButton.onclick = (e) => {
+                e.preventDefault();
+                this.tagsExpanded = true;
+                this.renderTags(this.isMaximized);
+            };
+            li.appendChild(moreButton);
+            this.tagList.appendChild(li);
+        }
+        else if (!showAllOverride && this.tagsExpanded && this.tags.length > this.maxVisibleTags) {
+            const li = document.createElement('li');
+            li.className = 'mt-1';
+            const lessButton = document.createElement('button');
+            lessButton.type = 'button';
+            lessButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            lessButton.textContent = 'Show less';
+            lessButton.onclick = (e) => {
+                e.preventDefault();
+                this.tagsExpanded = false;
+                this.renderTags(false);
+            };
+            li.appendChild(lessButton);
+            this.tagList.appendChild(li);
+        }
     }
     toggleMaximize() {
         if (this.isMaximized) {
@@ -167,6 +210,7 @@ export class Link {
         icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
         icon.title = 'Minimize';
         overlay.style.display = 'flex';
+        this.renderTags(true);
         this.isMaximized = true;
     }
     minimize() {
@@ -183,6 +227,8 @@ export class Link {
         }
         icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
         icon.title = 'Maximize';
+        this.tagsExpanded = false;
+        this.renderTags(false);
         const gridContainer = document.getElementById("linkgrid");
         if (gridContainer && this.originalParent) {
             card.remove();

@@ -14,6 +14,9 @@ export class Link implements cards.Card {
     private isMaximized: boolean = false;
     private originalParent: HTMLElement | null = null;
     private originalNextSibling: Node | null = null;
+    private tagList!: HTMLUListElement;
+    private tagsExpanded: boolean = false;
+    private readonly maxVisibleTags: number = 8;
     
     constructor(id: string, displayname: string, url: string, description: string, tags: string[], data?: Record<string, any>) {
         this.id = id;
@@ -134,14 +137,32 @@ export class Link implements cards.Card {
         const footer = document.createElement('div');
         footer.className = 'footer mt-2';
         
-        const ul = document.createElement('ul');
-        ul.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
+        this.tagList = document.createElement('ul');
+        this.tagList.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
+
+        this.renderTags();
         
+        footer.appendChild(this.tagList);
+        card.appendChild(footer);
+
+        return card;
+    }
+
+    private renderTags(showAllOverride: boolean = false): void {
+        if (!this.tagList) {
+            return;
+        }
+
+        this.tagList.innerHTML = '';
+
         const tagIcon = document.createElement('i');
         tagIcon.className = 'fa-solid fa-tag';
-        ul.appendChild(tagIcon);
+        this.tagList.appendChild(tagIcon);
+
+        const shouldShowAll = showAllOverride || this.tagsExpanded || this.tags.length <= this.maxVisibleTags;
+        const visibleTags = shouldShowAll ? this.tags : this.tags.slice(0, this.maxVisibleTags);
         
-        this.tags.forEach(tag => {
+        visibleTags.forEach(tag => {
             const li = document.createElement('li');
             li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100 mt-1';
         
@@ -149,17 +170,47 @@ export class Link implements cards.Card {
             tagLink.href = "#";
             tagLink.className = 'text-black-500 break-words';
             tagLink.textContent = tag;
-            tagLink.onclick = function() {
+            tagLink.onclick = () => {
                 TagFilter(tag);
             };
             li.appendChild(tagLink);
-            ul.appendChild(li);
+            this.tagList.appendChild(li);
         });
-        
-        footer.appendChild(ul);
-        card.appendChild(footer);
 
-        return card;
+        if (!shouldShowAll && this.tags.length > this.maxVisibleTags) {
+            const remaining = this.tags.length - this.maxVisibleTags;
+            const li = document.createElement('li');
+            li.className = 'mt-1';
+
+            const moreButton = document.createElement('button');
+            moreButton.type = 'button';
+            moreButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            moreButton.textContent = `+${remaining} more`;
+            moreButton.onclick = (e) => {
+                e.preventDefault();
+                this.tagsExpanded = true;
+                this.renderTags(this.isMaximized);
+            };
+
+            li.appendChild(moreButton);
+            this.tagList.appendChild(li);
+        } else if (!showAllOverride && this.tagsExpanded && this.tags.length > this.maxVisibleTags) {
+            const li = document.createElement('li');
+            li.className = 'mt-1';
+
+            const lessButton = document.createElement('button');
+            lessButton.type = 'button';
+            lessButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            lessButton.textContent = 'Show less';
+            lessButton.onclick = (e) => {
+                e.preventDefault();
+                this.tagsExpanded = false;
+                this.renderTags(false);
+            };
+
+            li.appendChild(lessButton);
+            this.tagList.appendChild(li);
+        }
     }
     
     toggleMaximize(): void {
@@ -227,6 +278,8 @@ export class Link implements cards.Card {
         
         // Show overlay
         overlay.style.display = 'flex';
+
+        this.renderTags(true);
         
         this.isMaximized = true;
     }
@@ -253,6 +306,10 @@ export class Link implements cards.Card {
         // Update icon
         icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
         icon.title = 'Maximize';
+
+        // Reset tag view to truncated state
+        this.tagsExpanded = false;
+        this.renderTags(false);
         
         // Move card back to original position in grid
         const gridContainer = document.getElementById("linkgrid");
