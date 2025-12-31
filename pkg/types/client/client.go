@@ -22,6 +22,7 @@ type CartographerClient struct {
 type CartographerClientOptions struct {
 	Address string
 	Port    int
+	Ctx     context.Context
 }
 
 func (o *CartographerClientOptions) GetAddr() string {
@@ -35,8 +36,11 @@ func NewCartographerClient(o *CartographerClientOptions) *CartographerClient {
 		Options: o,
 	}
 
-	// TODO make this meaningful :)
-	c.Ctx = context.TODO()
+	if o.Ctx != nil {
+		c.Ctx = o.Ctx
+	} else {
+		c.Ctx = context.Background()
+	}
 
 	c.ClientConn, err = grpc.NewClient(o.GetAddr(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
