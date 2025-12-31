@@ -18,6 +18,7 @@ export class Link implements cards.Card {
     private tagsExpanded: boolean = false;
     private readonly maxVisibleTags: number = 8;
     
+    // Initialize a link card instance and its base DOM element.
     constructor(id: string, displayname: string, url: string, description: string, tags: string[], data?: Record<string, any>) {
         this.id = id;
         this.displayname = displayname;
@@ -28,39 +29,66 @@ export class Link implements cards.Card {
         this.self = document.createElement('div');
     }
     
+    // Log the current card instance for debugging.
     log(): void {
         console.log(this);
     }
     
+    // Build and return the full card DOM.
     render(): Node {
         const card = this.self;
+        this.setupCardBase(card);
+        if (this.data) {
+            this.addMaximizeIcon(card);
+        }
+        const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
+        card.appendChild(this.createCardView(dataText));
+        card.appendChild(this.createListRow());
+        return card;
+    }
+
+    // Set base attributes and classes on the card element.
+    private setupCardBase(card: HTMLElement): void {
         card.id = this.displayname;
         card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
+    }
+
+    // Add the maximize control to the card.
+    private addMaximizeIcon(card: HTMLElement): void {
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'absolute top-2 right-2 z-10';
         
-        // Add maximize/minimize icon in top right only if data exists
-        if (this.data) {
-            const iconContainer = document.createElement('div');
-            iconContainer.className = 'absolute top-2 right-2 z-10';
-            
-            const icon = document.createElement('i');
-            icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
-            icon.title = 'Maximize';
-            icon.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleMaximize();
-            };
-            
-            iconContainer.appendChild(icon);
-            card.appendChild(iconContainer);
-        }
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.title = 'Maximize';
+        icon.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleMaximize();
+        };
         
+        iconContainer.appendChild(icon);
+        card.appendChild(iconContainer);
+    }
+
+    // Create the card view wrapper including body and footer.
+    private createCardView(dataText: string | null): HTMLElement {
         const cardView = document.createElement('div');
         cardView.className = 'card-view flex flex-col justify-between h-full';
 
+        const body = this.createBody(dataText);
+        const footer = this.createFooter();
+        
+        cardView.appendChild(body);
+        cardView.appendChild(footer);
+        return cardView;
+    }
+
+    // Build the body section with link, description, and data panel.
+    private createBody(dataText: string | null): HTMLElement {
         const body = document.createElement('div');
         body.className = 'body';
-        
+
         const linkElement = document.createElement('a');
         linkElement.href = this.url;
         linkElement.target = '_blank';
@@ -72,69 +100,81 @@ export class Link implements cards.Card {
         description.className = 'text-gray-700 text-sm mt-2 break-words';
         description.textContent = this.description;
         body.appendChild(description);
-        
-        // Add data field if it exists (only visible when maximized)
-        if (this.data) {
-            const dataContainer = document.createElement('div');
-            dataContainer.className = 'data-container hidden mt-4';
-            dataContainer.id = `data-${this.id}`;
-            
-            const dataLabel = document.createElement('h4');
-            dataLabel.className = 'text-sm font-semibold text-gray-600 mb-2';
-            dataLabel.textContent = 'Data:';
-            dataContainer.appendChild(dataLabel);
-            
-            const dataContent = document.createElement('pre');
-            dataContent.className = 'bg-gray-100 p-3 rounded text-xs overflow-auto max-h-96';
-            dataContent.textContent = JSON.stringify(this.data, null, 2);
-            dataContainer.appendChild(dataContent);
-            
-            // Add action buttons bar
-            const actionBar = document.createElement('div');
-            actionBar.className = 'action-bar mt-3 flex gap-2';
-            
-            const copyButton = document.createElement('button');
-            copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-            copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
-            copyButton.onclick = () => {
-                navigator.clipboard.writeText(JSON.stringify(this.data, null, 2)).then(() => {
-                    // Show temporary success feedback
-                    const originalText = copyButton.innerHTML;
-                    copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-                    copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    
-                    setTimeout(() => {
-                        copyButton.innerHTML = originalText;
-                        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = JSON.stringify(this.data, null, 2);
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    
-                    // Show success feedback
-                    const originalText = copyButton.innerHTML;
-                    copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-                    copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    
-                    setTimeout(() => {
-                        copyButton.innerHTML = originalText;
-                        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    }, 2000);
-                });
-            };
-            
-            actionBar.appendChild(copyButton);
-            dataContainer.appendChild(actionBar);
-            
-            body.appendChild(dataContainer);
+
+        if (dataText) {
+            body.appendChild(this.createDataContainer(dataText));
         }
+
+        return body;
+    }
+
+    // Create the data container with copy action.
+    private createDataContainer(dataText: string): HTMLElement {
+        const dataContainer = document.createElement('div');
+        dataContainer.className = 'data-container hidden mt-4';
+        dataContainer.id = `data-${this.id}`;
         
+        const dataLabel = document.createElement('h4');
+        dataLabel.className = 'text-sm font-semibold text-gray-600 mb-2';
+        dataLabel.textContent = 'Data:';
+        dataContainer.appendChild(dataLabel);
+        
+        const dataContent = document.createElement('pre');
+        dataContent.className = 'bg-gray-100 p-3 rounded text-xs overflow-auto max-h-96';
+        dataContent.textContent = dataText;
+        dataContainer.appendChild(dataContent);
+        
+        const actionBar = document.createElement('div');
+        actionBar.className = 'action-bar mt-3 flex gap-2';
+        
+        const copyButton = this.createCopyButton(dataText);
+        actionBar.appendChild(copyButton);
+        dataContainer.appendChild(actionBar);
+
+        return dataContainer;
+    }
+
+    // Build the copy button for data text.
+    private createCopyButton(dataText: string): HTMLButtonElement {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        copyButton.onclick = () => {
+            navigator.clipboard.writeText(dataText).then(() => {
+                this.setCopyButtonState(copyButton, true);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                const textArea = document.createElement('textarea');
+                textArea.value = dataText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                this.setCopyButtonState(copyButton, true);
+            });
+        };
+
+        return copyButton;
+    }
+
+    // Update the copy button to a temporary "copied" state.
+    private setCopyButtonState(copyButton: HTMLButtonElement, copied: boolean): void {
+        if (!copied) {
+            return;
+        }
+
+        const originalText = copyButton.innerHTML;
+        copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+
+        setTimeout(() => {
+            copyButton.innerHTML = originalText;
+            copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        }, 2000);
+    }
+
+    // Create the footer section that hosts the tag list.
+    private createFooter(): HTMLElement {
         const footer = document.createElement('div');
         footer.className = 'footer mt-2';
         
@@ -142,12 +182,13 @@ export class Link implements cards.Card {
         this.tagList.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
 
         this.renderTags();
-        
         footer.appendChild(this.tagList);
-        cardView.appendChild(body);
-        cardView.appendChild(footer);
-        card.appendChild(cardView);
 
+        return footer;
+    }
+
+    // Build the compact list row view for list layouts.
+    private createListRow(): HTMLElement {
         const listRow = document.createElement('div');
         listRow.className = 'list-view-row list-grid px-4 py-3 bg-white';
 
@@ -171,11 +212,11 @@ export class Link implements cards.Card {
         listRow.appendChild(titleColumn);
         listRow.appendChild(descriptionColumn);
         listRow.appendChild(tagsColumn);
-        card.appendChild(listRow);
-
-        return card;
+        
+        return listRow;
     }
 
+    // Render the tag list with expand/collapse behavior.
     private renderTags(showAllOverride: boolean = false): void {
         if (!this.tagList) {
             return;
@@ -241,6 +282,7 @@ export class Link implements cards.Card {
         }
     }
 
+    // Create a compact tag list element with a max visible count.
     private createTagListElement(maxVisible: number): HTMLUListElement {
         const list = document.createElement('ul');
         list.className = 'flex flex-wrap gap-2 list-none p-0 m-0';
@@ -272,6 +314,7 @@ export class Link implements cards.Card {
         return list;
     }
 
+    // Toggle between maximized and minimized states.
     toggleMaximize(): void {
         if (this.isMaximized) {
             this.minimize();
@@ -280,6 +323,7 @@ export class Link implements cards.Card {
         }
     }
     
+    // Expand the card into a fullscreen overlay.
     maximize(): void {
         const card = this.self;
         const icon = card.querySelector('.fa-expand') as HTMLElement;
@@ -348,6 +392,7 @@ export class Link implements cards.Card {
         this.isMaximized = true;
     }
     
+    // Restore the card back into the grid.
     minimize(): void {
         const card = this.self;
         const icon = card.querySelector('.fa-compress') as HTMLElement;
@@ -397,6 +442,7 @@ export class Link implements cards.Card {
         this.isMaximized = false;
     }
     
+    // Apply the text/tag filter to toggle visibility.
     processFilter(filter: string[]): void {
         // if the filter is unset, or emptied, show all cards
         if (filter.length === 0) {
@@ -417,13 +463,16 @@ export class Link implements cards.Card {
         }
     }
     
+    // Show the card.
     show(): void {
         this.self.style.display = "";
     }
     
+    // Hide the card.
     hide(): void {
         this.self.style.display = "none";
     }
     
+    // Remove the card from the DOM (no-op placeholder).
     remove(): void {}
 }

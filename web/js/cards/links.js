@@ -27,24 +27,43 @@ export class Link {
     }
     render() {
         const card = this.self;
+        this.setupCardBase(card);
+        if (this.data) {
+            this.addMaximizeIcon(card);
+        }
+        const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
+        card.appendChild(this.createCardView(dataText));
+        card.appendChild(this.createListRow());
+        return card;
+    }
+    setupCardBase(card) {
         card.id = this.displayname;
         card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
-        if (this.data) {
-            const iconContainer = document.createElement('div');
-            iconContainer.className = 'absolute top-2 right-2 z-10';
-            const icon = document.createElement('i');
-            icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
-            icon.title = 'Maximize';
-            icon.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleMaximize();
-            };
-            iconContainer.appendChild(icon);
-            card.appendChild(iconContainer);
-        }
+    }
+    addMaximizeIcon(card) {
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'absolute top-2 right-2 z-10';
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.title = 'Maximize';
+        icon.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleMaximize();
+        };
+        iconContainer.appendChild(icon);
+        card.appendChild(iconContainer);
+    }
+    createCardView(dataText) {
         const cardView = document.createElement('div');
         cardView.className = 'card-view flex flex-col justify-between h-full';
+        const body = this.createBody(dataText);
+        const footer = this.createFooter();
+        cardView.appendChild(body);
+        cardView.appendChild(footer);
+        return cardView;
+    }
+    createBody(dataText) {
         const body = document.createElement('div');
         body.className = 'body';
         const linkElement = document.createElement('a');
@@ -57,62 +76,72 @@ export class Link {
         description.className = 'text-gray-700 text-sm mt-2 break-words';
         description.textContent = this.description;
         body.appendChild(description);
-        if (this.data) {
-            const dataContainer = document.createElement('div');
-            dataContainer.className = 'data-container hidden mt-4';
-            dataContainer.id = `data-${this.id}`;
-            const dataLabel = document.createElement('h4');
-            dataLabel.className = 'text-sm font-semibold text-gray-600 mb-2';
-            dataLabel.textContent = 'Data:';
-            dataContainer.appendChild(dataLabel);
-            const dataContent = document.createElement('pre');
-            dataContent.className = 'bg-gray-100 p-3 rounded text-xs overflow-auto max-h-96';
-            dataContent.textContent = JSON.stringify(this.data, null, 2);
-            dataContainer.appendChild(dataContent);
-            const actionBar = document.createElement('div');
-            actionBar.className = 'action-bar mt-3 flex gap-2';
-            const copyButton = document.createElement('button');
-            copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-            copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
-            copyButton.onclick = () => {
-                navigator.clipboard.writeText(JSON.stringify(this.data, null, 2)).then(() => {
-                    const originalText = copyButton.innerHTML;
-                    copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-                    copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    setTimeout(() => {
-                        copyButton.innerHTML = originalText;
-                        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                    const textArea = document.createElement('textarea');
-                    textArea.value = JSON.stringify(this.data, null, 2);
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    const originalText = copyButton.innerHTML;
-                    copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-                    copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    setTimeout(() => {
-                        copyButton.innerHTML = originalText;
-                        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-                    }, 2000);
-                });
-            };
-            actionBar.appendChild(copyButton);
-            dataContainer.appendChild(actionBar);
-            body.appendChild(dataContainer);
+        if (dataText) {
+            body.appendChild(this.createDataContainer(dataText));
         }
+        return body;
+    }
+    createDataContainer(dataText) {
+        const dataContainer = document.createElement('div');
+        dataContainer.className = 'data-container hidden mt-4';
+        dataContainer.id = `data-${this.id}`;
+        const dataLabel = document.createElement('h4');
+        dataLabel.className = 'text-sm font-semibold text-gray-600 mb-2';
+        dataLabel.textContent = 'Data:';
+        dataContainer.appendChild(dataLabel);
+        const dataContent = document.createElement('pre');
+        dataContent.className = 'bg-gray-100 p-3 rounded text-xs overflow-auto max-h-96';
+        dataContent.textContent = dataText;
+        dataContainer.appendChild(dataContent);
+        const actionBar = document.createElement('div');
+        actionBar.className = 'action-bar mt-3 flex gap-2';
+        const copyButton = this.createCopyButton(dataText);
+        actionBar.appendChild(copyButton);
+        dataContainer.appendChild(actionBar);
+        return dataContainer;
+    }
+    createCopyButton(dataText) {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        copyButton.onclick = () => {
+            navigator.clipboard.writeText(dataText).then(() => {
+                this.setCopyButtonState(copyButton, true);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                const textArea = document.createElement('textarea');
+                textArea.value = dataText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                this.setCopyButtonState(copyButton, true);
+            });
+        };
+        return copyButton;
+    }
+    setCopyButtonState(copyButton, copied) {
+        if (!copied) {
+            return;
+        }
+        const originalText = copyButton.innerHTML;
+        copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        setTimeout(() => {
+            copyButton.innerHTML = originalText;
+            copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        }, 2000);
+    }
+    createFooter() {
         const footer = document.createElement('div');
         footer.className = 'footer mt-2';
         this.tagList = document.createElement('ul');
         this.tagList.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
         this.renderTags();
         footer.appendChild(this.tagList);
-        cardView.appendChild(body);
-        cardView.appendChild(footer);
-        card.appendChild(cardView);
+        return footer;
+    }
+    createListRow() {
         const listRow = document.createElement('div');
         listRow.className = 'list-view-row list-grid px-4 py-3 bg-white';
         const titleColumn = document.createElement('div');
@@ -132,8 +161,7 @@ export class Link {
         listRow.appendChild(titleColumn);
         listRow.appendChild(descriptionColumn);
         listRow.appendChild(tagsColumn);
-        card.appendChild(listRow);
-        return card;
+        return listRow;
     }
     renderTags(showAllOverride = false) {
         if (!this.tagList) {
