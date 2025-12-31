@@ -55,6 +55,9 @@ export class Link implements cards.Card {
             card.appendChild(iconContainer);
         }
         
+        const cardView = document.createElement('div');
+        cardView.className = 'card-view flex flex-col justify-between h-full';
+
         const body = document.createElement('div');
         body.className = 'body';
         
@@ -132,8 +135,6 @@ export class Link implements cards.Card {
             body.appendChild(dataContainer);
         }
         
-        card.appendChild(body);
-        
         const footer = document.createElement('div');
         footer.className = 'footer mt-2';
         
@@ -143,7 +144,34 @@ export class Link implements cards.Card {
         this.renderTags();
         
         footer.appendChild(this.tagList);
-        card.appendChild(footer);
+        cardView.appendChild(body);
+        cardView.appendChild(footer);
+        card.appendChild(cardView);
+
+        const listRow = document.createElement('div');
+        listRow.className = 'list-view-row list-grid px-4 py-3 bg-white';
+
+        const titleColumn = document.createElement('div');
+        titleColumn.className = 'flex items-center';
+        const titleLink = document.createElement('a');
+        titleLink.href = this.url;
+        titleLink.target = '_blank';
+        titleLink.className = 'text-blue-600 font-semibold break-words hover:underline';
+        titleLink.textContent = this.displayname;
+        titleColumn.appendChild(titleLink);
+
+        const descriptionColumn = document.createElement('div');
+        descriptionColumn.className = 'text-sm text-gray-600 line-clamp-2';
+        descriptionColumn.textContent = this.description;
+
+        const tagsColumn = document.createElement('div');
+        tagsColumn.className = '';
+        tagsColumn.appendChild(this.createTagListElement(4));
+
+        listRow.appendChild(titleColumn);
+        listRow.appendChild(descriptionColumn);
+        listRow.appendChild(tagsColumn);
+        card.appendChild(listRow);
 
         return card;
     }
@@ -212,7 +240,38 @@ export class Link implements cards.Card {
             this.tagList.appendChild(li);
         }
     }
-    
+
+    private createTagListElement(maxVisible: number): HTMLUListElement {
+        const list = document.createElement('ul');
+        list.className = 'flex flex-wrap gap-2 list-none p-0 m-0';
+
+        const visibleTags = this.tags.slice(0, maxVisible);
+        visibleTags.forEach(tag => {
+            const li = document.createElement('li');
+            li.className = 'bg-gray-100 rounded-full px-2 py-0.5 text-xs font-semibold text-gray-600 hover:bg-gray-200';
+
+            const tagLink = document.createElement('a');
+            tagLink.href = "#";
+            tagLink.className = 'text-gray-700 break-words';
+            tagLink.textContent = tag;
+            tagLink.onclick = () => {
+                TagFilter(tag);
+            };
+
+            li.appendChild(tagLink);
+            list.appendChild(li);
+        });
+
+        if (this.tags.length > maxVisible) {
+            const more = document.createElement('span');
+            more.className = 'text-xs text-gray-500';
+            more.textContent = `+${this.tags.length - maxVisible} more`;
+            list.appendChild(more);
+        }
+
+        return list;
+    }
+
     toggleMaximize(): void {
         if (this.isMaximized) {
             this.minimize();
@@ -225,6 +284,7 @@ export class Link implements cards.Card {
         const card = this.self;
         const icon = card.querySelector('.fa-expand') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
+        const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         
         // Store original position
         this.originalParent = card.parentElement;
@@ -279,6 +339,10 @@ export class Link implements cards.Card {
         // Show overlay
         overlay.style.display = 'flex';
 
+        if (listRow) {
+            listRow.style.display = 'none';
+        }
+
         this.renderTags(true);
         
         this.isMaximized = true;
@@ -288,6 +352,7 @@ export class Link implements cards.Card {
         const card = this.self;
         const icon = card.querySelector('.fa-compress') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
+        const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const overlay = document.getElementById('maximized-card-overlay');
         
         // Hide overlay
@@ -301,6 +366,10 @@ export class Link implements cards.Card {
         // Hide data container
         if (dataContainer) {
             dataContainer.classList.add('hidden');
+        }
+
+        if (listRow) {
+            listRow.style.display = '';
         }
         
         // Update icon

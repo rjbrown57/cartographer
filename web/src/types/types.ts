@@ -3,6 +3,7 @@ import * as cards from '../cards/cards.js';
 import { Link } from '../cards/links.js';
 import { SearchBar } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
+import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
 import * as query from '../query/query.js';
 
 const EncodingHeader = {
@@ -63,6 +64,7 @@ export class Cartographer {
             console.error(err);
         });
         this.SearchBar = new SearchBar(this.Cards);
+        SetupViewToggle();
     }
     
     showCards(): void {
@@ -181,6 +183,38 @@ async function QueryMainData() {
     } catch (err) {
         return console.error(err);
     }
+}
+
+function SetupViewToggle(): void {
+    // Find the toggle button and elements that change layout visibility.
+    const toggle = document.getElementById('viewToggle') as HTMLButtonElement | null;
+    const grid = document.getElementById('linkgrid');
+    const header = document.getElementById('listHeader');
+
+    // Exit early if required DOM elements are missing.
+    if (!toggle || !grid) {
+        return;
+    }
+
+    // Apply list/grid classes, header visibility, and button state.
+    const updateToggle = (isListView: boolean) => {
+        grid.classList.toggle('list-view', isListView);
+        header?.classList.toggle('hidden', !isListView);
+        toggle.setAttribute('aria-pressed', String(isListView));
+        toggle.innerHTML = isListView
+            ? '<i class="fa-solid fa-border-all mr-2"></i><span>Grid</span>'
+            : '<i class="fa-solid fa-list mr-2"></i><span>List</span>';
+    };
+
+    // Default to grid view unless cached preference exists.
+    updateToggle(getListViewPreference());
+
+    // Flip the view on button click.
+    toggle.addEventListener('click', () => {
+        const isListView = !grid.classList.contains('list-view');
+        updateToggle(isListView);
+        setListViewPreference(isListView);
+    });
 }
 
 async function GetGroups() {
