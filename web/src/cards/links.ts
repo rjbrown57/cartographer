@@ -50,16 +50,16 @@ export class Link implements cards.Card {
     // Set base attributes and classes on the card element.
     private setupCardBase(card: HTMLElement): void {
         card.id = this.displayname;
-        card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
+        card.className = 'link-card';
     }
 
     // Add the maximize control to the card.
     private addMaximizeIcon(card: HTMLElement): void {
         const iconContainer = document.createElement('div');
-        iconContainer.className = 'absolute top-2 right-2 z-10';
+        iconContainer.className = 'position-absolute top-0 end-0 mt-3 me-3';
         
         const icon = document.createElement('i');
-        icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
         icon.title = 'Maximize';
         icon.onclick = (e) => {
             e.preventDefault();
@@ -74,7 +74,7 @@ export class Link implements cards.Card {
     // Create the card view wrapper including body and footer.
     private createCardView(dataText: string | null): HTMLElement {
         const cardView = document.createElement('div');
-        cardView.className = 'card-view flex flex-col justify-between h-full';
+        cardView.className = 'card-view';
 
         const body = this.createBody(dataText);
         const footer = this.createFooter();
@@ -87,17 +87,19 @@ export class Link implements cards.Card {
     // Build the body section with link, description, and data panel.
     private createBody(dataText: string | null): HTMLElement {
         const body = document.createElement('div');
-        body.className = 'body';
+        body.className = 'd-flex flex-column gap-2';
 
         const linkElement = document.createElement('a');
         linkElement.href = this.url;
         linkElement.target = '_blank';
-        linkElement.className = 'text-blue-500 underline text-lg break-words';
+        linkElement.rel = 'noopener noreferrer';
+        linkElement.className = 'link-title';
+        linkElement.title = this.url;
         linkElement.textContent = this.displayname;
         body.appendChild(linkElement);
         
         const description = document.createElement('p');
-        description.className = 'text-gray-700 text-sm mt-2 break-words';
+        description.className = 'link-description';
         description.textContent = this.description;
         body.appendChild(description);
 
@@ -111,21 +113,21 @@ export class Link implements cards.Card {
     // Create the data container with copy action.
     private createDataContainer(dataText: string): HTMLElement {
         const dataContainer = document.createElement('div');
-        dataContainer.className = 'data-container hidden mt-4';
+        dataContainer.className = 'data-container is-hidden';
         dataContainer.id = `data-${this.id}`;
         
         const dataLabel = document.createElement('h4');
-        dataLabel.className = 'text-sm font-semibold text-gray-600 mb-2';
+        dataLabel.className = 'data-label';
         dataLabel.textContent = 'Data:';
         dataContainer.appendChild(dataLabel);
         
         const dataContent = document.createElement('pre');
-        dataContent.className = 'bg-gray-100 p-3 rounded text-xs overflow-auto max-h-96';
+        dataContent.className = 'data-content';
         dataContent.textContent = dataText;
         dataContainer.appendChild(dataContent);
         
         const actionBar = document.createElement('div');
-        actionBar.className = 'action-bar mt-3 flex gap-2';
+        actionBar.className = 'action-bar';
         
         const copyButton = this.createCopyButton(dataText);
         actionBar.appendChild(copyButton);
@@ -137,8 +139,8 @@ export class Link implements cards.Card {
     // Build the copy button for data text.
     private createCopyButton(dataText: string): HTMLButtonElement {
         const copyButton = document.createElement('button');
-        copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
-        copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        copyButton.className = 'btn btn-primary btn-sm d-inline-flex align-items-center gap-2';
+        copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
         copyButton.onclick = () => {
             navigator.clipboard.writeText(dataText).then(() => {
                 this.setCopyButtonState(copyButton, true);
@@ -164,22 +166,22 @@ export class Link implements cards.Card {
         }
 
         const originalText = copyButton.innerHTML;
-        copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-        copyButton.className = 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+        copyButton.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copied!';
+        copyButton.className = 'btn btn-success btn-sm d-inline-flex align-items-center gap-2';
 
         setTimeout(() => {
             copyButton.innerHTML = originalText;
-            copyButton.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1';
+            copyButton.className = 'btn btn-primary btn-sm d-inline-flex align-items-center gap-2';
         }, 2000);
     }
 
     // Create the footer section that hosts the tag list.
     private createFooter(): HTMLElement {
         const footer = document.createElement('div');
-        footer.className = 'footer mt-2';
+        footer.className = 'footer';
         
         this.tagList = document.createElement('ul');
-        this.tagList.className = 'flex flex-wrap space-x-2 border-t mt-2 pt-2';
+        this.tagList.className = 'tag-list';
 
         this.renderTags();
         footer.appendChild(this.tagList);
@@ -190,23 +192,25 @@ export class Link implements cards.Card {
     // Build the compact list row view for list layouts.
     private createListRow(): HTMLElement {
         const listRow = document.createElement('div');
-        listRow.className = 'list-view-row list-grid px-4 py-3 bg-white';
+        listRow.className = 'list-view-row list-grid';
 
         const titleColumn = document.createElement('div');
-        titleColumn.className = 'flex items-center';
+        titleColumn.className = 'd-flex align-items-center';
         const titleLink = document.createElement('a');
         titleLink.href = this.url;
         titleLink.target = '_blank';
-        titleLink.className = 'text-blue-600 font-semibold break-words hover:underline';
+        titleLink.rel = 'noopener noreferrer';
+        titleLink.className = 'list-title';
+        titleLink.title = this.url;
         titleLink.textContent = this.displayname;
         titleColumn.appendChild(titleLink);
 
         const descriptionColumn = document.createElement('div');
-        descriptionColumn.className = 'text-sm text-gray-600 line-clamp-2';
+        descriptionColumn.className = 'list-description';
         descriptionColumn.textContent = this.description;
 
         const tagsColumn = document.createElement('div');
-        tagsColumn.className = '';
+        tagsColumn.className = 'list-tags';
         tagsColumn.appendChild(this.createTagListElement(4));
 
         listRow.appendChild(titleColumn);
@@ -225,7 +229,7 @@ export class Link implements cards.Card {
         this.tagList.innerHTML = '';
 
         const tagIcon = document.createElement('i');
-        tagIcon.className = 'fa-solid fa-tag';
+        tagIcon.className = 'bi bi-tags tag-icon';
         this.tagList.appendChild(tagIcon);
 
         const shouldShowAll = showAllOverride || this.tagsExpanded || this.tags.length <= this.maxVisibleTags;
@@ -233,11 +237,11 @@ export class Link implements cards.Card {
         
         visibleTags.forEach(tag => {
             const li = document.createElement('li');
-            li.className = 'bg-gray-200 rounded-full px-1 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100 mt-1';
+            li.className = 'tag-pill';
         
             const tagLink = document.createElement('a');
             tagLink.href = "#";
-            tagLink.className = 'text-black-500 break-words';
+            tagLink.className = 'tag-link';
             tagLink.textContent = tag;
             tagLink.onclick = () => {
                 TagFilter(tag);
@@ -249,11 +253,11 @@ export class Link implements cards.Card {
         if (!shouldShowAll && this.tags.length > this.maxVisibleTags) {
             const remaining = this.tags.length - this.maxVisibleTags;
             const li = document.createElement('li');
-            li.className = 'mt-1';
+            li.className = 'tag-pill';
 
             const moreButton = document.createElement('button');
             moreButton.type = 'button';
-            moreButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            moreButton.className = 'tag-action';
             moreButton.textContent = `+${remaining} more`;
             moreButton.onclick = (e) => {
                 e.preventDefault();
@@ -265,11 +269,11 @@ export class Link implements cards.Card {
             this.tagList.appendChild(li);
         } else if (!showAllOverride && this.tagsExpanded && this.tags.length > this.maxVisibleTags) {
             const li = document.createElement('li');
-            li.className = 'mt-1';
+            li.className = 'tag-pill';
 
             const lessButton = document.createElement('button');
             lessButton.type = 'button';
-            lessButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-semibold';
+            lessButton.className = 'tag-action';
             lessButton.textContent = 'Show less';
             lessButton.onclick = (e) => {
                 e.preventDefault();
@@ -285,16 +289,16 @@ export class Link implements cards.Card {
     // Create a compact tag list element with a max visible count.
     private createTagListElement(maxVisible: number): HTMLUListElement {
         const list = document.createElement('ul');
-        list.className = 'flex flex-wrap gap-2 list-none p-0 m-0';
+        list.className = 'list-unstyled d-flex flex-wrap gap-2 m-0';
 
         const visibleTags = this.tags.slice(0, maxVisible);
         visibleTags.forEach(tag => {
             const li = document.createElement('li');
-            li.className = 'bg-gray-100 rounded-full px-2 py-0.5 text-xs font-semibold text-gray-600 hover:bg-gray-200';
+            li.className = 'tag-pill tag-pill--compact';
 
             const tagLink = document.createElement('a');
             tagLink.href = "#";
-            tagLink.className = 'text-gray-700 break-words';
+            tagLink.className = 'tag-link';
             tagLink.textContent = tag;
             tagLink.onclick = () => {
                 TagFilter(tag);
@@ -306,7 +310,7 @@ export class Link implements cards.Card {
 
         if (this.tags.length > maxVisible) {
             const more = document.createElement('span');
-            more.className = 'text-xs text-gray-500';
+            more.className = 'tag-overflow';
             more.textContent = `+${this.tags.length - maxVisible} more`;
             list.appendChild(more);
         }
@@ -326,7 +330,7 @@ export class Link implements cards.Card {
     // Expand the card into a fullscreen overlay.
     maximize(): void {
         const card = this.self;
-        const icon = card.querySelector('.fa-expand') as HTMLElement;
+        const icon = card.querySelector('.link-card__toggle') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
         const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         
@@ -339,8 +343,7 @@ export class Link implements cards.Card {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'maximized-card-overlay';
-            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-            overlay.style.display = 'none';
+            overlay.className = 'maximized-overlay';
             document.body.appendChild(overlay);
             
             // Close overlay when clicking outside the card
@@ -369,15 +372,15 @@ export class Link implements cards.Card {
         overlay.appendChild(card);
         
         // Update card styles for overlay display
-        card.className = 'link-card bg-white shadow-xl rounded-lg p-6 flex flex-col justify-between ring-1 ring-gray-900/5 relative w-full max-w-4xl max-h-[90vh] overflow-y-auto';
+        card.className = 'link-card';
         
         // Show data container
         if (dataContainer) {
-            dataContainer.classList.remove('hidden');
+            dataContainer.classList.remove('is-hidden');
         }
         
         // Update icon
-        icon.className = 'fa-solid fa-compress text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.className = 'bi bi-fullscreen-exit link-card__toggle';
         icon.title = 'Minimize';
         
         // Show overlay
@@ -395,7 +398,7 @@ export class Link implements cards.Card {
     // Restore the card back into the grid.
     minimize(): void {
         const card = this.self;
-        const icon = card.querySelector('.fa-compress') as HTMLElement;
+        const icon = card.querySelector('.link-card__toggle') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
         const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const overlay = document.getElementById('maximized-card-overlay');
@@ -406,11 +409,11 @@ export class Link implements cards.Card {
         }
         
         // Restore original card styles
-        card.className = 'link-card bg-white shadow-xl rounded-lg p-4 flex flex-col justify-between ring-1 ring-gray-900/5 relative';
+        card.className = 'link-card';
         
         // Hide data container
         if (dataContainer) {
-            dataContainer.classList.add('hidden');
+            dataContainer.classList.add('is-hidden');
         }
 
         if (listRow) {
@@ -418,7 +421,7 @@ export class Link implements cards.Card {
         }
         
         // Update icon
-        icon.className = 'fa-solid fa-expand text-gray-500 hover:text-gray-700 cursor-pointer transition-colors';
+        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
         icon.title = 'Maximize';
 
         // Reset tag view to truncated state

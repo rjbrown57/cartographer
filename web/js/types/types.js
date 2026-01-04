@@ -1,6 +1,6 @@
 import * as dropdown from '../components/dropDown.js';
 import { Link } from '../cards/links.js';
-import { SearchBar } from '../components/searchBar.js';
+import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
 import * as query from '../query/query.js';
@@ -24,11 +24,17 @@ export class Cartographer {
             console.error(err);
         });
         QueryMainData().then(() => {
+            if (!CartographerData || !Array.isArray(CartographerData.links)) {
+                console.error('No links data available to render');
+                RenderNavMetadata([]);
+                return;
+            }
             CartographerData.links.forEach((link) => {
                 if (link.url) {
                     this.Cards.push(new Link(link.id, link.displayname, link.url, link.description, link.tags, link.data));
                 }
             });
+            RenderNavMetadata(this.Cards);
             this.renderCards();
         }, (err) => {
             console.error(err);
@@ -109,6 +115,9 @@ async function QueryMainData() {
     }
     try {
         const response = await fetch(queryPath, EncodingHeader);
+        if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
         const data = await response.json();
         CartographerData = data.response;
         cache.setCacheEntry(queryPath, CartographerData);
@@ -119,6 +128,66 @@ async function QueryMainData() {
         return console.error(err);
     }
 }
+function RenderNavMetadata(cardsList) {
+    const metaRow = document.getElementById('navMetaRow');
+    const tagsContainer = document.getElementById('navMetaTags');
+    const siteName = document.getElementById('siteName');
+    if (!metaRow || !tagsContainer) {
+        return;
+    }
+    if (!cardsList || cardsList.length === 0) {
+        metaRow.classList.add('is-hidden');
+        return;
+    }
+    const tagFrequency = new Map();
+    cardsList.forEach(card => {
+        if (!card.tags) {
+            return;
+        }
+        card.tags.forEach(tag => {
+            const normalized = tag.trim();
+            if (normalized === '') {
+                return;
+            }
+            tagFrequency.set(normalized, (tagFrequency.get(normalized) || 0) + 1);
+        });
+    });
+    if (siteName) {
+        siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
+    }
+    tagsContainer.innerHTML = '';
+    const icon = document.createElement('i');
+    icon.className = 'bi bi-tags nav-meta__icon';
+    const label = document.createElement('span');
+    label.className = 'nav-meta__label';
+    label.textContent = 'Top tags';
+    tagsContainer.appendChild(icon);
+    tagsContainer.appendChild(label);
+    const topTags = [...tagFrequency.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 10);
+    if (topTags.length === 0) {
+        const emptyState = document.createElement('span');
+        emptyState.className = 'text-secondary small';
+        emptyState.textContent = 'No tags available yet';
+        tagsContainer.appendChild(emptyState);
+    }
+    topTags.forEach(([tag, count]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'nav-tag';
+        const tagText = document.createElement('span');
+        tagText.textContent = tag;
+        const badge = document.createElement('span');
+        badge.className = 'nav-tag__count';
+        badge.textContent = `(${count})`;
+        button.appendChild(tagText);
+        button.appendChild(badge);
+        button.addEventListener('click', () => TagFilter(tag));
+        tagsContainer.appendChild(button);
+    });
+    metaRow.classList.remove('is-hidden');
+}
 function SetupViewToggle() {
     const toggle = document.getElementById('viewToggle');
     const grid = document.getElementById('linkgrid');
@@ -128,11 +197,12 @@ function SetupViewToggle() {
     }
     const updateToggle = (isListView) => {
         grid.classList.toggle('list-view', isListView);
-        header?.classList.toggle('hidden', !isListView);
+        header?.classList.toggle('is-hidden', !isListView);
         toggle.setAttribute('aria-pressed', String(isListView));
+        toggle.setAttribute('aria-label', isListView ? 'Switch to grid view' : 'Switch to list view');
         toggle.innerHTML = isListView
-            ? '<i class="fa-solid fa-border-all mr-2"></i><span>Grid</span>'
-            : '<i class="fa-solid fa-list mr-2"></i><span>List</span>';
+            ? '<i class="bi bi-grid-3x3-gap"></i><span class="visually-hidden">Grid view</span>'
+            : '<i class="bi bi-list"></i><span class="visually-hidden">List view</span>';
     };
     updateToggle(getListViewPreference());
     toggle.addEventListener('click', () => {
@@ -154,7 +224,7 @@ async function GetGroups() {
 function PopulateDropDown(data, elementTarget) {
     const button = document.getElementById(buttonId);
     button.onclick = function () {
-        dropdown.ToggleDropdown('groupdropdown');
+        dropdown.ToggleDropdown('groupdropdown', buttonId);
     };
     const dropDown = document.getElementById(elementTarget);
     for (const item of data.groups) {
