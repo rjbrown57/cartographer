@@ -3,6 +3,7 @@ package proto
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -101,7 +102,8 @@ func (l *Link) SetDisplayName() {
 		log.Fatalf("error parsing url: %v", err)
 	}
 
-	l.Displayname = fmt.Sprintf("%s%s", u.Host, u.Path)
+	host := strings.TrimPrefix(u.Host, "www.")
+	l.Displayname = fmt.Sprintf("%s%s", host, u.Path)
 }
 
 // GetKey returns the key for the link to be used in cache/backend
