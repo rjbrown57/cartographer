@@ -1,234 +1,629 @@
-
 <!DOCTYPE html>
 <html lang="en">
-<script type="module" src="scripts/cartographer.js"></script>
-<style>
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.link-card {
-	animation: fadeIn 0.5s ease-in-out;
-	transition: all 0.2s ease-in-out;
-}
-
-.link-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.line-clamp-2 {
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-#linkgrid .list-view-row {
-	display: none !important;
-}
-
-#linkgrid.list-view {
-	display: block;
-	border: 1px solid #e5e7eb;
-	border-radius: 0.75rem;
-	overflow: hidden;
-	background: #f9fafb;
-}
-
-#listHeader {
-	background: #f3f4f6;
-	border: 1px solid #e5e7eb;
-	border-radius: 0.75rem 0.75rem 0 0;
-	box-shadow: none;
-}
-
-#listHeader + #linkgrid.list-view {
-	border-top: 0;
-	border-radius: 0 0 0.75rem 0.75rem;
-}
-
-#linkgrid.list-view .link-card {
-	padding: 0;
-	box-shadow: none;
-	border-radius: 0;
-	background: transparent;
-}
-
-#linkgrid.list-view .link-card:hover {
-	transform: none;
-	box-shadow: none;
-}
-
-#linkgrid.list-view .link-card .card-view {
-	display: none;
-}
-
-.list-grid {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 1rem;
-}
-
-@media (min-width: 768px) {
-	.list-grid {
-		grid-template-columns: 3fr 4fr 5fr;
-		align-items: center;
-	}
-}
-
-#linkgrid.list-view .link-card .list-view-row {
-	display: grid !important;
-	gap: 0.75rem;
-	padding: 0.75rem 1rem;
-	align-items: center;
-	background: #ffffff;
-	border-top: 1px solid #e5e7eb;
-	transition: background-color 0.15s ease-in-out;
-}
-
-#linkgrid.list-view .link-card:first-child .list-view-row {
-	border-top: none;
-}
-
-#linkgrid.list-view .link-card .list-view-row:hover {
-	background: #f3f4f6;
-}
-
-/* Consistent color system */
-.text-primary { color: #1f2937; }
-.text-secondary { color: #6b7280; }
-.text-accent { color: #3b82f6; }
-.text-accent-hover { color: #2563eb; }
-.bg-primary { background-color: #ffffff; }
-.bg-secondary { background-color: #f9fafb; }
-.bg-accent { background-color: #3b82f6; }
-.bg-accent-hover { background-color: #2563eb; }
-.border-primary { border-color: #e5e7eb; }
-.border-accent { border-color: #3b82f6; }
-
-/* Improved spacing */
-.spacing-xs { margin: 0.25rem; padding: 0.25rem; }
-.spacing-sm { margin: 0.5rem; padding: 0.5rem; }
-.spacing-md { margin: 1rem; padding: 1rem; }
-.spacing-lg { margin: 1.5rem; padding: 1.5rem; }
-.spacing-xl { margin: 2rem; padding: 2rem; }
-
-/* Maximize/minimize functionality */
-.link-card.maximized {
-	z-index: 10;
-}
-
-.data-container {
-	transition: all 0.3s ease-in-out;
-}
-
-.data-container pre {
-	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-	line-height: 1.4;
-}
-
-/* Ensure the icon stays on top */
-.link-card .absolute {
-	z-index: 20;
-}
-
-/* Maximized card overlay styles */
-#maximized-card-overlay {
-	backdrop-filter: blur(4px);
-	transition: opacity 0.3s ease-in-out;
-}
-
-#maximized-card-overlay .link-card {
-	animation: slideInScale 0.3s ease-out;
-	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-@keyframes slideInScale {
-	from {
-		opacity: 0;
-		transform: scale(0.9) translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: scale(1) translateY(0);
-	}
-}
-
-/* Ensure overlay is above everything */
-#maximized-card-overlay {
-	z-index: 9999;
-}
-</style>
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{.sitename}}</title>
 	<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 	<link rel="apple-touch-icon" href="/favicon.ico" />
-	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+	<style>
+		:root {
+			color-scheme: light;
+			--app-bg: #eef2f7;
+			--nav-bg: #0f172a;
+			--nav-accent: #38bdf8;
+			--card-bg: #ffffff;
+			--card-border: #cbd5e1;
+			--text-primary: #0f172a;
+			--text-muted: #475569;
+			--tag-bg: #e2e8f0;
+			--tag-text: #1e293b;
+			--tag-hover: #cbd5f5;
+			--accent: #6366f1;
+			--accent-dark: #4f46e5;
+		}
+
+		body {
+			font-family: 'Inter', system-ui, -apple-system, sans-serif;
+			background: radial-gradient(circle at top, #f8fafc 0%, var(--app-bg) 45%, #dde7f5 100%);
+			color: var(--text-primary);
+			min-height: 100vh;
+		}
+
+		.top-nav {
+			background: linear-gradient(120deg, #0f172a, #1e293b 40%, #0f172a 100%);
+			box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+		}
+
+		.nav-meta {
+			color: #e2e8f0;
+			width: 100%;
+		}
+
+		.nav-meta__content {
+			padding-top: 0.4rem;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.6rem;
+		}
+
+		.nav-stat {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			background: rgba(148, 163, 184, 0.12);
+			border: 1px solid rgba(148, 163, 184, 0.22);
+			border-radius: 10px;
+			padding: 0.35rem 0.65rem;
+			color: #dce6f3;
+			letter-spacing: 0.02em;
+			text-transform: uppercase;
+			font-size: 0.72rem;
+		}
+
+		.nav-stat__count {
+			color: #f8fafc;
+			font-size: 0.95rem;
+			font-weight: 700;
+		}
+
+		.nav-tags {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.3rem;
+			align-items: center;
+		}
+
+		.nav-meta__label {
+			text-transform: uppercase;
+			font-size: 0.55rem;
+			letter-spacing: 0.1em;
+			color: rgba(226, 232, 240, 0.75);
+			padding-right: 0.4rem;
+		}
+
+		.nav-meta__icon {
+			color: rgba(226, 232, 240, 0.9);
+			font-size: 0.85rem;
+		}
+
+		.nav-tag {
+			background: rgba(15, 23, 42, 0.25);
+			border: 1px solid rgba(148, 163, 184, 0.18);
+			border-radius: 999px;
+			color: #e2e8f0;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.32rem;
+			padding: 0.22rem 0.52rem;
+			font-weight: 600;
+			font-size: 0.72rem;
+			text-decoration: none;
+			transition: transform 0.15s ease, background 0.15s ease;
+		}
+
+		.nav-tag:hover {
+			background: rgba(56, 189, 248, 0.22);
+			color: #f8fafc;
+			transform: translateY(-1px);
+		}
+
+		.nav-tag__count {
+			color: rgba(226, 232, 240, 0.75);
+			font-size: 0.62rem;
+		}
+
+		.brand {
+			font-family: 'Space Grotesk', sans-serif;
+			font-weight: 600;
+			letter-spacing: 0.02em;
+			color: #f8fafc;
+		}
+
+		.brand:hover,
+		.brand:focus {
+			color: #f8fafc;
+			text-decoration: none;
+		}
+
+		.brand i {
+			color: var(--nav-accent);
+			font-size: 1.4rem;
+		}
+
+		.nav-divider {
+			width: 1px;
+			height: 32px;
+			background: rgba(148, 163, 184, 0.4);
+		}
+
+		.search-group {
+			background: rgba(15, 23, 42, 0.4);
+			border-radius: 999px;
+			border: 1px solid rgba(148, 163, 184, 0.35);
+			overflow: hidden;
+		}
+
+		.search-group .input-group-text {
+			background: transparent;
+			border: none;
+			color: rgba(226, 232, 240, 0.85);
+		}
+
+		.search-input {
+			background: transparent;
+			border: none;
+			color: #f8fafc;
+			caret-color: #f8fafc;
+			padding-left: 0;
+		}
+
+		.search-input::placeholder {
+			color: rgba(226, 232, 240, 0.6);
+		}
+
+		.search-input:focus {
+			box-shadow: none;
+			color: #f8fafc;
+			background: transparent;
+		}
+
+		.search-input:-webkit-autofill,
+		.search-input:-webkit-autofill:hover,
+		.search-input:-webkit-autofill:focus {
+			-webkit-text-fill-color: #f8fafc;
+			box-shadow: 0 0 0px 1000px rgba(15, 23, 42, 0.4) inset;
+			transition: background-color 9999s ease-in-out 0s;
+		}
+
+		.nav-action {
+			border-radius: 999px;
+			border: 1px solid rgba(148, 163, 184, 0.4);
+			color: #e2e8f0;
+			font-weight: 500;
+			gap: 0.5rem;
+		}
+
+		.nav-action:hover,
+		.nav-action:focus {
+			background: rgba(148, 163, 184, 0.2);
+			color: #f8fafc;
+		}
+
+		.nav-action i {
+			font-size: 1rem;
+		}
+
+		.nav-icon {
+			border-radius: 999px;
+			width: 40px;
+			height: 40px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			background: rgba(56, 189, 248, 0.15);
+			color: #f8fafc;
+			border: 1px solid rgba(56, 189, 248, 0.35);
+		}
+
+		.nav-icon:hover {
+			background: rgba(56, 189, 248, 0.3);
+			color: #f8fafc;
+		}
+
+		.custom-dropdown {
+			position: absolute;
+			top: 110%;
+			left: 0;
+			background: #1e293b;
+			border-radius: 16px;
+			padding: 0.5rem;
+			min-width: 220px;
+			box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
+			border: 1px solid rgba(148, 163, 184, 0.25);
+			z-index: 1000;
+		}
+
+		.group-list {
+			max-height: 200px;
+			overflow-y: auto;
+		}
+
+		.dropdown-item-link {
+			display: block;
+			padding: 0.55rem 0.75rem;
+			border-radius: 12px;
+			color: #e2e8f0;
+			text-decoration: none;
+			font-size: 0.9rem;
+		}
+
+		.dropdown-item-link:hover {
+			background: rgba(148, 163, 184, 0.2);
+			color: #f8fafc;
+		}
+
+		.app-container {
+			max-width: 1680px;
+			padding: 1.75rem clamp(0.75rem, 2vw, 1.25rem) 4rem;
+		}
+
+		.list-header {
+			background: rgba(248, 250, 252, 0.9);
+			border: 1px solid var(--card-border);
+			border-radius: 16px 16px 0 0;
+			padding: 0.75rem 1rem;
+			font-size: 0.75rem;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			backdrop-filter: blur(12px);
+		}
+
+		#linkgrid {
+			display: grid;
+			gap: 1.5rem;
+			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+			grid-auto-rows: minmax(0, 1fr);
+		}
+
+		#linkgrid .list-view-row {
+			display: none;
+		}
+
+		#linkgrid.list-view {
+			display: block;
+			border: 1px solid var(--card-border);
+			border-radius: 0 0 16px 16px;
+			overflow: hidden;
+			background: rgba(248, 250, 252, 0.8);
+		}
+
+		.link-card {
+			background: var(--card-bg);
+			border: 1.5px solid var(--card-border);
+			border-radius: 20px;
+			padding: 1.5rem;
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			height: 100%;
+			box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+			will-change: transform;
+			backface-visibility: hidden;
+			transform: translateZ(0);
+		}
+
+		.link-card:hover {
+			transform: translate3d(0, -4px, 0);
+			box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+		}
+
+		.card-view {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			flex: 1 1 auto;
+			min-height: 0;
+		}
+
+		.link-title {
+			font-weight: 600;
+			font-size: 1.1rem;
+			color: var(--accent);
+			text-decoration: none;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			word-break: break-word;
+		}
+
+		.link-title:hover {
+			color: var(--accent-dark);
+			text-decoration: underline;
+		}
+
+		.link-description {
+			color: var(--text-muted);
+			font-size: 0.95rem;
+			margin: 0;
+		}
+
+		.link-card__toggle {
+			font-size: 1.1rem;
+			color: #64748b;
+			cursor: pointer;
+			transition: color 0.2s ease;
+		}
+
+		.link-card__toggle:hover {
+			color: #0f172a;
+		}
+
+		.data-container {
+			background: #f8fafc;
+			border-radius: 16px;
+			padding: 1rem;
+			border: 1px dashed #cbd5f5;
+		}
+
+		.data-label {
+			font-size: 0.8rem;
+			font-weight: 600;
+			color: #64748b;
+			margin-bottom: 0.5rem;
+		}
+
+		.data-content {
+			background: #0f172a;
+			color: #e2e8f0;
+			border-radius: 12px;
+			padding: 1rem;
+			font-size: 0.75rem;
+			max-height: 280px;
+			overflow: auto;
+		}
+
+		.action-bar {
+			display: flex;
+			gap: 0.5rem;
+			margin-top: 0.75rem;
+		}
+
+		.tag-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.35rem;
+			align-items: center;
+			border-top: 1px solid var(--card-border);
+			padding-top: 0.5rem;
+		}
+
+		.footer {
+			margin-top: auto;
+		}
+
+		.tag-icon {
+			color: #94a3b8;
+		}
+
+		.tag-pill {
+			background: var(--tag-bg);
+			border-radius: 999px;
+			padding: 0.28rem 0.6rem;
+			font-size: 0.78rem;
+			font-weight: 600;
+			line-height: 1.2;
+		}
+
+		.tag-pill--compact {
+			font-size: 0.68rem;
+			padding: 0.22rem 0.55rem;
+			line-height: 1.15;
+		}
+
+		.tag-pill:hover {
+			background: var(--tag-hover);
+		}
+
+		.tag-link {
+			color: var(--tag-text);
+			text-decoration: none;
+		}
+
+		.tag-link:hover {
+			color: var(--accent-dark);
+		}
+
+		.tag-overflow {
+			font-size: 0.75rem;
+			color: #64748b;
+		}
+
+		.tag-action {
+			border: none;
+			background: transparent;
+			color: var(--accent);
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
+
+		.tag-action:hover {
+			color: var(--accent-dark);
+		}
+
+		.list-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 1rem;
+			align-items: center;
+		}
+
+		.list-grid > div {
+			min-width: 0;
+		}
+
+		@media (min-width: 768px) {
+			.list-grid {
+				grid-template-columns: 2.5fr 4fr 4fr;
+			}
+		}
+
+		#linkgrid.list-view .link-card {
+			border: none;
+			border-radius: 0;
+			padding: 0;
+			box-shadow: none;
+			background: transparent;
+		}
+
+		#linkgrid.list-view .link-card:hover {
+			transform: none;
+			box-shadow: none;
+		}
+
+		#linkgrid.list-view .link-card .card-view {
+			display: none;
+		}
+
+		#linkgrid.list-view .link-card .list-view-row {
+			display: grid;
+		}
+
+		.list-view-row {
+			padding: 1rem;
+			border-top: 1px solid var(--card-border);
+			background: #ffffff;
+			transition: background-color 0.15s ease;
+		}
+
+		#linkgrid.list-view .link-card:first-child .list-view-row {
+			border-top: none;
+		}
+
+		.list-view-row:hover {
+			background: #f1f5f9;
+		}
+
+		.list-title {
+			font-weight: 600;
+			color: var(--accent);
+			text-decoration: none;
+			display: block;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			max-width: 100%;
+		}
+
+		.list-title:hover {
+			color: var(--accent-dark);
+			text-decoration: underline;
+		}
+
+		.list-description {
+			color: var(--text-muted);
+			font-size: 0.9rem;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.list-tags {
+			display: flex;
+			align-items: center;
+		}
+
+		#maximized-card-overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(15, 23, 42, 0.45);
+			backdrop-filter: blur(6px);
+			z-index: 1050;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 1.5rem;
+		}
+
+		#maximized-card-overlay .link-card {
+			max-width: 960px;
+			width: 100%;
+			max-height: 90vh;
+			overflow-y: auto;
+			animation: overlayPop 0.3s ease;
+		}
+
+		@keyframes overlayPop {
+			from {
+				opacity: 0;
+				transform: scale(0.95);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+
+		.is-hidden {
+			display: none !important;
+		}
+	</style>
+	<script type="module" src="scripts/cartographer.js"></script>
 </head>
-<body class="bg-secondary min-h-screen">
-	    <!-- Navbar -->
-    <nav class="bg-gray-800 p-4 shadow-lg relative z-50">
-        <div class="container mx-auto flex items-center">
-            <div id="home" class="mr-4">
-                <a class="text-white hover:text-blue-300 transition-colors flex items-center" href="/">
-                    <i class="fa fa-compass-drafting p-2 text-blue-400"></i>
-                    <span class="font-semibold">{{ .sitename }}</span>
-                </a> 
-            </div>
-            <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
-            <div id="searchBarDiv" class="flex-grow mr-4">
-                <div class="relative">
-                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input id="searchBar" type="text" placeholder="Search links and tags..." class="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                </div>
-            </div>
-			<div class="flex items-center">
-				<button id="viewToggle" class="text-gray-300 hover:text-white focus:outline-none flex items-center px-3 py-2 rounded-lg transition-colors" aria-pressed="false" type="button">
-					<i class="fa-solid fa-list mr-2"></i>
-					<span>List view</span>
-				</button>
+<body>
+	<nav class="navbar top-nav py-3">
+		<div class="container-fluid gap-3 align-items-center">
+			<a id="siteName" class="navbar-brand brand d-flex align-items-center gap-2" href="/">
+				<i class="bi bi-compass"></i>
+				<span>{{ .sitename }}</span>
+			</a>
+			<div class="nav-divider d-none d-lg-block"></div>
+			<div id="searchBarDiv" class="flex-grow-1">
+				<div class="input-group search-group">
+					<span class="input-group-text"><i class="bi bi-search"></i></span>
+					<input id="searchBar" type="text" class="form-control search-input" placeholder="Search links and tags...">
+				</div>
 			</div>
-            <div class="mx-4 border-l-2 border-gray-600 h-8"></div>
-            <div class="relative flex-grow">
-                <button id="groupButton" class="text-gray-300 hover:text-white focus:outline-none flex items-center px-3 py-2 rounded-lg transition-colors">
-                    <i class="fa fa-caret-down mr-2"></i>
-                    <span>Groups</span>
-                </button>
-                <div id="groupdropdown" class="hidden absolute bg-gray-700 text-white rounded-lg shadow-xl mt-2 w-48 border border-gray-600">
-                    <div id="groupList" class="max-h-48 overflow-y-auto p-2"></div>
-                </div>
-            </div>
-            <a class="text-white hover:text-blue-300 text-2xl transition-colors" href="https://github.com/rjbrown57/cartographer">
-                <i class="fa-brands fa-github p-2"></i>
-            </a>
-        </div>
+			<button id="viewToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-pressed="false" type="button">
+				<i class="bi bi-list"></i>
+				<span class="visually-hidden">Toggle view</span>
+			</button>
+			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
+				<i class="bi bi-braces-asterisk"></i>
+			</a>
+			<div class="nav-divider d-none d-lg-block"></div>
+			<div class="position-relative">
+				<button id="groupButton" class="btn nav-action d-flex align-items-center" type="button">
+					<i class="bi bi-grid"></i>
+					<span>Groups</span>
+					<i class="bi bi-chevron-down"></i>
+				</button>
+				<div id="groupdropdown" class="custom-dropdown is-hidden">
+					<div id="groupList" class="group-list"></div>
+				</div>
+			</div>
+			<a class="nav-icon" href="https://github.com/rjbrown57/cartographer" aria-label="GitHub">
+				<i class="bi bi-github"></i>
+			</a>
+		</div>
+		<div id="navMetaRow" class="nav-meta is-hidden">
+			<div class="container-fluid">
+				<div class="nav-meta__content">
+					<div class="nav-tags" id="navMetaTags">
+						<i class="bi bi-tags nav-meta__icon"></i>
+						<span class="nav-meta__label">Top tags</span>
+					</div>
+				</div>
+			</div>
+		</div>
 	</nav>
-	<div class="container mx-auto px-4 py-6">
+	<main class="app-container container-fluid">
 		<div id="link" class="links">
-			<div id="listHeader" class="hidden bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 px-4 py-2 text-xs font-semibold uppercase text-gray-500 tracking-wide mb-3">
+			<div id="listHeader" class="list-header is-hidden">
 				<div class="list-grid">
 					<div>Title</div>
 					<div>Description</div>
-					<div class="flex items-center gap-2">
-						<i class="fa-solid fa-tag"></i>
+					<div class="d-flex align-items-center gap-2">
+						<i class="bi bi-tags"></i>
 						<span>Tags</span>
 					</div>
 				</div>
 			</div>
-			<div id="linkgrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-			</div>
+			<div id="linkgrid"></div>
 		</div>
-	</div>
+	</main>
 </body>
 </html>
