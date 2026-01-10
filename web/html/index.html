@@ -41,6 +41,16 @@
 		.nav-meta {
 			color: #e2e8f0;
 			width: 100%;
+			transition: opacity 0.24s ease, transform 0.24s ease;
+		}
+
+		.nav-meta--enter {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+
+		.nav-meta--loading .nav-tag {
+			pointer-events: none;
 		}
 
 		.nav-meta__content {
@@ -49,6 +59,7 @@
 			flex-wrap: wrap;
 			align-items: center;
 			gap: 0.6rem;
+			row-gap: 0.35rem;
 		}
 
 		.nav-stat {
@@ -74,8 +85,12 @@
 		.nav-tags {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 0.3rem;
+			gap: 0.35rem;
+			row-gap: 0.3rem;
 			align-items: center;
+			padding: 0.1rem 0;
+			max-height: 64px;
+			overflow: hidden;
 		}
 
 		.nav-meta__label {
@@ -115,6 +130,42 @@
 		.nav-tag__count {
 			color: rgba(226, 232, 240, 0.75);
 			font-size: 0.62rem;
+		}
+
+		.nav-tag__text {
+			max-width: 8rem;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.nav-tag--more {
+			border-style: dashed;
+			border-color: rgba(148, 163, 184, 0.4);
+			background: rgba(15, 23, 42, 0.35);
+			color: #f8fafc;
+		}
+
+		.nav-tag--more:hover {
+			background: rgba(56, 189, 248, 0.22);
+		}
+
+		.nav-tag--skeleton {
+			min-width: 68px;
+			height: 28px;
+			border-color: rgba(148, 163, 184, 0.18);
+			background: linear-gradient(90deg, rgba(148, 163, 184, 0.2), rgba(226, 232, 240, 0.35), rgba(148, 163, 184, 0.2));
+			background-size: 200% 100%;
+			animation: shimmer 1.25s ease-in-out infinite;
+		}
+
+		@keyframes shimmer {
+			from {
+				background-position: 200% 0;
+			}
+			to {
+				background-position: -200% 0;
+			}
 		}
 
 		.brand {

@@ -202,6 +202,9 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     const metaRow = document.getElementById('navMetaRow');
     const tagsContainer = document.getElementById('navMetaTags');
     const siteName = document.getElementById('siteName');
+    const SKELETON_CLASS = 'nav-meta--loading';
+    const ENTER_CLASS = 'nav-meta--enter';
+    const SKELETON_COUNT = 6;
 
     // Bail if required DOM nodes are missing.
     if (!metaRow || !tagsContainer) {
@@ -232,22 +235,38 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     if (siteName) {
         siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
     }
-    // Reset and rebuild the tags area.
-    tagsContainer.innerHTML = '';
+    // Helper to reset and rebuild the tags area with the base icon/label.
+    const buildBase = () => {
+        tagsContainer.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-tags nav-meta__icon';
+        const label = document.createElement('span');
+        label.className = 'nav-meta__label';
+        label.textContent = 'Top tags';
+        tagsContainer.appendChild(icon);
+        tagsContainer.appendChild(label);
+        return { icon, label };
+    };
 
-    // Add a leading icon/label for the tags list.
-    const icon = document.createElement('i');
-    icon.className = 'bi bi-tags nav-meta__icon';
-    const label = document.createElement('span');
-    label.className = 'nav-meta__label';
-    label.textContent = 'Top tags';
-    tagsContainer.appendChild(icon);
-    tagsContainer.appendChild(label);
+    // When no data yet, show a lightweight skeleton state instead of popping in.
+    if (!cardsList || cardsList.length === 0) {
+        buildBase();
+        for (let i = 0; i < SKELETON_COUNT; i++) {
+            const skeleton = document.createElement('span');
+            skeleton.className = 'nav-tag nav-tag--skeleton';
+            tagsContainer.appendChild(skeleton);
+        }
+        metaRow.classList.remove('is-hidden');
+        metaRow.classList.add(SKELETON_CLASS);
+        metaRow.classList.remove(ENTER_CLASS);
+        return;
+    }
 
-    // Pick the top tags by count (then name), limited to 10.
+    const { icon, label } = buildBase();
+
+    // Pick the top tags by count (then name).
     const topTags = [...tagFrequency.entries()]
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 10);
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
     // Render empty state if there are no tags.
     if (topTags.length === 0) {
@@ -258,13 +277,15 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     }
 
     // Render each top tag as a button that filters by that tag.
-    topTags.forEach(([tag, count]) => {
+    const renderTagButton = (tag: string, count: number) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'nav-tag';
 
         const tagText = document.createElement('span');
+        tagText.className = 'nav-tag__text';
         tagText.textContent = tag;
+        tagText.title = tag;
 
         const badge = document.createElement('span');
         badge.className = 'nav-tag__count';
@@ -275,10 +296,17 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         button.addEventListener('click', () => TagFilter(tag));
 
         tagsContainer.appendChild(button);
-    });
+    };
 
-    // Ensure the metadata row is visible once populated.
+    topTags.forEach(([tag, count]) => renderTagButton(tag, count));
+
+    // Ensure the metadata row is visible once populated and animate it in.
     metaRow.classList.remove('is-hidden');
+    metaRow.classList.remove(SKELETON_CLASS);
+    metaRow.classList.add(ENTER_CLASS);
+    requestAnimationFrame(() => {
+        metaRow.classList.remove(ENTER_CLASS);
+    });
 }
 
 // Wire up the list/grid view toggle and persist user preference.

@@ -132,6 +132,9 @@ function RenderNavMetadata(cardsList) {
     const metaRow = document.getElementById('navMetaRow');
     const tagsContainer = document.getElementById('navMetaTags');
     const siteName = document.getElementById('siteName');
+    const SKELETON_CLASS = 'nav-meta--loading';
+    const ENTER_CLASS = 'nav-meta--enter';
+    const SKELETON_COUNT = 6;
     if (!metaRow || !tagsContainer) {
         return;
     }
@@ -155,29 +158,46 @@ function RenderNavMetadata(cardsList) {
     if (siteName) {
         siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
     }
-    tagsContainer.innerHTML = '';
-    const icon = document.createElement('i');
-    icon.className = 'bi bi-tags nav-meta__icon';
-    const label = document.createElement('span');
-    label.className = 'nav-meta__label';
-    label.textContent = 'Top tags';
-    tagsContainer.appendChild(icon);
-    tagsContainer.appendChild(label);
+    const buildBase = () => {
+        tagsContainer.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-tags nav-meta__icon';
+        const label = document.createElement('span');
+        label.className = 'nav-meta__label';
+        label.textContent = 'Top tags';
+        tagsContainer.appendChild(icon);
+        tagsContainer.appendChild(label);
+        return { icon, label };
+    };
+    if (!cardsList || cardsList.length === 0) {
+        buildBase();
+        for (let i = 0; i < SKELETON_COUNT; i++) {
+            const skeleton = document.createElement('span');
+            skeleton.className = 'nav-tag nav-tag--skeleton';
+            tagsContainer.appendChild(skeleton);
+        }
+        metaRow.classList.remove('is-hidden');
+        metaRow.classList.add(SKELETON_CLASS);
+        metaRow.classList.remove(ENTER_CLASS);
+        return;
+    }
+    const { icon, label } = buildBase();
     const topTags = [...tagFrequency.entries()]
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 10);
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     if (topTags.length === 0) {
         const emptyState = document.createElement('span');
         emptyState.className = 'text-secondary small';
         emptyState.textContent = 'No tags available yet';
         tagsContainer.appendChild(emptyState);
     }
-    topTags.forEach(([tag, count]) => {
+    const renderTagButton = (tag, count) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'nav-tag';
         const tagText = document.createElement('span');
+        tagText.className = 'nav-tag__text';
         tagText.textContent = tag;
+        tagText.title = tag;
         const badge = document.createElement('span');
         badge.className = 'nav-tag__count';
         badge.textContent = `(${count})`;
@@ -185,8 +205,14 @@ function RenderNavMetadata(cardsList) {
         button.appendChild(badge);
         button.addEventListener('click', () => TagFilter(tag));
         tagsContainer.appendChild(button);
-    });
+    };
+    topTags.forEach(([tag, count]) => renderTagButton(tag, count));
     metaRow.classList.remove('is-hidden');
+    metaRow.classList.remove(SKELETON_CLASS);
+    metaRow.classList.add(ENTER_CLASS);
+    requestAnimationFrame(() => {
+        metaRow.classList.remove(ENTER_CLASS);
+    });
 }
 function SetupViewToggle() {
     const toggle = document.getElementById('viewToggle');
