@@ -64,7 +64,6 @@ var GetCmd = &cobra.Command{
 			log.Fatalf("Failed to get links %s", err)
 		}
 
-		
 		out, err := yaml.Marshal(response)
 		if err != nil {
 			log.Fatalf("Unable to marshal response %s", err)
