@@ -23,13 +23,14 @@ tasks:
   build:
     desc: "Build all"
     cmds:
-    - task buf
-    - task ts
-    - task swagger
-    - task snapshot
+    - task: buf
+    - task: ts
+    - task: swagger
+    - task: snapshot
   snapshot:
     desc: "Snapshot"
     cmds:
+    - go fmt ./...
     - goreleaser --snapshot --clean --config ./.goreleaser.yml
   generate:
     desc: "Generate Fake Data and add to cartographer. Can re-run to add more data"
