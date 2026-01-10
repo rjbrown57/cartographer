@@ -53,6 +53,10 @@ tasks:
     desc: "build basic explorer"
     cmds:
     - go build -o basic_explorer explorer/basic/main.go
+  test-cartographer:
+    desc: "run all go tests"
+    cmds:
+    - go test ./...
   test-basic-explorer:
     desc: "test basic explorer"
     cmds:
