@@ -2,6 +2,7 @@ package auto
 
 import (
 	"regexp"
+	"slices"
 	"testing"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
@@ -76,13 +77,7 @@ func TestProcessAutoTags(t *testing.T) {
 				t.Errorf("expected %v tags, got %v", len(tt.expected), len(tt.link.Tags))
 			}
 			for _, tag := range tt.expected {
-				found := false
-				for _, linkTag := range tt.link.Tags {
-					if tag == linkTag {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(tt.link.Tags, tag)
 				if !found {
 					t.Errorf("expected tag %v not found in link tags %v", tag, tt.link.Tags)
 				}

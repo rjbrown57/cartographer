@@ -105,7 +105,7 @@ func WriteTestDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = subFile1.Write([]byte(fmt.Sprintf("links:\n%s", LinkOnly1Config)))
+	_, err = subFile1.Write(fmt.Appendf(nil, "links:\n%s", LinkOnly1Config))
 	if err != nil {
 		return "", err
 	}
@@ -119,7 +119,7 @@ func WriteTestDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = subFile2.Write([]byte(fmt.Sprintf("links:\n%s", LinkOnly2Config)))
+	_, err = subFile2.Write(fmt.Appendf(nil, "links:\n%s", LinkOnly2Config))
 	if err != nil {
 		return "", err
 	}

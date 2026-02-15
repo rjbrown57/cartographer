@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,14 +15,12 @@ func NewTemplatingHeaders(c *gin.Context, pr *proto.CartographerResponse) *gin.H
 	m := gin.H{}
 
 	// Add Strings to Map
-	for k, v := range map[string]any{
+	maps.Copy(m, map[string]any{
 		"Groups":   pr.Groups,
 		"Links":    pr.Links,
 		"Tags":     pr.Tags,
 		"SiteName": sitename,
-	} {
-		m[k] = v
-	}
+	})
 
 	if c.Request.RequestURI != "/" {
 		groups, _ := c.Get("Groups")

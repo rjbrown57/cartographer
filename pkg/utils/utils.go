@@ -23,15 +23,6 @@ func UnmarshalYaml(configPath string, v any) error {
 	return yaml.Unmarshal(yamlFile, v)
 }
 
-func Contains(needle string, haystack []string) bool {
-	for _, item := range haystack {
-		if item == needle {
-			return true
-		}
-	}
-	return false
-}
-
 // GenerateDataHash generates a short unique string based on the data field content
 // It creates a SHA256 hash of the JSON representation of the data and returns the first 8 characters
 func GenerateDataHash(data map[string]any) string {

@@ -43,7 +43,7 @@ func TestNewCartographerConfig(t *testing.T) {
 
 	controlConfig = CartographerConfig{}
 
-	err = yaml.Unmarshal([]byte(fmt.Sprintf("%s\n%s\n%s", utils.TestFullConfig, utils.LinkOnly1Config, utils.LinkOnly2Config)), &controlConfig)
+	err = yaml.Unmarshal(fmt.Appendf(nil, "%s\n%s\n%s", utils.TestFullConfig, utils.LinkOnly1Config, utils.LinkOnly2Config), &controlConfig)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal control config %s", err)
 	}

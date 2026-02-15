@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"maps"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -51,9 +52,7 @@ func GetSeenVisitors() map[string]bool {
 	defer visitorMutex.RUnlock()
 
 	visitors := make(map[string]bool)
-	for ip, seen := range seenVisitors {
-		visitors[ip] = seen
-	}
+	maps.Copy(visitors, seenVisitors)
 	return visitors
 }
 
