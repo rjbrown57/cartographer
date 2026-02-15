@@ -66,6 +66,8 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 	}
 
 	// expand the groups into tags
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	for _, group := range in.Request.Groups {
 		if g, ok := c.groupCache[group.Name]; ok {
 			for _, tag := range g.Tags {
@@ -108,11 +110,13 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 	log.Tracef("Search Results(%v): %+v", results.Took, results.Total)
 
 	// add the hits to the links
+	c.mu.RLock()
 	for _, hit := range results.Hits {
 		if link, exists := c.cache[hit.ID]; exists {
 			links = append(links, link)
 		}
 	}
+	c.mu.RUnlock()
 
 	return links, nil
 }

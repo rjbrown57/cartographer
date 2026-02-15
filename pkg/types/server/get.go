@@ -18,9 +18,11 @@ func getDataset(c *CartographerServer, in *proto.CartographerGetRequest) ([]*pro
 	switch {
 	// if there are no tags or terms, send all links
 	case len(in.Request.GetTags()) == 0 && len(in.Request.GetTerms()) == 0:
+		c.mu.RLock()
 		for _, link := range c.cache {
 			links = append(links, link)
 		}
+		c.mu.RUnlock()
 	case len(in.Request.GetTags()) > 0 && len(in.Request.GetTerms()) == 0:
 		// if there are tags but no terms, handle via the tag cache
 		links, err = c.Search(in, &SearchOptions{Limit: SearchLimitTags})
@@ -63,14 +65,18 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 	// RequestType_REQUEST_TYPE_GROUP returns a list of groups from the cache
 	case proto.RequestType_REQUEST_TYPE_GROUP:
+		c.mu.RLock()
 		for _, group := range c.groupCache {
 			r.Response.Groups = append(r.Response.Groups, group.Name)
 		}
+		c.mu.RUnlock()
 	// RequestType_REQUEST_TYPE_TAG returns a list of tags from the cache
 	case proto.RequestType_REQUEST_TYPE_TAG:
+		c.mu.RLock()
 		for tag := range c.tagCache {
 			r.Response.Tags = append(r.Response.Tags, tag)
 		}
+		c.mu.RUnlock()
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
 		log.Infof("unknown RequestType")

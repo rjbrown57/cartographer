@@ -35,7 +35,7 @@ type CartographerServer struct {
 	cache      map[string]*proto.Link   // cache by key of all links
 	groupCache map[string]*proto.Group  // cache by name of all groups, should be refactored to provide links
 	tagCache   map[string][]*proto.Link // cache by tag string that links to all known matching links
-	mu         sync.Mutex
+	mu         sync.RWMutex
 	bleve      bleve.Index
 }
 
@@ -90,7 +90,7 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		cache:      make(map[string]*proto.Link),
 		groupCache: make(map[string]*proto.Group),
 		tagCache:   make(map[string][]*proto.Link),
-		mu:         sync.Mutex{},
+		mu:         sync.RWMutex{},
 	}
 
 	mapping := bleve.NewIndexMapping()

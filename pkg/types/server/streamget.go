@@ -14,9 +14,11 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 		Response: proto.NewCartographerResponse(),
 	}
 
+	c.mu.RLock()
 	for _, v := range c.cache {
 		s.Response.Links = append(s.Response.Links, v)
 	}
+	c.mu.RUnlock()
 
 	if err := stream.Send(&s); err != nil {
 		return err
@@ -29,9 +31,11 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 
 	for {
 		<-notifier.Channel
+		c.mu.RLock()
 		for _, v := range c.cache {
 			s.Response.Links = append(s.Response.Links, v)
 		}
+		c.mu.RUnlock()
 
 		if err := stream.Send(&s); err != nil {
 			return err
