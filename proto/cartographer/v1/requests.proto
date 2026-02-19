@@ -20,6 +20,7 @@ message CartographerRequest {
   repeated Group groups = 2;
   repeated Link links = 3;
   repeated string terms = 4;
+  string namespace = 5;
 }
 
 // CartographerResponse is the generic response message
@@ -28,6 +29,7 @@ message CartographerResponse {
   repeated string tags = 2;
   repeated string groups = 3;
   repeated Link links = 4;
+  string namespace = 5;
 }
 
 // PingRequest is used for health check
@@ -75,6 +77,7 @@ message CartographerAddResponse {
 // CartographerDeleteRequest is used for deleting data
 message CartographerDeleteRequest {
   repeated string ids = 1;
+  string namespace = 2;
 }
 
 // CartographerDeleteResponse confirms the deletion

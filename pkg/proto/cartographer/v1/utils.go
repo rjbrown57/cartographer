@@ -1,13 +1,24 @@
 package proto
 
-import "github.com/rjbrown57/cartographer/pkg/log"
+import (
+	"fmt"
+	"regexp"
+
+	"github.com/rjbrown57/cartographer/pkg/log"
+)
+
+var (
+	DefaultNamespace = "default"
+	nsregex          = "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+	nsre             = regexp.MustCompile(nsregex)
+)
 
 func NewProtoTag(tagName, description string) *Tag {
 	t := Tag{Name: tagName}
 	return &t
 }
 
-func NewCartographerRequest(links, tags, groups []string) (*CartographerRequest, error) {
+func NewCartographerRequest(links, tags, groups []string, namespace string) (*CartographerRequest, error) {
 	newlinks := make([]*Link, 0)
 
 	deDupMap := make(map[string]struct{})
@@ -35,15 +46,23 @@ func NewCartographerRequest(links, tags, groups []string) (*CartographerRequest,
 		deDupMap[group] = struct{}{}
 	}
 
+	// validate namespaces matches regex and if unset set to default
+	validatedNs, err := GetNamespace(namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	r := CartographerRequest{
-		Links:  newlinks,
-		Groups: newGroups,
+		Links:     newlinks,
+		Groups:    newGroups,
+		Namespace: validatedNs,
 	}
 
 	return &r, nil
 }
 
 func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetRequest {
+
 	return &CartographerGetRequest{
 		Request: &CartographerRequest{
 			Tags:   c.Request.GetTags(),
@@ -54,8 +73,8 @@ func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetReque
 	}
 }
 
-func NewCartographerGetRequest(links, tags, groups []string) *CartographerGetRequest {
-	r, err := NewCartographerRequest(links, tags, groups)
+func NewCartographerGetRequest(links, tags, groups []string, namespace string) *CartographerGetRequest {
+	r, err := NewCartographerRequest(links, tags, groups, namespace)
 	if err != nil {
 		log.Fatalf("Error building cartographer request: %s", err)
 	}
@@ -64,8 +83,8 @@ func NewCartographerGetRequest(links, tags, groups []string) *CartographerGetReq
 	}
 }
 
-func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddRequest {
-	r, err := NewCartographerRequest(links, tags, groups)
+func NewCartographerAddRequest(links, tags, groups []string, namespace string) *CartographerAddRequest {
+	r, err := NewCartographerRequest(links, tags, groups, namespace)
 	if err != nil {
 		log.Fatalf("Error building cartographer request: %s", err)
 	}
@@ -74,9 +93,15 @@ func NewCartographerAddRequest(links, tags, groups []string) *CartographerAddReq
 	}
 }
 
-func NewCartographerDeleteRequest(ids []string) *CartographerDeleteRequest {
+func NewCartographerDeleteRequest(ids []string, namespace string) *CartographerDeleteRequest {
+	validatedNs, err := GetNamespace(namespace)
+	if err != nil {
+		log.Fatalf("Error building cartographer delete request: %s", err)
+	}
+
 	c := &CartographerDeleteRequest{
-		Ids: ids,
+		Ids:       ids,
+		Namespace: validatedNs,
 	}
 
 	return c
@@ -84,4 +109,16 @@ func NewCartographerDeleteRequest(ids []string) *CartographerDeleteRequest {
 
 func NewCartographerResponse() *CartographerResponse {
 	return &CartographerResponse{}
+}
+
+// GetNamespace will validate a supplied namespace or return the default if unset
+func GetNamespace(n string) (string, error) {
+	if n != "" {
+		if nsre.MatchString(n) {
+			return n, nil
+		}
+		return "", fmt.Errorf("namespace %q does not match required format", n)
+	}
+
+	return DefaultNamespace, nil
 }

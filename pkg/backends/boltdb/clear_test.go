@@ -21,7 +21,7 @@ func TestClear(t *testing.T) {
 
 	db.Add(backend.NewBackendAddRequest(map[string]any{
 		"test": "test",
-	}))
+	}, "default"))
 
 	db.Clear()
 

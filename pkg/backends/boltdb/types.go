@@ -49,7 +49,6 @@ func (b *BoltDBBackend) initialize() error {
 	if err != nil {
 		return err
 	}
-
 	// Create the meta bucket
 	err = b.db.Update(func(tx *bolt.Tx) error {
 		return createBucketFunc(MetaBucket)(tx)

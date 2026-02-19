@@ -1,13 +1,14 @@
 package boltdb
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
 	"testing"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
-	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	bolt "go.etcd.io/bbolt"
 )
 
 func PrepareTestDB(t *testing.T) *BoltDBBackend {
@@ -26,7 +27,26 @@ func PrepareTestDB(t *testing.T) *BoltDBBackend {
 		"test2b": "test2b",
 	}
 
-	db.Add(backend.NewBackendAddRequest(mapData))
+	err := db.db.Update(func(tx *bolt.Tx) error {
+		dataStoreBucket := getBucketFunc(DataStoreBucket)(tx)
+		namespaceBucket, err := dataStoreBucket.CreateBucketIfNotExists([]byte("default"))
+		if err != nil {
+			return fmt.Errorf("create namespace bucket: %w", err)
+		}
+		for key, value := range mapData {
+			bytes, err := json.Marshal(value)
+			if err != nil {
+				return fmt.Errorf("marshal value for key %q: %w", key, err)
+			}
+			if err := namespaceBucket.Put([]byte(key), bytes); err != nil {
+				return fmt.Errorf("put value for key %q: %w", key, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Expected no errors, got %v", err)
+	}
 
 	return db
 }
@@ -49,7 +69,8 @@ func TestDelete(t *testing.T) {
 	for _, test := range tests {
 
 		resp := db.Delete(&proto.CartographerDeleteRequest{
-			Ids: test.ids,
+			Ids:       test.ids,
+			Namespace: "default",
 		})
 
 		if resp.Errors != nil && !test.shouldError {

@@ -46,7 +46,9 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 	defer metrics.RecordOperationDuration("get")()
 
 	r := &proto.CartographerGetResponse{
-		Response: &proto.CartographerResponse{},
+		Response: &proto.CartographerResponse{
+			Namespace: in.Request.GetNamespace(),
+		},
 	}
 
 	log.Tracef("Get Request: %v", in.Type)

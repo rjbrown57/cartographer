@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	links []string
-	tags  []string
-	group []string
-	file  string
+	links     []string
+	tags      []string
+	group     []string
+	namespace string
+	file      string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -52,7 +53,7 @@ var AddCmd = &cobra.Command{
 			return
 		}
 
-		r := proto.NewCartographerAddRequest(links, tags, group)
+		r := proto.NewCartographerAddRequest(links, tags, group, namespace)
 
 		response, err := c.Client.Add(c.Ctx, r)
 		if err != nil {
@@ -82,6 +83,7 @@ func init() {
 	AddCmd.Flags().StringSliceVarP(&links, "links", "l", nil, "link to add to cartographer serer e.g -l=https://github.com,https://gitlab.com")
 	AddCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to add to the supplied links -t=git,k8s`)
 	AddCmd.Flags().StringSliceVarP(&group, "group", "g", nil, "Group To add")
+	AddCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace key")
 	AddCmd.Flags().StringVarP(&file, "file", "f", "", "file config to add")
 
 }

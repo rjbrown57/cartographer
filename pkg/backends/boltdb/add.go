@@ -18,13 +18,18 @@ func (b *BoltDBBackend) Add(r *backend.BackendAddRequest) *backend.BackendRespon
 		// get the data_store bucket
 		dataStoreBucket := getBucketFunc(DataStoreBucket)(tx)
 
+		namespaceBucket, err := dataStoreBucket.CreateBucketIfNotExists([]byte(r.Namespace))
+		if err != nil {
+			return fmt.Errorf("error getting namespace bucket: %v", err)
+		}
+
 		// add the data to the database
 		for key, value := range r.Data {
 			bytes, err := json.Marshal(value)
 			if err != nil {
 				return fmt.Errorf("error marshalling value: %v", err)
 			}
-			dataStoreBucket.Put([]byte(key), bytes)
+			namespaceBucket.Put([]byte(key), bytes)
 			resp.Data[key] = bytes
 		}
 		return nil
