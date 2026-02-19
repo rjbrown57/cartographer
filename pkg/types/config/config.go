@@ -53,8 +53,9 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*p
 
 	r := proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
-			Links:  c.Links,
-			Groups: c.Groups,
+			Links:     c.Links,
+			Groups:    c.Groups,
+			Namespace: proto.DefaultNamespace, // for now we only allow ingest to default NS
 		},
 	}
 

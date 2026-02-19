@@ -40,7 +40,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		metrics.IncrementObjectCount("group", 1)
 	}
 
-	ar := backend.NewBackendAddRequest(newData)
+	ar := backend.NewBackendAddRequest(newData, in.Request.Namespace)
 
 	// run the add
 	b := c.Backend.Add(ar)

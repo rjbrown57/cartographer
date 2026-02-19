@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	groups []string
-	tags   []string
-	watch  bool
+	groups    []string
+	tags      []string
+	namespace string
+	watch     bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -45,7 +46,7 @@ var GetCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		pr := proto.NewCartographerGetRequest(nil, tags, groups)
+		pr := proto.NewCartographerGetRequest(nil, tags, groups, namespace)
 		// All request types are data, we will filter on group or tag if supplied.
 		pr.Type = proto.RequestType_REQUEST_TYPE_DATA
 
@@ -103,4 +104,5 @@ func init() {
 	GetCmd.Flags().BoolVarP(&watch, "watch", "w", false, "Open a watch on the server based on supplied flags")
 	GetCmd.Flags().StringSliceVarP(&groups, "group", "g", nil, "link group to query cartographer for e.g -g=example,oci --g=example")
 	GetCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to query for e.g --t="k8s,oci" --ss="default"`)
+	GetCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace to query")
 }

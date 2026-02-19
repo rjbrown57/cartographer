@@ -16,16 +16,22 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		// get the data_store bucket
 		dataStoreBucket := getBucketFunc(DataStoreBucket)(tx)
+		namespaceBucket := dataStoreBucket.Bucket([]byte(r.Namespace))
 
 		// delete the data to the database
 		for _, id := range r.Ids {
-			// check if the id exists in the database
-			if dataStoreBucket.Get([]byte(id)) == nil {
+			if namespaceBucket == nil {
 				resp.Errors = append(resp.Errors, fmt.Sprintf("id not found: %s", id))
 				continue
 			}
 
-			err := dataStoreBucket.Delete([]byte(id))
+			// check if the id exists in the database
+			if namespaceBucket.Get([]byte(id)) == nil {
+				resp.Errors = append(resp.Errors, fmt.Sprintf("id not found: %s", id))
+				continue
+			}
+
+			err := namespaceBucket.Delete([]byte(id))
 			if err != nil {
 				log.Errorf("Error deleting data from BoltDB: %s", err)
 				resp.Errors = append(resp.Errors, fmt.Sprintf("error deleting data from BoltDB: %s", err))

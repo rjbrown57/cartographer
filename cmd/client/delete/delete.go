@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	ids []string
+	ids       []string
+	namespace string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -41,7 +42,7 @@ var DeleteCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		r, err := c.Client.Delete(c.Ctx, proto.NewCartographerDeleteRequest(ids))
+		r, err := c.Client.Delete(c.Ctx, proto.NewCartographerDeleteRequest(ids, namespace))
 		if err != nil {
 			log.Fatalf("Failed to Delete data %s", err)
 		}
@@ -57,4 +58,5 @@ var DeleteCmd = &cobra.Command{
 
 func init() {
 	DeleteCmd.Flags().StringSliceVarP(&ids, "ids", "i", nil, "data points to delete from cartographer server e.g -i=https://github.com,https://gitlab.com,-i=1234567890(an id)")
+	DeleteCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace key")
 }

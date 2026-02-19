@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	bolt "go.etcd.io/bbolt"
 )
 
 func TestAdd(t *testing.T) {
@@ -23,19 +24,24 @@ func TestAdd(t *testing.T) {
 
 	resp := db.Add(backend.NewBackendAddRequest(map[string]any{
 		"test": "test",
-	}))
+	}, "default"))
 
 	if len(resp.Errors) > 0 {
 		t.Fatalf("Expected no errors, got %v", resp.Errors)
 	}
 
-	// data is first returned as []byte, so we need to convert it to a string
-	resp = db.GetAllValues()
+	err := db.db.View(func(tx *bolt.Tx) error {
+		dataStoreBucket := getBucketFunc(DataStoreBucket)(tx)
+		namespaceBucket := dataStoreBucket.Bucket([]byte("default"))
+		if namespaceBucket == nil {
+			t.Fatalf("Expected default namespace bucket to exist")
+		}
 
-	// convert the data to a string
-	if val, ok := resp.Data["test"]; !ok {
-		t.Fatalf("Expected test to be present, got %v", ok)
-	} else {
+		val := namespaceBucket.Get([]byte("test"))
+		if val == nil {
+			t.Fatalf("Expected test to be present")
+		}
+
 		var jsonVal string
 		err := json.Unmarshal(val, &jsonVal)
 		if err != nil {
@@ -45,5 +51,9 @@ func TestAdd(t *testing.T) {
 		if jsonVal != "test" {
 			t.Fatalf("Expected test, got %v", string(val))
 		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Expected no errors, got %v", err)
 	}
 }

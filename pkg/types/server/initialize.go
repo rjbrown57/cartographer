@@ -25,8 +25,9 @@ func (c *CartographerServer) Initialize() error {
 
 	_, err = c.Add(context.Background(), &proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
-			Links:  c.config.Links,
-			Groups: c.config.Groups,
+			Links:     c.config.Links,
+			Groups:    c.config.Groups,
+			Namespace: "default", // a temporary hack, we need to update the ingestion to read namespaces from the config file
 		},
 	})
 

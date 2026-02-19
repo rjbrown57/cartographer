@@ -59,8 +59,9 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gr := &proto.CartographerGetRequest{
 			Request: &proto.CartographerRequest{
-				Groups: make([]*proto.Group, 0),
-				Tags:   make([]*proto.Tag, 0),
+				Groups:    make([]*proto.Group, 0),
+				Tags:      make([]*proto.Tag, 0),
+				Namespace: proto.DefaultNamespace,
 			},
 			Type: proto.RequestType_REQUEST_TYPE_DATA,
 		}

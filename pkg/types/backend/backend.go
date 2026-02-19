@@ -8,7 +8,7 @@ type Backend interface {
 	Add(r *BackendAddRequest) *BackendResponse
 	Delete(r *proto.CartographerDeleteRequest) *proto.CartographerDeleteResponse
 	Get(r *BackendRequest) *BackendResponse
-	GetKeys() *BackendResponse
+	GetNamespaces() *BackendResponse
 	GetAllValues() *BackendResponse
 	Close() error
 }

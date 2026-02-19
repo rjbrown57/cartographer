@@ -15,7 +15,6 @@ message Link {
   google.protobuf.Struct data = 6;
   string id = 7; 
   map<string, string> annotations = 8;
-
 }
 
 // Tag represents a label or category for organizing links
