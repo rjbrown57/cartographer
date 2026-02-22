@@ -15,13 +15,19 @@ const EncodingHeader = {
 let CartographerData: CartoResponse;
 let GroupData: CartoResponse;
 
-const GroupEndpoint = query.GetEndpoint + '/groups';
-const GroupId = 'groupList'
-const buttonId = 'groupButton'
+const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
+const NamespaceListId = 'namespaceList'
+const NamespaceButtonId = 'namespaceButton'
+const NamespaceButtonLabelId = 'namespaceButtonLabel'
+const NamespaceDropdownId = 'namespacedropdown'
 
 export type CartoResponse = {
     links: LinkData[];
     groups: string[];
+}
+
+export type NamespaceResponse = {
+    msg: string[];
 }
 
 export type LinkData = {
@@ -40,38 +46,50 @@ export class Cartographer {
     SearchBar: SearchBar;
     // Initialize data, build cards, and wire up UI controls.
     constructor() {
-        GetGroups().then(() => {
-            PopulateDropDown(GroupData, GroupId);
-        }, (err) => {
-            console.error(err);
-        });
-        QueryMainData().then(() => {
-            if (!CartographerData || !Array.isArray(CartographerData.links)) {
-                console.error('No links data available to render');
-                RenderNavMetadata([]);
-                return;
-            }
-            CartographerData.links.forEach((link) => {
-                // If the link has a url, we will add it to the cards
-                if (link.url) {
-                    this.Cards.push(
-                        new Link(link.id, 
-                            link.displayname, 
-                            link.url, 
-                            link.description, 
-                            link.tags,
-                            link.data
-                        )
-                    );
-                }
-            });
-            RenderNavMetadata(this.Cards);
-            this.renderCards();
-        }, (err) => {
-            console.error(err);
-        });
         this.SearchBar = new SearchBar(this.Cards);
         SetupViewToggle();
+        this.Initialize();
+    }
+
+    // Initialize prepares namespace state, loads backend data, and then renders cards.
+    private async Initialize(): Promise<void> {
+        await SetupNamespaceSelector();
+
+        await Promise.all([GetGroups(), QueryMainData()]);
+
+        if (!CartographerData || !Array.isArray(CartographerData.links)) {
+            console.error('No links data available to render');
+            RenderNavMetadata([]);
+            return;
+        }
+
+        CartographerData.links.forEach((link) => {
+            // Normalize link fields so namespaces that store key-only records
+            // (id without url/displayname) still render usable cards.
+            const resolvedURL = link.url || link.id;
+            if (!resolvedURL) {
+                return;
+            }
+
+            const resolvedDisplayName = link.displayname || resolvedURL;
+            const resolvedDescription = link.description || '';
+            const resolvedTags = Array.isArray(link.tags) ? link.tags : [];
+            const resolvedID = link.id || resolvedURL;
+
+            this.Cards.push(
+                new Link(
+                    resolvedID,
+                    resolvedDisplayName,
+                    resolvedURL,
+                    resolvedDescription,
+                    resolvedTags,
+                    link.data
+                )
+            );
+        });
+
+        RenderNavMetadata(this.Cards);
+        this.renderCards();
     }
     
     // Log each card to the console for quick inspection.
@@ -158,7 +176,105 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
-}    
+}
+
+// GetGroupsEndpoint builds the namespace-scoped endpoint used to fetch group names.
+function GetGroupsEndpoint(): string {
+    const params = new URLSearchParams();
+    params.set('namespace', query.GetSelectedNamespace());
+    return `${query.GetEndpoint}/groups?${params.toString()}`;
+}
+
+// GetNamespacesEndpoint builds the endpoint used to fetch currently active namespace names.
+function GetNamespacesEndpoint(): string {
+    return NamespaceEndpoint;
+}
+
+// BuildRootURLWithParams builds a root URL that keeps namespace and adds the provided query key/value pairs.
+function BuildRootURLWithParams(params: Record<string, string>): string {
+    const url = new URL(window.location.href);
+    url.pathname = '/';
+    url.search = '';
+    const namespace = query.GetSelectedNamespace();
+    if (!query.IsDefaultNamespace(namespace)) {
+        url.searchParams.set('namespace', namespace);
+    }
+
+    Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+    });
+
+    return `${url.pathname}${url.search}`;
+}
+
+// SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
+async function SetupNamespaceSelector(): Promise<void> {
+    const namespaceButton = document.getElementById(NamespaceButtonId) as HTMLElement | null;
+    const namespaceLabel = document.getElementById(NamespaceButtonLabelId) as HTMLElement | null;
+    const namespaceList = document.getElementById(NamespaceListId) as HTMLElement | null;
+    if (!namespaceButton || !namespaceLabel || !namespaceList) {
+        return;
+    }
+
+    const availableNamespaces = await GetNamespaces();
+    const currentNamespace = query.GetSelectedNamespace();
+
+    if (availableNamespaces.length === 0) {
+        availableNamespaces.push(currentNamespace);
+    }
+
+    if (!availableNamespaces.includes(currentNamespace)) {
+        availableNamespaces.push(currentNamespace);
+    }
+
+    availableNamespaces.sort((a, b) => a.localeCompare(b));
+    namespaceLabel.textContent = currentNamespace;
+
+    query.SetSelectedNamespace(currentNamespace);
+
+    const url = new URL(window.location.href);
+    const namespaceParam = url.searchParams.get('namespace');
+    if (!namespaceParam && !query.IsDefaultNamespace(currentNamespace)) {
+        url.searchParams.set('namespace', currentNamespace);
+        window.history.replaceState({}, '', url.toString());
+    } else if (namespaceParam && query.IsDefaultNamespace(currentNamespace)) {
+        // Keep the URL clean by removing explicit default namespace.
+        url.searchParams.delete('namespace');
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    namespaceButton.onclick = function() {
+        dropdown.ToggleDropdown(NamespaceDropdownId, NamespaceButtonId);
+    };
+
+    namespaceList.innerHTML = '';
+    availableNamespaces.forEach((namespace) => {
+        const nextURL = new URL(window.location.href);
+        // Namespace switches should start from a clean filter state to avoid
+        // carrying stale tag/group/term params that can hide valid results.
+        nextURL.searchParams.delete('tag');
+        nextURL.searchParams.delete('group');
+        nextURL.searchParams.delete('term');
+        if (query.IsDefaultNamespace(namespace)) {
+            nextURL.searchParams.delete('namespace');
+        } else {
+            nextURL.searchParams.set('namespace', namespace);
+        }
+
+        const entry = document.createElement('div');
+        const link = document.createElement('a');
+        link.className = 'dropdown-item-link';
+        link.href = nextURL.toString();
+        link.textContent = namespace;
+        link.onclick = (event) => {
+            event.preventDefault();
+            query.SetSelectedNamespace(namespace);
+            window.location.assign(nextURL.toString());
+        };
+        entry.appendChild(link);
+        namespaceList.appendChild(entry);
+    });
+}
 
 // Fetch main data with cache validation and update the global store.
 async function QueryMainData() {
@@ -200,6 +316,7 @@ async function QueryMainData() {
 function RenderNavMetadata(cardsList: cards.Card[]) {
     // Locate the metadata row, tag container, and site name elements.
     const metaRow = document.getElementById('navMetaRow');
+    const groupsContainer = document.getElementById('navMetaGroups');
     const tagsContainer = document.getElementById('navMetaTags');
     const siteName = document.getElementById('siteName');
     const SKELETON_CLASS = 'nav-meta--loading';
@@ -207,7 +324,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     const SKELETON_COUNT = 6;
 
     // Bail if required DOM nodes are missing.
-    if (!metaRow || !tagsContainer) {
+    if (!metaRow || !tagsContainer || !groupsContainer) {
         return;
     }
 
@@ -235,22 +352,47 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     if (siteName) {
         siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
     }
+
+    // Build selected filter sets so nav bubbles can reflect current selection state.
+    const selectedGroups = new Set(
+        new URLSearchParams(window.location.search)
+            .getAll('group')
+            .map((group) => group.trim().toLowerCase())
+            .filter((group) => group !== '')
+    );
+
+    const selectedTags = new Set(
+        new URLSearchParams(window.location.search)
+            .getAll('tag')
+            .map((tag) => tag.trim().toLowerCase())
+            .filter((tag) => tag !== '')
+    );
+
+    const searchElement = document.getElementById('searchBar') as HTMLInputElement | null;
+    if (searchElement && searchElement.value.trim() !== '') {
+        searchElement.value
+            .split(' ')
+            .map((term) => term.trim().toLowerCase())
+            .filter((term) => term !== '')
+            .forEach((term) => selectedTags.add(term));
+    }
     // Helper to reset and rebuild the tags area with the base icon/label.
-    const buildBase = () => {
-        tagsContainer.innerHTML = '';
+    const buildBase = (container: HTMLElement, iconClass: string, labelText: string) => {
+        container.innerHTML = '';
         const icon = document.createElement('i');
-        icon.className = 'bi bi-tags nav-meta__icon';
+        icon.className = `${iconClass} nav-meta__icon`;
         const label = document.createElement('span');
         label.className = 'nav-meta__label';
-        label.textContent = 'Top tags';
-        tagsContainer.appendChild(icon);
-        tagsContainer.appendChild(label);
+        label.textContent = labelText;
+        container.appendChild(icon);
+        container.appendChild(label);
         return { icon, label };
     };
 
     // When no data yet, show a lightweight skeleton state instead of popping in.
     if (!cardsList || cardsList.length === 0) {
-        buildBase();
+        buildBase(groupsContainer, 'bi bi-grid', 'Groups');
+        buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
         for (let i = 0; i < SKELETON_COUNT; i++) {
             const skeleton = document.createElement('span');
             skeleton.className = 'nav-tag nav-tag--skeleton';
@@ -262,7 +404,38 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         return;
     }
 
-    const { icon, label } = buildBase();
+    buildBase(groupsContainer, 'bi bi-grid', 'Groups');
+    buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
+
+    const renderGroupButton = (group: string) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'nav-tag';
+        if (selectedGroups.has(group.toLowerCase())) {
+            button.classList.add('nav-tag--active');
+        }
+
+        const groupText = document.createElement('span');
+        groupText.className = 'nav-tag__text';
+        groupText.textContent = group;
+        groupText.title = group;
+
+        button.appendChild(groupText);
+        button.addEventListener('click', () => {
+            window.location.assign(BuildRootURLWithParams({ group }));
+        });
+
+        groupsContainer.appendChild(button);
+    };
+
+    if (GroupData && Array.isArray(GroupData.groups) && GroupData.groups.length > 0) {
+        [...GroupData.groups].sort((a, b) => a.localeCompare(b)).forEach((group) => renderGroupButton(group));
+    } else {
+        const emptyGroups = document.createElement('span');
+        emptyGroups.className = 'text-secondary small';
+        emptyGroups.textContent = 'No groups available';
+        groupsContainer.appendChild(emptyGroups);
+    }
 
     // Pick the top tags by count (then name).
     const topTags = [...tagFrequency.entries()]
@@ -281,6 +454,9 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'nav-tag';
+        if (selectedTags.has(tag.toLowerCase())) {
+            button.classList.add('nav-tag--active');
+        }
 
         const tagText = document.createElement('span');
         tagText.className = 'nav-tag__text';
@@ -293,7 +469,11 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
 
         button.appendChild(tagText);
         button.appendChild(badge);
-        button.addEventListener('click', () => TagFilter(tag));
+        button.addEventListener('click', () => {
+            TagFilter(tag);
+            // Re-render metadata so selected-state styling tracks tag toggle actions.
+            RenderNavMetadata(cardsList);
+        });
 
         tagsContainer.appendChild(button);
     };
@@ -346,7 +526,10 @@ function SetupViewToggle(): void {
 // Fetch available groups for the dropdown.
 async function GetGroups() {
     try {
-        const response = await fetch(GroupEndpoint, EncodingHeader);
+        const response = await fetch(GetGroupsEndpoint(), EncodingHeader);
+        if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
          const data = await response.json();
          GroupData = data.response;
      } catch (err) {
@@ -354,19 +537,21 @@ async function GetGroups() {
      }
  }
 
-// Populate the group dropdown with links from the response data.
-function PopulateDropDown(data: CartoResponse, elementTarget: string) {
-    
-    const button = document.getElementById(buttonId) as HTMLElement;
-    // Toggle the dropdown when the button is clicked.
-    button.onclick = function() {
-        dropdown.ToggleDropdown('groupdropdown', buttonId);
-    };
-
-    const dropDown = document.getElementById(elementTarget) as HTMLElement;
-
-    for (const item of data.groups) {
-        console.log('Adding to group dropdown' + item);
-        dropdown.AddDropDownElement(dropDown, '/?group=' + item, item);
-    };
+// GetNamespaces fetches namespaces from the backend response message list.
+async function GetNamespaces(): Promise<string[]> {
+    try {
+        const response = await fetch(GetNamespacesEndpoint(), EncodingHeader);
+        if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        const responseData = data?.response as NamespaceResponse | undefined;
+        if (!responseData || !Array.isArray(responseData.msg)) {
+            return [];
+        }
+        return responseData.msg;
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
 }
