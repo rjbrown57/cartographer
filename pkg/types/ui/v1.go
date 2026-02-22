@@ -290,6 +290,12 @@ func swaggerFunc() gin.HandlerFunc {
 			return
 		}
 
+		// Serve dynamic docs so host/scheme follow the incoming gateway/proxy request.
+		if ctx.Param("any") == "/doc.json" || ctx.Param("any") == "/swagger.json" {
+			serveSwaggerDoc(ctx)
+			return
+		}
+
 		ginSwagger.WrapHandler(swaggerfiles.Handler)(ctx)
 	}
 }
