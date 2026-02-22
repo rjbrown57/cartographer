@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strings"
+
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/search/query"
 	"github.com/rjbrown57/cartographer/pkg/log"
@@ -17,11 +19,26 @@ const (
 	SearchLimitURL         SearchLimit = "url"
 	SearchLimitTags        SearchLimit = "tags"
 	// initial testing found issues with data field, so we are using all for now
-	SearchLimitData SearchLimit = "*"
+	SearchLimitData     SearchLimit = "*"
+	bleveDocIDSeparator string      = "/"
 )
 
 func (l SearchLimit) String() string {
 	return string(l)
+}
+
+// makeBleveDocID creates a namespace-qualified bleve document ID for a link key.
+func makeBleveDocID(namespace, key string) string {
+	return namespace + bleveDocIDSeparator + key
+}
+
+// parseBleveDocID splits a bleve document ID into namespace and link key components.
+func parseBleveDocID(id string) (string, string, bool) {
+	namespace, key, ok := strings.Cut(id, bleveDocIDSeparator)
+	if !ok || namespace == "" || key == "" {
+		return "", "", false
+	}
+	return namespace, key, true
 }
 
 // SearchOptions contains configuration for search operations
@@ -57,7 +74,13 @@ func (o *SearchOptions) GetSearchRequest(terms []string) *bleve.SearchRequest {
 	return request
 }
 
+// getNamespaceTagMap builds the effective tag filter set for a namespaced request by combining tags and group expansions.
 func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[string]struct{}, error) {
+	ns, err := proto.GetNamespace(in.Request.GetNamespace())
+	if err != nil {
+		return nil, err
+	}
+
 	tagFilters := make(map[string]struct{})
 
 	// add the tags to the tag map
@@ -65,16 +88,23 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 		tagFilters[tag.Name] = struct{}{}
 	}
 
-	// expand the groups into tags
+	// Expand groups into tags using namespace-scoped group cache.
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	for _, group := range in.Request.Groups {
-		if g, ok := c.groupCache[group.Name]; ok {
-			for _, tag := range g.Tags {
-				tagFilters[tag] = struct{}{}
-			}
-		} else {
+	cn, ok := c.nsCache[ns]
+	c.mu.RUnlock()
+	if !ok {
+		return tagFilters, nil
+	}
+
+	cn.mu.RLock()
+	defer cn.mu.RUnlock()
+	for _, groupRef := range in.Request.Groups {
+		group, exists := cn.GroupCache[groupRef.Name]
+		if !exists {
 			return nil, utils.GroupNotFoundError
+		}
+		for _, tag := range group.Tags {
+			tagFilters[tag] = struct{}{}
 		}
 	}
 
@@ -83,9 +113,14 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 	return tagFilters, nil
 }
 
+// Search executes a bleve query and resolves hits against namespace-scoped in-memory link cache.
 func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *SearchOptions) ([]*proto.Link, error) {
+	ns, err := proto.GetNamespace(in.Request.GetNamespace())
+	if err != nil {
+		return nil, err
+	}
 
-	terms := in.Request.GetTerms()
+	terms := append([]string{}, in.Request.GetTerms()...)
 
 	tagMap, err := c.GetTagMap(in)
 	if err != nil {
@@ -109,14 +144,35 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 
 	log.Tracef("Search Results(%v): %+v", results.Took, results.Total)
 
-	// add the hits to the links
+	// Resolve hits to links using the namespace-scoped cache only.
 	c.mu.RLock()
+	cn, ok := c.nsCache[ns]
+	c.mu.RUnlock()
+	if !ok {
+		return links, nil
+	}
+
+	cn.mu.RLock()
 	for _, hit := range results.Hits {
-		if link, exists := c.cache[hit.ID]; exists {
+		hitNamespace, linkKey, ok := parseBleveDocID(hit.ID)
+		if !ok {
+			// Backward compatibility for existing index entries that were stored
+			// without a namespace-qualified document ID.
+			if link, exists := cn.LinkCache[hit.ID]; exists {
+				links = append(links, link)
+			}
+			continue
+		}
+
+		if hitNamespace != ns {
+			continue
+		}
+
+		if link, exists := cn.LinkCache[linkKey]; exists {
 			links = append(links, link)
 		}
 	}
-	c.mu.RUnlock()
+	cn.mu.RUnlock()
 
 	return links, nil
 }
