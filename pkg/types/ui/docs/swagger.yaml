@@ -77,11 +77,21 @@ paths:
         in: query
         name: term
         type: string
+      - description: Namespace scope for the query
+        example: '"default"'
+        in: query
+        name: namespace
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: Filtered data
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid namespace
           schema:
             additionalProperties: true
             type: object
@@ -103,11 +113,22 @@ paths:
       consumes:
       - application/json
       description: Retrieve a list of all available groups
+      parameters:
+      - description: Namespace scope for the query
+        example: '"default"'
+        in: query
+        name: namespace
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: List of groups
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid namespace
           schema:
             additionalProperties: true
             type: object
@@ -157,11 +178,22 @@ paths:
       consumes:
       - application/json
       description: Retrieve a list of all available tags
+      parameters:
+      - description: Namespace scope for the query
+        example: '"default"'
+        in: query
+        name: namespace
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: List of tags
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid namespace
           schema:
             additionalProperties: true
             type: object

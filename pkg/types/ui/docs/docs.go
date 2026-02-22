@@ -128,11 +128,25 @@ const docTemplate = `{
                         "description": "Filter by term (comma-separated)",
                         "name": "term",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"default\"",
+                        "description": "Namespace scope for the query",
+                        "name": "namespace",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Filtered data",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid namespace",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -168,9 +182,25 @@ const docTemplate = `{
                     "get"
                 ],
                 "summary": "Get all groups",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"default\"",
+                        "description": "Namespace scope for the query",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of groups",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid namespace",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -246,9 +276,25 @@ const docTemplate = `{
                     "get"
                 ],
                 "summary": "Get all tags",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"default\"",
+                        "description": "Namespace scope for the query",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of tags",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid namespace",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
