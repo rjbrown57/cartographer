@@ -91,6 +91,7 @@
 			padding: 0.1rem 0;
 			max-height: 64px;
 			overflow: hidden;
+			width: 100%;
 		}
 
 		.nav-meta__label {
@@ -125,6 +126,13 @@
 			background: rgba(56, 189, 248, 0.22);
 			color: #f8fafc;
 			transform: translateY(-1px);
+		}
+
+		.nav-tag--active {
+			background: rgba(56, 189, 248, 0.38);
+			border-color: rgba(56, 189, 248, 0.85);
+			color: #f8fafc;
+			box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
 		}
 
 		.nav-tag__count {
@@ -635,15 +643,14 @@
 			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
 				<i class="bi bi-braces-asterisk"></i>
 			</a>
-			<div class="nav-divider d-none d-lg-block"></div>
 			<div class="position-relative">
-				<button id="groupButton" class="btn nav-action d-flex align-items-center" type="button">
-					<i class="bi bi-grid"></i>
-					<span>Groups</span>
+				<button id="namespaceButton" class="btn nav-action d-flex align-items-center" type="button">
+					<i class="bi bi-diagram-3"></i>
+					<span id="namespaceButtonLabel">Namespace</span>
 					<i class="bi bi-chevron-down"></i>
 				</button>
-				<div id="groupdropdown" class="custom-dropdown is-hidden">
-					<div id="groupList" class="group-list"></div>
+				<div id="namespacedropdown" class="custom-dropdown is-hidden">
+					<div id="namespaceList" class="group-list"></div>
 				</div>
 			</div>
 			<a class="nav-icon" href="https://github.com/rjbrown57/cartographer" aria-label="GitHub">
@@ -656,6 +663,10 @@
 					<div class="nav-tags" id="navMetaTags">
 						<i class="bi bi-tags nav-meta__icon"></i>
 						<span class="nav-meta__label">Top tags</span>
+					</div>
+					<div class="nav-tags" id="navMetaGroups">
+						<i class="bi bi-grid nav-meta__icon"></i>
+						<span class="nav-meta__label">Groups</span>
 					</div>
 				</div>
 			</div>
