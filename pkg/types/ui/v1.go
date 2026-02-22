@@ -51,17 +51,25 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Param tag query string false "Filter by tag names (comma-separated)" example("oci,k8s")
 // @Param group query string false "Filter by group names (comma-separated)" example("gitlab,github")
 // @Param term query string false "Filter by term (comma-separated)" example("ko,binman")
+// @Param namespace query string false "Namespace scope for the query" example("default")
 // @Success 200 {object} map[string]interface{} "Filtered data"
 // @Failure 404 {object} map[string]interface{} "Group not found"
+// @Failure 400 {object} map[string]interface{} "Invalid namespace"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /v1/get [get]
 func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ns, err := proto.GetNamespace(c.Query("namespace"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
+
 		gr := &proto.CartographerGetRequest{
 			Request: &proto.CartographerRequest{
 				Groups:    make([]*proto.Group, 0),
 				Tags:      make([]*proto.Tag, 0),
-				Namespace: proto.DefaultNamespace,
+				Namespace: ns,
 			},
 			Type: proto.RequestType_REQUEST_TYPE_DATA,
 		}
@@ -101,15 +109,24 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Tags get
 // @Accept json
 // @Produce json
+// @Param namespace query string false "Namespace scope for the query" example("default")
 // @Success 200 {object} map[string]interface{} "List of groups"
+// @Failure 400 {object} map[string]interface{} "Invalid namespace"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /v1/get/groups [get]
 func getGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ns, err := proto.GetNamespace(c.Query("namespace"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
 
 		cr := &proto.CartographerGetRequest{
-			Request: &proto.CartographerRequest{},
-			Type:    proto.RequestType_REQUEST_TYPE_GROUP,
+			Request: &proto.CartographerRequest{
+				Namespace: ns,
+			},
+			Type: proto.RequestType_REQUEST_TYPE_GROUP,
 		}
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)
@@ -170,15 +187,24 @@ func getByGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Tags get
 // @Accept json
 // @Produce json
+// @Param namespace query string false "Namespace scope for the query" example("default")
 // @Success 200 {object} map[string]interface{} "List of tags"
+// @Failure 400 {object} map[string]interface{} "Invalid namespace"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /v1/get/tags [get]
 func getTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ns, err := proto.GetNamespace(c.Query("namespace"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
 
 		cr := &proto.CartographerGetRequest{
-			Request: &proto.CartographerRequest{},
-			Type:    proto.RequestType_REQUEST_TYPE_TAG,
+			Request: &proto.CartographerRequest{
+				Namespace: ns,
+			},
+			Type: proto.RequestType_REQUEST_TYPE_TAG,
 		}
 
 		pr, err := carto.Client.Get(carto.Ctx, cr)
