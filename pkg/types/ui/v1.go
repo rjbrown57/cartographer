@@ -218,6 +218,32 @@ func getTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
+// GetNamespacesHandler godoc
+// @Summary Get all namespaces
+// @Description Retrieve a list of all active namespaces currently in cache
+// @Tags get
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of namespaces"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /v1/get/namespaces [get]
+func getNamespacesFunc(carto *client.CartographerClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cr := &proto.CartographerGetRequest{
+			Request: &proto.CartographerRequest{},
+			Type:    proto.RequestType_REQUEST_TYPE_NAMESPACE,
+		}
+
+		pr, err := carto.Client.Get(carto.Ctx, cr)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, pr)
+	}
+}
+
 // GetByTagsHandler godoc
 // @Summary Get links by tag
 // @Description Retrieve links filtered by tag name. Can accept additional tags via query parameters.

@@ -12,6 +12,7 @@ enum RequestType {
   REQUEST_TYPE_DATA = 1; // requests that will include links
   REQUEST_TYPE_GROUP = 2; // group creation/querying for existing groups
   REQUEST_TYPE_TAG = 3; // tag creations/querying for existing groups
+  REQUEST_TYPE_NAMESPACE = 4; // namespace querying for existing namespaces
 }
 
 // CartographerRequest is a generic request message re-used in get/delete/add

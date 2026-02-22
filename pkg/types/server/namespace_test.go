@@ -106,6 +106,28 @@ func TestNSCacheGetTags(t *testing.T) {
 	}
 }
 
+// TestNSCacheGetNamespaces verifies GetNamespaces returns all currently allocated namespace keys.
+func TestNSCacheGetNamespaces(t *testing.T) {
+	cache := NSCache{}
+
+	cache.AddToCache("default", &proto.Link{Id: "l1"})
+	cache.AddToCache("dev", &proto.Group{Name: "platform"})
+
+	namespaces := cache.GetNamespaces()
+	if got := len(namespaces); got != 2 {
+		t.Fatalf("expected 2 namespaces, got %d", got)
+	}
+
+	seen := map[string]bool{}
+	for _, ns := range namespaces {
+		seen[ns] = true
+	}
+
+	if !seen["default"] || !seen["dev"] {
+		t.Fatalf("expected namespaces default and dev in snapshot, got seen=%v", seen)
+	}
+}
+
 // TestNewCartoNamespace verifies a namespace starts with initialized empty caches and the expected name.
 func TestNewCartoNamespace(t *testing.T) {
 	ns := NewCartoNamespace("dev")

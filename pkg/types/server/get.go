@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
 
@@ -83,6 +84,12 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 		c.mu.RLock()
 		r.Response.Tags = c.nsCache.GetTags(ns)
 		c.mu.RUnlock()
+	// RequestType_REQUEST_TYPE_NAMESPACE returns a list of namespaces from the cache.
+	case proto.RequestType_REQUEST_TYPE_NAMESPACE:
+		c.mu.RLock()
+		r.Response.Msg = c.nsCache.GetNamespaces()
+		c.mu.RUnlock()
+		slices.Sort(r.Response.Msg)
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:
 		log.Infof("unknown RequestType")

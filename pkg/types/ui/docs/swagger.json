@@ -252,6 +252,37 @@
                 }
             }
         },
+        "/v1/get/namespaces": {
+            "get": {
+                "description": "Retrieve a list of all active namespaces currently in cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "get"
+                ],
+                "summary": "Get all namespaces",
+                "responses": {
+                    "200": {
+                        "description": "List of namespaces",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v1/get/tags": {
             "get": {
                 "description": "Retrieve a list of all available tags",
