@@ -28,7 +28,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetLinks() {
 		newData[v.GetKey()] = v
-		c.AddToCache(v)
+		c.AddToCache(v, in.Request.Namespace)
 		metrics.IncrementObjectCount("link", 1)
 	}
 
@@ -36,7 +36,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	for _, v := range in.Request.Groups {
 		log.Debugf("Adding group %+v", v)
 		// currently groups are not stored in the backend
-		c.AddToCache(v)
+		c.AddToCache(v, in.Request.Namespace)
 		metrics.IncrementObjectCount("group", 1)
 	}
 

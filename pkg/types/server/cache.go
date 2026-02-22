@@ -7,44 +7,43 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
-func (c *CartographerServer) AddToCache(v any) {
+// AddToCache adds a link or group to the namespace cache and updates supporting indexes.
+func (c *CartographerServer) AddToCache(v any, ns string) {
 	c.mu.Lock()
 	switch v := v.(type) {
 	case *proto.Link:
 		log.Debugf("Adding link %s to cache", v.GetKey())
-		c.cache[v.GetKey()] = v
-		for _, tag := range v.Tags {
-			// initialize the tag cache if it doesn't exist
-			if _, ok := c.tagCache[tag]; !ok {
-				c.tagCache[tag] = make([]*proto.Link, 0)
-			}
-			c.tagCache[tag] = append(c.tagCache[tag], v)
-		}
+		c.nsCache.AddToCache(ns, v)
 
-		// Add link to bleve
-		log.Debugf("Indexing link %s", v.GetKey())
-		err := c.bleve.Index(v.GetKey(), v)
+		// Add the link to bleve for search resolution.
+		docID := makeBleveDocID(ns, v.GetKey())
+		log.Debugf("Indexing link %s", docID)
+		err := c.bleve.Index(docID, v)
 		if err != nil {
-			log.Errorf("Error indexing link %s: %v", v.GetKey(), err)
+			log.Errorf("Error indexing link %s: %v", docID, err)
 		}
 
 		metrics.IncrementObjectCount("searchIndexCount", 1)
 
 	case *proto.Group:
 		log.Debugf("Adding group %s to cache", v.Name)
-		c.groupCache[v.Name] = v
+		c.nsCache.AddToCache(ns, v)
 	}
 	c.mu.Unlock()
 }
 
-func (c *CartographerServer) DeleteFromCache(key ...string) {
+// DeleteFromCache deletes links from the namespace cache and removes them from search indexes.
+func (c *CartographerServer) DeleteFromCache(ns string, key ...string) {
 	c.mu.Lock()
 	log.Debugf("Deleting %s from cache", key)
+
 	for _, k := range key {
-		delete(c.cache, k)
-		err := c.bleve.Delete(k)
+		c.nsCache.DeleteFromCache(ns, k)
+
+		docID := makeBleveDocID(ns, k)
+		err := c.bleve.Delete(docID)
 		if err != nil {
-			log.Errorf("Error deleting %s from bleve: %v", k, err)
+			log.Errorf("Error deleting %s from bleve: %v", docID, err)
 		} else {
 			metrics.DecrementObjectCount("searchIndexCount", 1)
 		}

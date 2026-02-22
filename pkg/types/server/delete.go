@@ -15,7 +15,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	defer metrics.RecordOperationDuration("delete")()
 
 	// delete from cache
-	c.DeleteFromCache(in.Ids...)
+	c.DeleteFromCache(in.GetNamespace(), in.Ids...)
 
 	// delete from backend
 	r := c.Backend.Delete(in)

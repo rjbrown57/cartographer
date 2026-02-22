@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
+	"github.com/rjbrown57/cartographer/pkg/types/backend"
+	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
@@ -15,65 +16,72 @@ func (c *CartographerServer) Initialize() error {
 
 	log.Infof("Reading data from config %s", c.Options.ConfigFile)
 
-	links, err := c.GetBackendData()
+	addRequests, err := c.GetBackendData()
 	if err != nil {
 		return err
 	}
 
-	// merge the links from the backend with the links from the config
-	c.config.Links = deduplicateLinks(append(c.config.Links, links...))
+	// Add all backend collected links
+	for _, r := range addRequests {
+		log.Debugf("Populating Cache for Backend ns %s", r.Request.GetNamespace())
+		for _, link := range r.Request.GetLinks() {
+			c.AddToCache(link, r.Request.GetNamespace())
+			metrics.IncrementObjectCount("link", 1)
+		}
+	}
 
+	// Last we Add the config set links/groups
+	log.Debugf("Populating %s configured data", c.Options.ConfigFile)
 	_, err = c.Add(context.Background(), &proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
 			Links:     c.config.Links,
 			Groups:    c.config.Groups,
-			Namespace: "default", // a temporary hack, we need to update the ingestion to read namespaces from the config file
+			Namespace: proto.DefaultNamespace, // a temporary hack, we need to update the ingestion to read namespaces from the config file
 		},
 	})
 
-	if err != nil {
-		return err
-	}
-
+	//todo: fix this to be an accurate number
 	log.Infof("Loaded %d links, %d groups", len(c.config.Links), len(c.config.Groups))
 
 	return err
 }
 
-func (c *CartographerServer) GetBackendData() ([]*proto.Link, error) {
+// GetBackendData will query the backend and return a list of AddReqeusts for all namespaces
+func (c *CartographerServer) GetBackendData() ([]*proto.CartographerAddRequest, error) {
 
-	links := make([]*proto.Link, 0)
+	addRequests := make([]*proto.CartographerAddRequest, 0)
 
-	resp := c.Backend.GetAllValues()
+	// Data returned from GetNamespaces is map[nsname]nil
+	for ns := range c.Backend.GetNamespaces().Data {
+		// per ns we query for data to build Requests and append
+		resp := c.Backend.Get(&backend.BackendRequest{
+			Namespace: ns,
+		})
 
-	if len(resp.Errors) > 0 {
-		return nil, fmt.Errorf("errors: %v", resp.Errors)
-	}
-
-	for _, value := range resp.Data {
-		// convert from []byte to *proto.Link
-		link := &proto.Link{}
-		err := json.Unmarshal(value, &link)
-		if err != nil {
-			log.Errorf("Error unmarshalling link: %v", err)
+		addRequest := &proto.CartographerAddRequest{
+			Request: &proto.CartographerRequest{
+				Namespace: ns,
+			},
 		}
-		links = append(links, link)
-	}
 
-	return links, nil
-}
+		for _, value := range resp.Data {
+			if len(value) == 0 {
+				continue
+			}
 
-func deduplicateLinks(links []*proto.Link) []*proto.Link {
-	seen := make(map[string]struct{})
-	deduplicated := make([]*proto.Link, 0)
+			link := &proto.Link{}
+			if err := json.Unmarshal(value, link); err != nil {
+				continue
+			}
 
-	for _, link := range links {
-		// if the link is not in the seen map, mark it as seen and add it to the deduplicated list
-		if _, ok := seen[link.GetKey()]; !ok {
-			seen[link.GetKey()] = struct{}{}
-			deduplicated = append(deduplicated, link)
+			if link.GetKey() != "" {
+				addRequest.Request.Links = append(addRequest.Request.Links, link)
+			}
 		}
+
+		addRequests = append(addRequests, addRequest)
+
 	}
 
-	return deduplicated
+	return addRequests, nil
 }

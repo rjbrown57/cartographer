@@ -2,6 +2,8 @@ package server
 
 import (
 	"testing"
+
+	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
 func TestInitialize(t *testing.T) {
@@ -23,17 +25,17 @@ func TestInitialize(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			if len(testServer.cache) == 0 {
+			if len(testServer.nsCache) == 0 {
 				t.Fatalf("Cache is empty")
 			}
 
-			links, err := testServer.GetBackendData()
-			if err != nil {
-				t.Fatalf("Failed to get backend data: %v", err)
+			defaultNS, ok := testServer.nsCache[proto.DefaultNamespace]
+			if !ok {
+				t.Fatalf("Failed to get backend data")
 			}
 
-			if len(links) != tt.expectedLinks {
-				t.Fatalf("Expected %d links, got %d", tt.expectedLinks, len(links))
+			if len(defaultNS.LinkCache) != tt.expectedLinks {
+				t.Fatalf("Expected %d links, got %d", tt.expectedLinks, len(defaultNS.LinkCache))
 			}
 		})
 	}

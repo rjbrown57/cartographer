@@ -197,3 +197,92 @@ func TestSearch(t *testing.T) {
 		})
 	}
 }
+
+// TestSearchNamespacesWithSharedKey verifies identical link keys in different namespaces do not collide in bleve.
+func TestSearchNamespacesWithSharedKey(t *testing.T) {
+	const sharedKey = "https://example.com/shared"
+	const namespaceA = "search-shared-a"
+	const namespaceB = "search-shared-b"
+	const termA = "namespace-a-only-term"
+	const termB = "namespace-b-only-term"
+
+	linkA := &proto.Link{
+		Id:          sharedKey,
+		Url:         "https://example.com/a",
+		Description: termA,
+	}
+
+	linkB := &proto.Link{
+		Id:          sharedKey,
+		Url:         "https://example.com/b",
+		Description: termB,
+	}
+
+	testServer.AddToCache(linkA, namespaceA)
+	testServer.AddToCache(linkB, namespaceB)
+
+	t.Cleanup(func() {
+		testServer.DeleteFromCache(namespaceA, sharedKey)
+		testServer.DeleteFromCache(namespaceB, sharedKey)
+
+		testServer.mu.Lock()
+		delete(testServer.nsCache, namespaceA)
+		delete(testServer.nsCache, namespaceB)
+		testServer.mu.Unlock()
+	})
+
+	searchA := &proto.CartographerGetRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespaceA,
+			Terms:     []string{termA},
+		},
+	}
+
+	resultsA, err := testServer.Search(searchA, &SearchOptions{Limit: SearchLimitDescription})
+	if err != nil {
+		t.Fatalf("expected no error searching namespace A, got %v", err)
+	}
+
+	if len(resultsA) != 1 {
+		t.Fatalf("expected 1 result for namespace A, got %d", len(resultsA))
+	}
+
+	if got := resultsA[0].GetDescription(); got != termA {
+		t.Fatalf("expected namespace A description %q, got %q", termA, got)
+	}
+
+	searchB := &proto.CartographerGetRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespaceB,
+			Terms:     []string{termB},
+		},
+	}
+
+	resultsB, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitDescription})
+	if err != nil {
+		t.Fatalf("expected no error searching namespace B, got %v", err)
+	}
+
+	if len(resultsB) != 1 {
+		t.Fatalf("expected 1 result for namespace B, got %d", len(resultsB))
+	}
+
+	if got := resultsB[0].GetDescription(); got != termB {
+		t.Fatalf("expected namespace B description %q, got %q", termB, got)
+	}
+
+	testServer.DeleteFromCache(namespaceA, sharedKey)
+
+	resultsBAfterDelete, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitDescription})
+	if err != nil {
+		t.Fatalf("expected no error searching namespace B after namespace A delete, got %v", err)
+	}
+
+	if len(resultsBAfterDelete) != 1 {
+		t.Fatalf("expected 1 namespace B result after namespace A delete, got %d", len(resultsBAfterDelete))
+	}
+
+	if got := resultsBAfterDelete[0].GetDescription(); got != termB {
+		t.Fatalf("expected namespace B description %q after namespace A delete, got %q", termB, got)
+	}
+}

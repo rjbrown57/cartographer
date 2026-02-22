@@ -10,18 +10,17 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 )
 
-func getDataset(c *CartographerServer, in *proto.CartographerGetRequest) ([]*proto.Link, error) {
+// getDataset returns namespace-scoped links for data requests, using cache-only reads when possible.
+func getDataset(c *CartographerServer, in *proto.CartographerGetRequest, ns string) ([]*proto.Link, error) {
 
 	links := make([]*proto.Link, 0)
 	var err error
 
 	switch {
-	// if there are no tags or terms, send all links
+	// if there are no tags or terms, send all links for the NS
 	case len(in.Request.GetTags()) == 0 && len(in.Request.GetTerms()) == 0:
 		c.mu.RLock()
-		for _, link := range c.cache {
-			links = append(links, link)
-		}
+		links = c.nsCache.GetLinks(ns)
 		c.mu.RUnlock()
 	case len(in.Request.GetTags()) > 0 && len(in.Request.GetTerms()) == 0:
 		// if there are tags but no terms, handle via the tag cache
@@ -40,14 +39,23 @@ func getDataset(c *CartographerServer, in *proto.CartographerGetRequest) ([]*pro
 	return links, nil
 }
 
+// Get handles read requests and serves all results from namespace-scoped caches.
 func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error) {
 
 	// record the duration of the get operation
 	defer metrics.RecordOperationDuration("get")()
 
+	// enforce default ns behavior
+	ns, err := proto.GetNamespace(in.Request.GetNamespace())
+	if err != nil {
+		return nil, errors.New("invalid namespace supplied")
+	}
+
+	in.Request.Namespace = ns
+
 	r := &proto.CartographerGetResponse{
 		Response: &proto.CartographerResponse{
-			Namespace: in.Request.GetNamespace(),
+			Namespace: ns,
 		},
 	}
 
@@ -60,7 +68,7 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 		var err error
 
-		r.Response.Links, err = getDataset(c, in)
+		r.Response.Links, err = getDataset(c, in, ns)
 		if err != nil {
 			return nil, err
 		}
@@ -68,16 +76,12 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 	// RequestType_REQUEST_TYPE_GROUP returns a list of groups from the cache
 	case proto.RequestType_REQUEST_TYPE_GROUP:
 		c.mu.RLock()
-		for _, group := range c.groupCache {
-			r.Response.Groups = append(r.Response.Groups, group.Name)
-		}
+		r.Response.Groups = c.nsCache.GetGroups(ns)
 		c.mu.RUnlock()
 	// RequestType_REQUEST_TYPE_TAG returns a list of tags from the cache
 	case proto.RequestType_REQUEST_TYPE_TAG:
 		c.mu.RLock()
-		for tag := range c.tagCache {
-			r.Response.Tags = append(r.Response.Tags, tag)
-		}
+		r.Response.Tags = c.nsCache.GetTags(ns)
 		c.mu.RUnlock()
 
 	case proto.RequestType_REQUEST_TYPE_UNSPECIFIED:

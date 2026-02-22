@@ -31,12 +31,10 @@ type CartographerServer struct {
 	Options   *CartographerServerOptions
 	WebServer *ui.CartographerUI
 
-	config     *config.CartographerConfig
-	cache      map[string]*proto.Link   // cache by key of all links
-	groupCache map[string]*proto.Group  // cache by name of all groups, should be refactored to provide links
-	tagCache   map[string][]*proto.Link // cache by tag string that links to all known matching links
-	mu         sync.RWMutex
-	bleve      bleve.Index
+	config  *config.CartographerConfig
+	nsCache NSCache
+	mu      sync.RWMutex
+	bleve   bleve.Index
 }
 
 func (c *CartographerServer) Serve() {
@@ -86,11 +84,9 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 		Notifier:  notifier.NewNotifier(),
 		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
 
-		config:     conf,
-		cache:      make(map[string]*proto.Link),
-		groupCache: make(map[string]*proto.Group),
-		tagCache:   make(map[string][]*proto.Link),
-		mu:         sync.RWMutex{},
+		config:  conf,
+		nsCache: make(NSCache),
+		mu:      sync.RWMutex{},
 	}
 
 	mapping := bleve.NewIndexMapping()
