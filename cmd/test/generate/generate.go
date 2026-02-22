@@ -42,8 +42,7 @@ var GenerateCmd = &cobra.Command{
 		}
 
 		c := config.CartographerConfig{
-			Links:  genLinks,
-			Groups: []*proto.Group{{Name: "default", Tags: []string{"default"}}},
+			Links: genLinks,
 		}
 		o, err := yaml.Marshal(c)
 		if err != nil {

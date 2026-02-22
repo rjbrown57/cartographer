@@ -64,7 +64,7 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 
 	switch in.Type {
 	// RequestType_REQUEST_TYPE_DATA returns a list of links
-	// It can be filtered tags or terms. tags can be supplied collectively as a group, or by individual tag
+	// It can be filtered by tags and/or terms.
 	case proto.RequestType_REQUEST_TYPE_DATA:
 
 		var err error
@@ -74,11 +74,6 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 			return nil, err
 		}
 
-	// RequestType_REQUEST_TYPE_GROUP returns a list of groups from the cache
-	case proto.RequestType_REQUEST_TYPE_GROUP:
-		c.mu.RLock()
-		r.Response.Groups = c.nsCache.GetGroups(ns)
-		c.mu.RUnlock()
 	// RequestType_REQUEST_TYPE_TAG returns a list of tags from the cache
 	case proto.RequestType_REQUEST_TYPE_TAG:
 		c.mu.RLock()

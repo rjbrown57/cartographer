@@ -29,10 +29,10 @@ service Cartographer {
   // Get retrieves data based on the specified request type and filters
   rpc Get (CartographerGetRequest) returns (CartographerGetResponse) {}
   
-  // Add creates new links, groups, or tags
+  // Add creates new links or tags
   rpc Add (CartographerAddRequest) returns (CartographerAddResponse) {}
   
-  // Delete removes existing links, groups, or tags by ID
+  // Delete removes existing links or tags by ID
   rpc Delete (CartographerDeleteRequest) returns (CartographerDeleteResponse) {}
   
   // StreamGet provides a streaming interface for real-time data updates

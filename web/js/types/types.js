@@ -10,7 +10,6 @@ const EncodingHeader = {
     }
 };
 let CartographerData;
-let GroupData;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NamespaceListId = 'namespaceList';
 const NamespaceButtonId = 'namespaceButton';
@@ -26,7 +25,7 @@ export class Cartographer {
     }
     async Initialize() {
         await SetupNamespaceSelector();
-        await Promise.all([GetGroups(), QueryMainData()]);
+        await QueryMainData();
         if (!CartographerData || !Array.isArray(CartographerData.links)) {
             console.error('No links data available to render');
             RenderNavMetadata([]);
@@ -58,7 +57,7 @@ export class Cartographer {
             return;
         }
         const urlParams = new URLSearchParams(window.location.search);
-        const hasSearchParams = urlParams.has('tag') || urlParams.has('group') || urlParams.has('term');
+        const hasSearchParams = urlParams.has('tag') || urlParams.has('term');
         const INITIAL_CARD_LIMIT = 100;
         const CHUNK_SIZE = 50;
         const initialFragment = document.createDocumentFragment();
@@ -107,26 +106,8 @@ export class Cartographer {
         }
     }
 }
-function GetGroupsEndpoint() {
-    const params = new URLSearchParams();
-    params.set('namespace', query.GetSelectedNamespace());
-    return `${query.GetEndpoint}/groups?${params.toString()}`;
-}
 function GetNamespacesEndpoint() {
     return NamespaceEndpoint;
-}
-function BuildRootURLWithParams(params) {
-    const url = new URL(window.location.href);
-    url.pathname = '/';
-    url.search = '';
-    const namespace = query.GetSelectedNamespace();
-    if (!query.IsDefaultNamespace(namespace)) {
-        url.searchParams.set('namespace', namespace);
-    }
-    Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-    });
-    return `${url.pathname}${url.search}`;
 }
 async function SetupNamespaceSelector() {
     const namespaceButton = document.getElementById(NamespaceButtonId);
@@ -163,7 +144,6 @@ async function SetupNamespaceSelector() {
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
         nextURL.searchParams.delete('tag');
-        nextURL.searchParams.delete('group');
         nextURL.searchParams.delete('term');
         if (query.IsDefaultNamespace(namespace)) {
             nextURL.searchParams.delete('namespace');
@@ -212,13 +192,12 @@ async function QueryMainData() {
 }
 function RenderNavMetadata(cardsList) {
     const metaRow = document.getElementById('navMetaRow');
-    const groupsContainer = document.getElementById('navMetaGroups');
     const tagsContainer = document.getElementById('navMetaTags');
     const siteName = document.getElementById('siteName');
     const SKELETON_CLASS = 'nav-meta--loading';
     const ENTER_CLASS = 'nav-meta--enter';
     const SKELETON_COUNT = 6;
-    if (!metaRow || !tagsContainer || !groupsContainer) {
+    if (!metaRow || !tagsContainer) {
         return;
     }
     if (!cardsList || cardsList.length === 0) {
@@ -241,10 +220,6 @@ function RenderNavMetadata(cardsList) {
     if (siteName) {
         siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
     }
-    const selectedGroups = new Set(new URLSearchParams(window.location.search)
-        .getAll('group')
-        .map((group) => group.trim().toLowerCase())
-        .filter((group) => group !== ''));
     const selectedTags = new Set(new URLSearchParams(window.location.search)
         .getAll('tag')
         .map((tag) => tag.trim().toLowerCase())
@@ -269,7 +244,6 @@ function RenderNavMetadata(cardsList) {
         return { icon, label };
     };
     if (!cardsList || cardsList.length === 0) {
-        buildBase(groupsContainer, 'bi bi-grid', 'Groups');
         buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
         for (let i = 0; i < SKELETON_COUNT; i++) {
             const skeleton = document.createElement('span');
@@ -281,34 +255,7 @@ function RenderNavMetadata(cardsList) {
         metaRow.classList.remove(ENTER_CLASS);
         return;
     }
-    buildBase(groupsContainer, 'bi bi-grid', 'Groups');
     buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
-    const renderGroupButton = (group) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'nav-tag';
-        if (selectedGroups.has(group.toLowerCase())) {
-            button.classList.add('nav-tag--active');
-        }
-        const groupText = document.createElement('span');
-        groupText.className = 'nav-tag__text';
-        groupText.textContent = group;
-        groupText.title = group;
-        button.appendChild(groupText);
-        button.addEventListener('click', () => {
-            window.location.assign(BuildRootURLWithParams({ group }));
-        });
-        groupsContainer.appendChild(button);
-    };
-    if (GroupData && Array.isArray(GroupData.groups) && GroupData.groups.length > 0) {
-        [...GroupData.groups].sort((a, b) => a.localeCompare(b)).forEach((group) => renderGroupButton(group));
-    }
-    else {
-        const emptyGroups = document.createElement('span');
-        emptyGroups.className = 'text-secondary small';
-        emptyGroups.textContent = 'No groups available';
-        groupsContainer.appendChild(emptyGroups);
-    }
     const topTags = [...tagFrequency.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     if (topTags.length === 0) {
@@ -369,19 +316,6 @@ function SetupViewToggle() {
         updateToggle(isListView);
         setListViewPreference(isListView);
     });
-}
-async function GetGroups() {
-    try {
-        const response = await fetch(GetGroupsEndpoint(), EncodingHeader);
-        if (!response.ok) {
-            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        GroupData = data.response;
-    }
-    catch (err) {
-        return console.error(err);
-    }
 }
 async function GetNamespaces() {
     try {

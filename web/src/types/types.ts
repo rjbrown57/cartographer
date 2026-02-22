@@ -13,7 +13,6 @@ const EncodingHeader = {
 }
 
 let CartographerData: CartoResponse;
-let GroupData: CartoResponse;
 
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NamespaceListId = 'namespaceList'
@@ -23,7 +22,6 @@ const NamespaceDropdownId = 'namespacedropdown'
 
 export type CartoResponse = {
     links: LinkData[];
-    groups: string[];
 }
 
 export type NamespaceResponse = {
@@ -55,7 +53,7 @@ export class Cartographer {
     private async Initialize(): Promise<void> {
         await SetupNamespaceSelector();
 
-        await Promise.all([GetGroups(), QueryMainData()]);
+        await QueryMainData();
 
         if (!CartographerData || !Array.isArray(CartographerData.links)) {
             console.error('No links data available to render');
@@ -107,10 +105,10 @@ export class Cartographer {
             return;
         }
 
-        // Check if URL has search parameters (tag, group, or term)
+        // Check if URL has search parameters (tag or term)
         // If so, show all cards since backend has already filtered
         const urlParams = new URLSearchParams(window.location.search);
-        const hasSearchParams = urlParams.has('tag') || urlParams.has('group') || urlParams.has('term');
+        const hasSearchParams = urlParams.has('tag') || urlParams.has('term');
         
         const INITIAL_CARD_LIMIT = 100;
         const CHUNK_SIZE = 50; // Process cards in chunks of 50 during idle time
@@ -178,33 +176,9 @@ export class Cartographer {
     }
 }
 
-// GetGroupsEndpoint builds the namespace-scoped endpoint used to fetch group names.
-function GetGroupsEndpoint(): string {
-    const params = new URLSearchParams();
-    params.set('namespace', query.GetSelectedNamespace());
-    return `${query.GetEndpoint}/groups?${params.toString()}`;
-}
-
 // GetNamespacesEndpoint builds the endpoint used to fetch currently active namespace names.
 function GetNamespacesEndpoint(): string {
     return NamespaceEndpoint;
-}
-
-// BuildRootURLWithParams builds a root URL that keeps namespace and adds the provided query key/value pairs.
-function BuildRootURLWithParams(params: Record<string, string>): string {
-    const url = new URL(window.location.href);
-    url.pathname = '/';
-    url.search = '';
-    const namespace = query.GetSelectedNamespace();
-    if (!query.IsDefaultNamespace(namespace)) {
-        url.searchParams.set('namespace', namespace);
-    }
-
-    Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-    });
-
-    return `${url.pathname}${url.search}`;
 }
 
 // SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
@@ -250,10 +224,8 @@ async function SetupNamespaceSelector(): Promise<void> {
     namespaceList.innerHTML = '';
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
-        // Namespace switches should start from a clean filter state to avoid
-        // carrying stale tag/group/term params that can hide valid results.
+        // Namespace switches should start from a clean filter state.
         nextURL.searchParams.delete('tag');
-        nextURL.searchParams.delete('group');
         nextURL.searchParams.delete('term');
         if (query.IsDefaultNamespace(namespace)) {
             nextURL.searchParams.delete('namespace');
@@ -316,7 +288,6 @@ async function QueryMainData() {
 function RenderNavMetadata(cardsList: cards.Card[]) {
     // Locate the metadata row, tag container, and site name elements.
     const metaRow = document.getElementById('navMetaRow');
-    const groupsContainer = document.getElementById('navMetaGroups');
     const tagsContainer = document.getElementById('navMetaTags');
     const siteName = document.getElementById('siteName');
     const SKELETON_CLASS = 'nav-meta--loading';
@@ -324,7 +295,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     const SKELETON_COUNT = 6;
 
     // Bail if required DOM nodes are missing.
-    if (!metaRow || !tagsContainer || !groupsContainer) {
+    if (!metaRow || !tagsContainer) {
         return;
     }
 
@@ -353,14 +324,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
     }
 
-    // Build selected filter sets so nav bubbles can reflect current selection state.
-    const selectedGroups = new Set(
-        new URLSearchParams(window.location.search)
-            .getAll('group')
-            .map((group) => group.trim().toLowerCase())
-            .filter((group) => group !== '')
-    );
-
+    // Build selected tag filter set so nav bubbles can reflect current selection state.
     const selectedTags = new Set(
         new URLSearchParams(window.location.search)
             .getAll('tag')
@@ -391,7 +355,6 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
 
     // When no data yet, show a lightweight skeleton state instead of popping in.
     if (!cardsList || cardsList.length === 0) {
-        buildBase(groupsContainer, 'bi bi-grid', 'Groups');
         buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
         for (let i = 0; i < SKELETON_COUNT; i++) {
             const skeleton = document.createElement('span');
@@ -404,38 +367,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         return;
     }
 
-    buildBase(groupsContainer, 'bi bi-grid', 'Groups');
     buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
-
-    const renderGroupButton = (group: string) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'nav-tag';
-        if (selectedGroups.has(group.toLowerCase())) {
-            button.classList.add('nav-tag--active');
-        }
-
-        const groupText = document.createElement('span');
-        groupText.className = 'nav-tag__text';
-        groupText.textContent = group;
-        groupText.title = group;
-
-        button.appendChild(groupText);
-        button.addEventListener('click', () => {
-            window.location.assign(BuildRootURLWithParams({ group }));
-        });
-
-        groupsContainer.appendChild(button);
-    };
-
-    if (GroupData && Array.isArray(GroupData.groups) && GroupData.groups.length > 0) {
-        [...GroupData.groups].sort((a, b) => a.localeCompare(b)).forEach((group) => renderGroupButton(group));
-    } else {
-        const emptyGroups = document.createElement('span');
-        emptyGroups.className = 'text-secondary small';
-        emptyGroups.textContent = 'No groups available';
-        groupsContainer.appendChild(emptyGroups);
-    }
 
     // Pick the top tags by count (then name).
     const topTags = [...tagFrequency.entries()]
@@ -522,20 +454,6 @@ function SetupViewToggle(): void {
         setListViewPreference(isListView);
     });
 }
-
-// Fetch available groups for the dropdown.
-async function GetGroups() {
-    try {
-        const response = await fetch(GetGroupsEndpoint(), EncodingHeader);
-        if (!response.ok) {
-            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
-        }
-         const data = await response.json();
-         GroupData = data.response;
-     } catch (err) {
-         return console.error(err);
-     }
- }
 
 // GetNamespaces fetches namespaces from the backend response message list.
 async function GetNamespaces(): Promise<string[]> {

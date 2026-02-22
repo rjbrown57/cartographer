@@ -10,9 +10,6 @@ apiVersion: v1beta
 cartographer:
   address: 0.0.0.0
   port: 8080
-groups:
-  - name: example
-    tags: ["tools","k8s"]
 links:
   - url: https://github.com/kubernetes/kubernetes
     tags: ["k8s"]

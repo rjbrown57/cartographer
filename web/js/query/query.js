@@ -25,14 +25,10 @@ export function GetQueryPath() {
     const queryParams = new URLSearchParams();
     const namespace = GetSelectedNamespace();
     const tag = urlParams.getAll('tag');
-    const group = urlParams.getAll('group');
     const term = urlParams.getAll('term');
     const invalidate = urlParams.get('cache');
     tag.forEach((t) => {
         queryParams.append('tag', t);
-    });
-    group.forEach((g) => {
-        queryParams.append('group', g);
     });
     term.forEach((t) => {
         queryParams.append('term', t);

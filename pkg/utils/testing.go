@@ -22,9 +22,6 @@ cartographer:
   backend:
     type: boltdb
     path: /tmp/debugcartographer.db
-groups:
-  - name: example
-    tags: ["tools","k8s"]
 links: 
   - url: https://github.com/kubernetes/kubernetes
     tags: ["k8s"]

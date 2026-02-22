@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	groups    []string
 	tags      []string
 	namespace string
 	watch     bool
@@ -46,8 +45,8 @@ var GetCmd = &cobra.Command{
 			log.Fatalf("%s", err)
 		}
 
-		pr := proto.NewCartographerGetRequest(nil, tags, groups, namespace)
-		// All request types are data, we will filter on group or tag if supplied.
+		pr := proto.NewCartographerGetRequest(nil, tags, namespace)
+		// All request types are data, we will filter on tags if supplied.
 		pr.Type = proto.RequestType_REQUEST_TYPE_DATA
 
 		// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
@@ -102,7 +101,6 @@ func streamGet(c *client.CartographerClient, pr *proto.CartographerStreamGetRequ
 
 func init() {
 	GetCmd.Flags().BoolVarP(&watch, "watch", "w", false, "Open a watch on the server based on supplied flags")
-	GetCmd.Flags().StringSliceVarP(&groups, "group", "g", nil, "link group to query cartographer for e.g -g=example,oci --g=example")
 	GetCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to query for e.g --t="k8s,oci" --ss="default"`)
 	GetCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace to query")
 }

@@ -1,7 +1,5 @@
 # https://buf.build/docs/best-practices/style-guide/#files-and-packages
 version: v2
-deps:
-  - buf.build/googleapis/googleapis
 lint:
   use:
     - STANDARD

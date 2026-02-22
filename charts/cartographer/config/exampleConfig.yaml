@@ -9,9 +9,6 @@ cartographer:
   backend:
     type: boltdb
     path: /data/cartographer.db
-groups:
-  - name: example
-    tags: ["tools","k8s"]
 links: 
   - url: https://kernel.org
     description: "kubernetes main github repo"
