@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -124,16 +123,15 @@ func GetSkipper() func(c *gin.Context) bool {
 	}
 }
 
-func SwaggerConfig(o *config.WebConfig) {
+func SwaggerConfig(_ *config.WebConfig) {
 	swaggerHost := os.Getenv("SWAGGER_HOST")
-	if swaggerHost == "" {
-		swaggerHost = fmt.Sprintf("%s:%d", "localhost", o.Port)
-	}
 	docs.SwaggerInfo.Host = swaggerHost
 
 	swaggerScheme := os.Getenv("SWAGGER_SCHEME")
-	if swaggerScheme == "" {
-		swaggerScheme = "http"
+	if swaggerScheme != "" {
+		docs.SwaggerInfo.Schemes = []string{swaggerScheme}
+		return
 	}
-	docs.SwaggerInfo.Schemes = []string{swaggerScheme}
+
+	docs.SwaggerInfo.Schemes = []string{}
 }
