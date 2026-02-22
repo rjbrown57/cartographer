@@ -10,16 +10,6 @@ cartographer:
     type: boltdb
     path: /tmp/cartographer.db
 
-groups:
-  - name: "Development"
-    tags: ["staging", "testing", "dev-tools", "documentation"]
-  - name: "Production"
-    tags: ["production", "monitoring", "alerts", "dashboards"]
-  - name: "Infrastructure"
-    tags: ["kubernetes", "docker", "cloud", "networking"]
-  - name: "Team Resources"
-    tags: ["onboarding", "processes", "meetings", "planning"]
-
 links:
   # Development Tools & Platforms
   - url: https://github.com

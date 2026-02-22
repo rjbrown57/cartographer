@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +10,6 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
-	"github.com/rjbrown57/cartographer/pkg/utils"
 	"github.com/rjbrown57/cartographer/web"
 )
 
@@ -44,16 +42,14 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 // GetHandler godoc
 // @Summary Get all data with optional filtering
-// @Description Retrieve all links, groups, and tags with optional filtering by tags, groups and terms via query parameters
+// @Description Retrieve all links and tags with optional filtering by tags and terms via query parameters
 // @Tags get
 // @Accept json
 // @Produce json
 // @Param tag query string false "Filter by tag names (comma-separated)" example("oci,k8s")
-// @Param group query string false "Filter by group names (comma-separated)" example("gitlab,github")
 // @Param term query string false "Filter by term (comma-separated)" example("ko,binman")
 // @Param namespace query string false "Namespace scope for the query" example("default")
 // @Success 200 {object} map[string]interface{} "Filtered data"
-// @Failure 404 {object} map[string]interface{} "Group not found"
 // @Failure 400 {object} map[string]interface{} "Invalid namespace"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /v1/get [get]
@@ -67,16 +63,10 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 		gr := &proto.CartographerGetRequest{
 			Request: &proto.CartographerRequest{
-				Groups:    make([]*proto.Group, 0),
 				Tags:      make([]*proto.Tag, 0),
 				Namespace: ns,
 			},
 			Type: proto.RequestType_REQUEST_TYPE_DATA,
-		}
-
-		// Get the group(s) from the query parameter
-		for _, group := range SplitQueryArray(c.QueryArray("group")) {
-			gr.Request.Groups = append(gr.Request.Groups, &proto.Group{Name: group})
 		}
 
 		// Get the tag(s) from the query parameter
@@ -90,94 +80,12 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 		pr, err := carto.Client.Get(carto.Ctx, gr)
 
 		if err != nil {
-			if errors.Is(err, utils.GroupNotFoundError) {
-				c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Group not found"})
-				return
-			}
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
 		c.JSON(http.StatusOK, pr)
 
-	}
-}
-
-// GetGroupsHandler godoc
-// @Summary Get all groups
-// @Description Retrieve a list of all available groups
-// @Tags get
-// @Accept json
-// @Produce json
-// @Param namespace query string false "Namespace scope for the query" example("default")
-// @Success 200 {object} map[string]interface{} "List of groups"
-// @Failure 400 {object} map[string]interface{} "Invalid namespace"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /v1/get/groups [get]
-func getGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ns, err := proto.GetNamespace(c.Query("namespace"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
-			return
-		}
-
-		cr := &proto.CartographerGetRequest{
-			Request: &proto.CartographerRequest{
-				Namespace: ns,
-			},
-			Type: proto.RequestType_REQUEST_TYPE_GROUP,
-		}
-
-		pr, err := carto.Client.Get(carto.Ctx, cr)
-		if err != nil {
-			// need to handle known errors here
-			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-			return
-		}
-
-		c.JSON(http.StatusOK, pr)
-	}
-}
-
-// GetByGroupsHandler godoc
-// @Summary Get links by group
-// @Description Retrieve links filtered by group name. Can accept additional groups via query parameters.
-// @Tags get
-// @Accept json
-// @Produce json
-// @Param group path string true "Group name" example("example-group")
-// @Param group query string false "Additional group names (comma-separated)"
-// @Success 200 {object} map[string]interface{} "Links filtered by group"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /v1/get/groups/{group} [get]
-func getByGroupsFunc(carto *client.CartographerClient) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		cr := &proto.CartographerGetRequest{
-			Request: &proto.CartographerRequest{
-				Groups: make([]*proto.Group, 0),
-			},
-			Type: proto.RequestType_REQUEST_TYPE_DATA,
-		}
-
-		// Get the group from the path parameter
-		group := c.Param("group")
-		cr.Request.Groups = append(cr.Request.Groups, &proto.Group{Name: group})
-
-		// Get the group from the query parameter
-		for _, group := range c.QueryArray("group") {
-			cr.Request.Groups = append(cr.Request.Groups, &proto.Group{Name: group})
-		}
-
-		pr, err := carto.Client.Get(carto.Ctx, cr)
-		if err != nil {
-			// need to handle known errors here
-			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-			return
-		}
-
-		c.JSON(http.StatusOK, pr)
 	}
 }
 
@@ -290,7 +198,6 @@ func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Description Serves the main Cartographer web interface
 // @Tags web
 // @Param tag query []string false "Additional tag names" collectionFormat(multi)
-// @Param group query []string false "Additional group names" collectionFormat(multi)
 // @Param term query []string false "Additional term names" collectionFormat(multi)
 // @Accept html
 // @Produce html

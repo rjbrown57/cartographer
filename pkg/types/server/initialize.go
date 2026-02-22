@@ -30,18 +30,17 @@ func (c *CartographerServer) Initialize() error {
 		}
 	}
 
-	// Last we Add the config set links/groups
+	// Last we add the configured links.
 	log.Debugf("Populating %s configured data", c.Options.ConfigFile)
 	_, err = c.Add(context.Background(), &proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
 			Links:     c.config.Links,
-			Groups:    c.config.Groups,
 			Namespace: proto.DefaultNamespace, // a temporary hack, we need to update the ingestion to read namespaces from the config file
 		},
 	})
 
 	//todo: fix this to be an accurate number
-	log.Infof("Loaded %d links, %d groups", len(c.config.Links), len(c.config.Groups))
+	log.Infof("Loaded %d links", len(c.config.Links))
 
 	return err
 }

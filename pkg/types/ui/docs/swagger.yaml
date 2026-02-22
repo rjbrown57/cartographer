@@ -15,13 +15,6 @@ paths:
         name: tag
         type: array
       - collectionFormat: multi
-        description: Additional group names
-        in: query
-        items:
-          type: string
-        name: group
-        type: array
-      - collectionFormat: multi
         description: Additional term names
         in: query
         items:
@@ -59,18 +52,13 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve all links, groups, and tags with optional filtering by
-        tags, groups and terms via query parameters
+      description: Retrieve all links and tags with optional filtering by tags and
+        terms via query parameters
       parameters:
       - description: Filter by tag names (comma-separated)
         example: '"oci,k8s"'
         in: query
         name: tag
-        type: string
-      - description: Filter by group names (comma-separated)
-        example: '"gitlab,github"'
-        in: query
-        name: group
         type: string
       - description: Filter by term (comma-separated)
         example: '"ko,binman"'
@@ -95,82 +83,12 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "404":
-          description: Group not found
-          schema:
-            additionalProperties: true
-            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
       summary: Get all data with optional filtering
-      tags:
-      - get
-  /v1/get/groups:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of all available groups
-      parameters:
-      - description: Namespace scope for the query
-        example: '"default"'
-        in: query
-        name: namespace
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of groups
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid namespace
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get all groups
-      tags:
-      - get
-  /v1/get/groups/{group}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve links filtered by group name. Can accept additional groups
-        via query parameters.
-      parameters:
-      - description: Group name
-        example: '"example-group"'
-        in: path
-        name: group
-        required: true
-        type: string
-      - description: Additional group names (comma-separated)
-        in: query
-        name: group
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Links filtered by group
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get links by group
       tags:
       - get
   /v1/get/namespaces:

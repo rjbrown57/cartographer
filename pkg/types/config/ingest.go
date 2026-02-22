@@ -17,7 +17,6 @@ type IngestConfig struct {
 	ApiVersion   string          `yaml:"apiVersion,omitempty"`
 	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
 	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
-	Groups       []*proto.Group  `yaml:"groups,omitempty"`
 	Links        []*YamlLink     `yaml:"links,omitempty"`
 }
 
@@ -44,7 +43,6 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 
 	c := &CartographerConfig{
 		Links:        pl,
-		Groups:       i.Groups,
 		AutoTags:     i.AutoTags,
 		ServerConfig: i.ServerConfig,
 		ApiVersion:   i.ApiVersion,
@@ -111,7 +109,7 @@ func (c *CartographerConfig) MergeConfigDir(dirpath string) {
 		case !strings.HasSuffix(file.Name(), ".yaml") || strings.HasPrefix(file.Name(), "."):
 			continue
 		default:
-			// Read the config file and merge the groups and links
+			// Read the config file and merge links/autotags.
 			mc := NewCartographerConfig(filepath.Join(dirpath, file.Name()))
 			c.MergeConfig(mc)
 		}
@@ -128,6 +126,5 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 	}
 
 	c.AutoTags = append(c.AutoTags, mc.AutoTags...)
-	c.Groups = append(c.Groups, mc.Groups...)
 	c.Links = append(c.Links, mc.Links...)
 }

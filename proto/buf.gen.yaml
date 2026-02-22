@@ -2,13 +2,11 @@ version: v2
 managed:
   enabled: true
 plugins:
-  # https://buf.build/grpc/go?version=v1.5.1
-  - remote: buf.build/grpc/go:v1.5.1
+  - local: protoc-gen-go-grpc
     out: ../pkg/proto/
     opt:
       - paths=source_relative
-  # https://buf.build/protoc-gen-go?version=v1.36.1
-  - remote: buf.build/protocolbuffers/go:v1.36.1
+  - local: protoc-gen-go
     out: ../pkg/proto/
     opt:
       - paths=source_relative

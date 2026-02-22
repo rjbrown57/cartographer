@@ -44,37 +44,6 @@ func TestNSCacheGetLinks(t *testing.T) {
 	}
 }
 
-// TestNSCacheGetGroupsMissingNamespace verifies GetGroups returns nil for a namespace that does not exist.
-func TestNSCacheGetGroupsMissingNamespace(t *testing.T) {
-	cache := NSCache{}
-
-	groups := cache.GetGroups("missing")
-	if groups != nil {
-		t.Fatalf("expected nil groups for missing namespace, got len=%d", len(groups))
-	}
-}
-
-// TestNSCacheGetGroups verifies GetGroups returns group names scoped to a namespace.
-func TestNSCacheGetGroups(t *testing.T) {
-	cache := NSCache{}
-
-	cache.AddToCache("default", &proto.Group{Name: "platform"})
-	cache.AddToCache("default", &proto.Group{Name: "devex"})
-
-	groups := cache.GetGroups("default")
-	if got := len(groups); got != 2 {
-		t.Fatalf("expected 2 groups, got %d", got)
-	}
-
-	seen := map[string]bool{}
-	for _, group := range groups {
-		seen[group] = true
-	}
-	if !seen["platform"] || !seen["devex"] {
-		t.Fatalf("expected groups platform and devex in snapshot, got seen=%v", seen)
-	}
-}
-
 // TestNSCacheGetTagsMissingNamespace verifies GetTags returns nil for a namespace that does not exist.
 func TestNSCacheGetTagsMissingNamespace(t *testing.T) {
 	cache := NSCache{}
@@ -111,7 +80,7 @@ func TestNSCacheGetNamespaces(t *testing.T) {
 	cache := NSCache{}
 
 	cache.AddToCache("default", &proto.Link{Id: "l1"})
-	cache.AddToCache("dev", &proto.Group{Name: "platform"})
+	cache.AddToCache("dev", &proto.Link{Id: "l2"})
 
 	namespaces := cache.GetNamespaces()
 	if got := len(namespaces); got != 2 {
@@ -144,26 +113,20 @@ func TestNewCartoNamespace(t *testing.T) {
 		t.Fatalf("expected empty initialized LinkCache, got len=%d", len(ns.LinkCache))
 	}
 
-	if ns.GroupCache == nil || len(ns.GroupCache) != 0 {
-		t.Fatalf("expected empty initialized GroupCache, got len=%d", len(ns.GroupCache))
-	}
-
 	if ns.tagCache == nil || len(ns.tagCache) != 0 {
 		t.Fatalf("expected empty initialized tagCache, got len=%d", len(ns.tagCache))
 	}
 }
 
-// TestNSCacheAddToCache verifies adding links and groups creates namespaces lazily and maintains tag indexes.
+// TestNSCacheAddToCache verifies adding links creates namespaces lazily and maintains tag indexes.
 func TestNSCacheAddToCache(t *testing.T) {
 	cache := NSCache{}
 
 	link1 := &proto.Link{Id: "l1", Tags: []string{"k8s", "dev"}}
 	link2 := &proto.Link{Id: "l2", Tags: []string{"k8s"}}
-	group := &proto.Group{Name: "platform"}
 
 	cache.AddToCache("default", link1)
 	cache.AddToCache("default", link2)
-	cache.AddToCache("default", group)
 
 	ns, ok := cache["default"]
 	if !ok {
@@ -175,9 +138,6 @@ func TestNSCacheAddToCache(t *testing.T) {
 	}
 	if got := ns.LinkCache["l2"]; got != link2 {
 		t.Fatalf("expected link l2 to be cached")
-	}
-	if got := ns.GroupCache["platform"]; got != group {
-		t.Fatalf("expected group platform to be cached")
 	}
 
 	if got := len(ns.tagCache["k8s"]); got != 2 {

@@ -10,20 +10,18 @@ type NSCache map[string]*CartoNamespace
 
 // CartoNamespaces are used to organize caching information
 type CartoNamespace struct {
-	name       string
-	LinkCache  map[string]*proto.Link
-	GroupCache map[string]*proto.Group
-	tagCache   map[string][]*proto.Link
-	mu         sync.RWMutex
+	name      string
+	LinkCache map[string]*proto.Link
+	tagCache  map[string][]*proto.Link
+	mu        sync.RWMutex
 }
 
 func NewCartoNamespace(name string) *CartoNamespace {
 	return &CartoNamespace{
-		name:       name,
-		LinkCache:  make(map[string]*proto.Link),
-		GroupCache: make(map[string]*proto.Group),
-		tagCache:   make(map[string][]*proto.Link),
-		mu:         sync.RWMutex{},
+		name:      name,
+		LinkCache: make(map[string]*proto.Link),
+		tagCache:  make(map[string][]*proto.Link),
+		mu:        sync.RWMutex{},
 	}
 }
 
@@ -42,23 +40,6 @@ func (n *NSCache) GetLinks(ns string) []*proto.Link {
 	cn.mu.RUnlock()
 
 	return links
-}
-
-// GetGroups returns a namespace-scoped snapshot of group names for safe iteration without holding locks.
-func (n *NSCache) GetGroups(ns string) []string {
-	cn, ok := (*n)[ns]
-	if !ok {
-		return nil
-	}
-
-	cn.mu.RLock()
-	groups := make([]string, 0, len(cn.GroupCache))
-	for _, group := range cn.GroupCache {
-		groups = append(groups, group.Name)
-	}
-	cn.mu.RUnlock()
-
-	return groups
 }
 
 // GetTags returns a namespace-scoped snapshot of tag names for safe iteration without holding locks.
@@ -88,7 +69,7 @@ func (n *NSCache) GetNamespaces() []string {
 	return namespaces
 }
 
-// AddToCache adds links and groups to the appropriate namespace cache while maintaining tag lookup state.
+// AddToCache adds links to the appropriate namespace cache while maintaining tag lookup state.
 func (n *NSCache) AddToCache(ns string, v any) {
 	// Resolve the namespace bucket first so all cache updates for this call
 	// operate against a single namespace-scoped cache container.
@@ -100,7 +81,7 @@ func (n *NSCache) AddToCache(ns string, v any) {
 		(*n)[ns] = cn
 	}
 
-	// Lock the namespace-level cache so link/group/tag maps remain internally
+	// Lock the namespace-level cache so link/tag maps remain internally
 	// consistent while this object is inserted.
 	cn.mu.Lock()
 	switch v := v.(type) {
@@ -119,8 +100,6 @@ func (n *NSCache) AddToCache(ns string, v any) {
 			// Append the link to the tag index for fan-out retrieval.
 			cn.tagCache[tag] = append(cn.tagCache[tag], v)
 		}
-	case *proto.Group:
-		cn.GroupCache[v.Name] = v
 	}
 
 	cn.mu.Unlock()

@@ -50,7 +50,7 @@ func (k *K8sExplorer) Start() error {
 // GetData will query the target and return the data, format it as a proto.CartographerAddRequest
 func (e *K8sExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 	// Need to refactor this Constructors to be more useful
-	r := proto.NewCartographerAddRequest(nil, nil, nil, K8sExplorerNamespace)
+	r := proto.NewCartographerAddRequest(nil, nil, K8sExplorerNamespace)
 
 	nodes, err := e.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {

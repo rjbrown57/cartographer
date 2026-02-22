@@ -23,11 +23,3 @@ message Tag {
   string description = 2;
   map<string, string> annotations = 3;
 }
-
-// Group represents a collection of related links
-message Group {
-  string name = 1;
-  string description = 2;
-  repeated string tags = 3;
-  map<string, string> annotations = 4;
-}

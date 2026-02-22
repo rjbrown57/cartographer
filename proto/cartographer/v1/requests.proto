@@ -10,27 +10,24 @@ import "cartographer/v1/models.proto";
 enum RequestType {
   REQUEST_TYPE_UNSPECIFIED = 0;
   REQUEST_TYPE_DATA = 1; // requests that will include links
-  REQUEST_TYPE_GROUP = 2; // group creation/querying for existing groups
-  REQUEST_TYPE_TAG = 3; // tag creations/querying for existing groups
-  REQUEST_TYPE_NAMESPACE = 4; // namespace querying for existing namespaces
+  REQUEST_TYPE_TAG = 2; // tag querying for existing tags
+  REQUEST_TYPE_NAMESPACE = 3; // namespace querying for existing namespaces
 }
 
 // CartographerRequest is a generic request message re-used in get/delete/add
 message CartographerRequest {
   repeated Tag tags = 1;
-  repeated Group groups = 2;
-  repeated Link links = 3;
-  repeated string terms = 4;
-  string namespace = 5;
+  repeated Link links = 2;
+  repeated string terms = 3;
+  string namespace = 4;
 }
 
 // CartographerResponse is the generic response message
 message CartographerResponse {
   repeated string msg = 1;
   repeated string tags = 2;
-  repeated string groups = 3;
-  repeated Link links = 4;
-  string namespace = 5;
+  repeated Link links = 3;
+  string namespace = 4;
 }
 
 // PingRequest is used for health check

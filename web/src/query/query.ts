@@ -38,9 +38,6 @@ export function GetQueryPath(): string {
     // get the tags from the url params
     // example: http://localhost:8081/v1/get/?tag=docker
     const tag = urlParams.getAll('tag');
-    // get the groups from the url params
-    // example: http://localhost:8081/v1/get/?group=docker
-    const group = urlParams.getAll('group');
     // get the terms from the url params
     // example: http://localhost:8081/v1/get/?term=docker
     const term = urlParams.getAll('term');
@@ -51,10 +48,6 @@ export function GetQueryPath(): string {
     // http://localhost:8081/v1/get/?tag=oci&tag=github
     tag.forEach((t) => {
         queryParams.append('tag', t);
-    });
-
-    group.forEach((g) => {
-        queryParams.append('group', g);
     });
 
     term.forEach((t) => {

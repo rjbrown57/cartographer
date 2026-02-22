@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rjbrown57/cartographer/pkg/log"
-
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
@@ -30,14 +28,6 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		newData[v.GetKey()] = v
 		c.AddToCache(v, in.Request.Namespace)
 		metrics.IncrementObjectCount("link", 1)
-	}
-
-	// Add Groups
-	for _, v := range in.Request.Groups {
-		log.Debugf("Adding group %+v", v)
-		// currently groups are not stored in the backend
-		c.AddToCache(v, in.Request.Namespace)
-		metrics.IncrementObjectCount("group", 1)
 	}
 
 	ar := backend.NewBackendAddRequest(newData, in.Request.Namespace)

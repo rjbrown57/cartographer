@@ -16,7 +16,7 @@ Cartographer is a powerful tool designed to help teams organize, discover, and s
 
 ### Features
 - **🔗 Centralized Link Management** - Store and organize URLs with rich metadata, descriptions, and custom data fields
-- **🏷️ Smart Tagging System** - Categorize links with flexible tags and hierarchical groups for easy discovery
+- **🏷️ Smart Tagging System** - Categorize links with flexible tags for easy discovery
 - **🔍 Powerful Search** - Full-text search across URLs, descriptions, and tags with real-time filtering
 - **👥 Team Collaboration** - Centrally share knowledge and resources across your entire team
 - **🚀 Self-Hosted** - Cartographer is an all in one binary with built in backend. It can be trivially deployed with Docker or Kubernetes
@@ -34,8 +34,7 @@ To get a feel for cartographer the easiest way is to use docker-compose. See the
 | Type | Description | Example |
 | ---- | ----------- | ------- |
 | **Link** | A URL with metadata, description, and associated tags | `https://staging.myapp.com` with tags `[staging, frontend, api]` |
-| **Tag** | A label that groups related links together | `monitoring`, `staging`, `documentation` |
-| **Group** | A collection of related tags for hierarchical organization | `Development` group containing `[staging, testing, docs]` tags |
+| **Tag** | A label used to organize related links | `monitoring`, `staging`, `documentation` |
 
 ## Deployment
 

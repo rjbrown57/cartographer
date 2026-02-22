@@ -7,7 +7,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
-// AddToCache adds a link or group to the namespace cache and updates supporting indexes.
+// AddToCache adds a link to the namespace cache and updates supporting indexes.
 func (c *CartographerServer) AddToCache(v any, ns string) {
 	c.mu.Lock()
 	switch v := v.(type) {
@@ -24,10 +24,6 @@ func (c *CartographerServer) AddToCache(v any, ns string) {
 		}
 
 		metrics.IncrementObjectCount("searchIndexCount", 1)
-
-	case *proto.Group:
-		log.Debugf("Adding group %s to cache", v.Name)
-		c.nsCache.AddToCache(ns, v)
 	}
 	c.mu.Unlock()
 }

@@ -38,7 +38,6 @@ func TestNewCartographerConfig(t *testing.T) {
 
 	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
 	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)
-	utils.AssertDeepEqual(t, c.Groups, controlConfig.Groups)
 	utils.AssertDeepEqual(t, c.Links, controlConfig.Links)
 
 	controlConfig = CartographerConfig{}
@@ -53,7 +52,6 @@ func TestNewCartographerConfig(t *testing.T) {
 
 	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
 	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)
-	utils.AssertDeepEqual(t, c.Groups, controlConfig.Groups)
 	// This can have issue with the ordering
 	// So i'm being lazy and cheating here
 	utils.AssertDeepEqual(t, len(c.Links), len(controlConfig.Links))

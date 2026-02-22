@@ -50,7 +50,7 @@ func (e *BasicExplorer) Start() error {
 
 // GetData will query the target and return the data, format it as a proto.CartographerAddRequest
 func (e *BasicExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
-	r := proto.NewCartographerAddRequest(nil, nil, nil, BasicExplorerNamespace)
+	r := proto.NewCartographerAddRequest(nil, nil, BasicExplorerNamespace)
 
 	jsonData, err := getJsonData(e.options.TargetUrl)
 	if err != nil {

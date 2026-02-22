@@ -25,7 +25,6 @@ type CartographerConfig struct {
 	ApiVersion   string          `yaml:"apiVersion,omitempty"`
 	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
 	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
-	Groups       []*proto.Group  `yaml:"groups,omitempty"`
 	Links        []*proto.Link   `yaml:"links,omitempty"`
 }
 
@@ -54,7 +53,6 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*p
 	r := proto.CartographerAddRequest{
 		Request: &proto.CartographerRequest{
 			Links:     c.Links,
-			Groups:    c.Groups,
 			Namespace: proto.DefaultNamespace, // for now we only allow ingest to default NS
 		},
 	}

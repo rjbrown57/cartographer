@@ -18,7 +18,7 @@ func NewProtoTag(tagName, description string) *Tag {
 	return &t
 }
 
-func NewCartographerRequest(links, tags, groups []string, namespace string) (*CartographerRequest, error) {
+func NewCartographerRequest(links, tags []string, namespace string) (*CartographerRequest, error) {
 	newlinks := make([]*Link, 0)
 
 	deDupMap := make(map[string]struct{})
@@ -37,15 +37,6 @@ func NewCartographerRequest(links, tags, groups []string, namespace string) (*Ca
 		deDupMap[link] = struct{}{}
 	}
 
-	deDupMap = make(map[string]struct{})
-	newGroups := make([]*Group, 0)
-	for _, group := range groups {
-		if _, ok := deDupMap[group]; !ok {
-			newGroups = append(newGroups, NewProtoGroup(group, tags, ""))
-		}
-		deDupMap[group] = struct{}{}
-	}
-
 	// validate namespaces matches regex and if unset set to default
 	validatedNs, err := GetNamespace(namespace)
 	if err != nil {
@@ -54,7 +45,6 @@ func NewCartographerRequest(links, tags, groups []string, namespace string) (*Ca
 
 	r := CartographerRequest{
 		Links:     newlinks,
-		Groups:    newGroups,
 		Namespace: validatedNs,
 	}
 
@@ -65,16 +55,15 @@ func GetRequestFromStream(c *CartographerStreamGetRequest) *CartographerGetReque
 
 	return &CartographerGetRequest{
 		Request: &CartographerRequest{
-			Tags:   c.Request.GetTags(),
-			Links:  c.Request.GetLinks(),
-			Groups: c.Request.GetGroups(),
+			Tags:  c.Request.GetTags(),
+			Links: c.Request.GetLinks(),
 		},
 		Type: c.Type,
 	}
 }
 
-func NewCartographerGetRequest(links, tags, groups []string, namespace string) *CartographerGetRequest {
-	r, err := NewCartographerRequest(links, tags, groups, namespace)
+func NewCartographerGetRequest(links, tags []string, namespace string) *CartographerGetRequest {
+	r, err := NewCartographerRequest(links, tags, namespace)
 	if err != nil {
 		log.Fatalf("Error building cartographer request: %s", err)
 	}
@@ -83,8 +72,8 @@ func NewCartographerGetRequest(links, tags, groups []string, namespace string) *
 	}
 }
 
-func NewCartographerAddRequest(links, tags, groups []string, namespace string) *CartographerAddRequest {
-	r, err := NewCartographerRequest(links, tags, groups, namespace)
+func NewCartographerAddRequest(links, tags []string, namespace string) *CartographerAddRequest {
+	r, err := NewCartographerRequest(links, tags, namespace)
 	if err != nil {
 		log.Fatalf("Error building cartographer request: %s", err)
 	}

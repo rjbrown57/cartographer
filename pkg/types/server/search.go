@@ -7,7 +7,6 @@ import (
 	"github.com/blevesearch/bleve/search/query"
 	"github.com/rjbrown57/cartographer/pkg/log"
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
-	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
 // SearchLimit represents the scope of the search
@@ -74,38 +73,13 @@ func (o *SearchOptions) GetSearchRequest(terms []string) *bleve.SearchRequest {
 	return request
 }
 
-// getNamespaceTagMap builds the effective tag filter set for a namespaced request by combining tags and group expansions.
+// getNamespaceTagMap builds the effective tag filter set for a namespaced request.
 func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[string]struct{}, error) {
-	ns, err := proto.GetNamespace(in.Request.GetNamespace())
-	if err != nil {
-		return nil, err
-	}
-
 	tagFilters := make(map[string]struct{})
 
 	// add the tags to the tag map
 	for _, tag := range in.Request.Tags {
 		tagFilters[tag.Name] = struct{}{}
-	}
-
-	// Expand groups into tags using namespace-scoped group cache.
-	c.mu.RLock()
-	cn, ok := c.nsCache[ns]
-	c.mu.RUnlock()
-	if !ok {
-		return tagFilters, nil
-	}
-
-	cn.mu.RLock()
-	defer cn.mu.RUnlock()
-	for _, groupRef := range in.Request.Groups {
-		group, exists := cn.GroupCache[groupRef.Name]
-		if !exists {
-			return nil, utils.GroupNotFoundError
-		}
-		for _, tag := range group.Tags {
-			tagFilters[tag] = struct{}{}
-		}
 	}
 
 	log.Debugf("Tag Filters: %v", tagFilters)
