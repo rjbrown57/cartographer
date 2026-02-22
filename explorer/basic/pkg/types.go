@@ -3,11 +3,14 @@ package basic
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 )
+
+var BasicExplorerNamespace string = "explorer"
 
 func NewBasicExplorer(o *BasicExplorerOptions) *BasicExplorer {
 	client := client.NewCartographerClient(o.CartographerClientOptions)
@@ -35,17 +38,19 @@ func (e *BasicExplorer) Start() error {
 		return err
 	}
 
-	_, err = e.client.Client.Add(e.client.Ctx, r)
+	resp, err := e.client.Client.Add(e.client.Ctx, r)
 	if err != nil {
 		return err
 	}
+
+	log.Printf("RESP: %+v", resp)
 
 	return nil
 }
 
 // GetData will query the target and return the data, format it as a proto.CartographerAddRequest
 func (e *BasicExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
-	r := proto.NewCartographerAddRequest(nil, nil, nil)
+	r := proto.NewCartographerAddRequest(nil, nil, nil, BasicExplorerNamespace)
 
 	jsonData, err := getJsonData(e.options.TargetUrl)
 	if err != nil {

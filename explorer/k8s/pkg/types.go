@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var K8sExplorerNamespace string = "k8sexplorer"
+
 func NewK8sExplorer(o *K8sExplorerOptions) *K8sExplorer {
 	client := client.NewCartographerClient(o.CartographerClientOptions)
 
@@ -48,7 +50,7 @@ func (k *K8sExplorer) Start() error {
 // GetData will query the target and return the data, format it as a proto.CartographerAddRequest
 func (e *K8sExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 	// Need to refactor this Constructors to be more useful
-	r := proto.NewCartographerAddRequest(nil, nil, nil)
+	r := proto.NewCartographerAddRequest(nil, nil, nil, K8sExplorerNamespace)
 
 	nodes, err := e.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
