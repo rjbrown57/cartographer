@@ -78,6 +78,16 @@ func (n *NSCache) GetTags(ns string) []string {
 	return tags
 }
 
+// GetNamespaces returns a snapshot of currently allocated namespace keys in the cache.
+func (n *NSCache) GetNamespaces() []string {
+	namespaces := make([]string, 0, len(*n))
+	for ns := range *n {
+		namespaces = append(namespaces, ns)
+	}
+
+	return namespaces
+}
+
 // AddToCache adds links and groups to the appropriate namespace cache while maintaining tag lookup state.
 func (n *NSCache) AddToCache(ns string, v any) {
 	// Resolve the namespace bucket first so all cache updates for this call

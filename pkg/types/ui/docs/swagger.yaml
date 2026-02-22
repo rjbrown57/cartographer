@@ -173,6 +173,27 @@ paths:
       summary: Get links by group
       tags:
       - get
+  /v1/get/namespaces:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all active namespaces currently in cache
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of namespaces
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all namespaces
+      tags:
+      - get
   /v1/get/tags:
     get:
       consumes:
