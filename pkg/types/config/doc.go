@@ -7,6 +7,7 @@ Example config
 
 ```
 apiVersion: v1beta
+namespace: default
 cartographer:
   address: 0.0.0.0
   port: 8080

@@ -9,7 +9,6 @@ cartographer:
   backend:
     type: boltdb
     path: /tmp/cartographer.db
-
 links:
   # Development Tools & Platforms
   - url: https://github.com

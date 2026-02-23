@@ -37,8 +37,10 @@ func TestNewCartographerConfig(t *testing.T) {
 	controlConfig = *controlConfig.WithIngest(config.Name())
 
 	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
+	utils.AssertDeepEqual(t, c.Namespace, controlConfig.Namespace)
 	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)
 	utils.AssertDeepEqual(t, c.Links, controlConfig.Links)
+	utils.AssertDeepEqual(t, c.LinksByNamespace, controlConfig.LinksByNamespace)
 
 	controlConfig = CartographerConfig{}
 
@@ -68,4 +70,43 @@ func TestSetApi(t *testing.T) {
 	c.ApiVersion = customApiVersion
 	c.SetApi()
 	utils.AssertDeepEqual(t, c.ApiVersion, customApiVersion)
+}
+
+func TestNamespaceIngest(t *testing.T) {
+	configFile, err := utils.GetTestFile()
+	if err != nil {
+		t.Fatalf("Failed to create temp config: %s", err)
+	}
+
+	testConfig := `
+apiVersion: v1beta
+namespace: dev
+cartographer:
+  address: 0.0.0.0
+  port: 8080
+links:
+  - url: https://example.com/default
+    tags: ["a"]
+  - url: https://example.com/dev
+    tags: ["b"]
+`
+
+	_, err = configFile.Write([]byte(testConfig))
+	if err != nil {
+		t.Fatalf("Failed to write temp config: %s", err)
+	}
+
+	t.Cleanup(func() {
+		configFile.Close()
+		os.Remove(configFile.Name())
+	})
+
+	c := NewCartographerConfig(configFile.Name())
+	if got := len(c.LinksByNamespace); got != 1 {
+		t.Fatalf("expected 1 namespace, got %d", got)
+	}
+
+	if got := len(c.LinksByNamespace["dev"]); got != 2 {
+		t.Fatalf("expected 2 links in dev namespace, got %d", got)
+	}
 }

@@ -1,0 +1,18 @@
+apiVersion: v1beta
+namespace: platform
+
+autotags:
+  - regex: ".*kubernetes.*"
+    tags: ["platform", "kubernetes"]
+
+links:
+  - url: https://kubernetes.io/docs/home/
+    description: "Kubernetes official documentation"
+    tags: ["docs", "kubernetes"]
+  - url: https://helm.sh/docs/
+    description: "Helm package manager documentation"
+    tags: ["docs", "helm"]
+  - id: platform-contact
+    data:
+      slack: "#platform-team"
+      pagerduty: "platform-primary"
