@@ -21,16 +21,21 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 
 	newData := make(map[string]any)
 
+	ns, err := proto.GetNamespace(in.Request.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	// This needs to be refactored with more constructors/factories etc
 	// Get links
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetLinks() {
 		newData[v.GetKey()] = v
-		c.AddToCache(v, in.Request.Namespace)
+		c.AddToCache(v, ns)
 		metrics.IncrementObjectCount("link", 1)
 	}
 
-	ar := backend.NewBackendAddRequest(newData, in.Request.Namespace)
+	ar := backend.NewBackendAddRequest(newData, ns)
 
 	// run the add
 	b := c.Backend.Add(ar)
