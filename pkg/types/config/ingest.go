@@ -15,6 +15,7 @@ import (
 // IngestConfig is used to ingest data from a yaml file. This is mainly for the map[string]any{} data in links.
 type IngestConfig struct {
 	ApiVersion   string          `yaml:"apiVersion,omitempty"`
+	Namespace    string          `yaml:"namespace,omitempty"`
 	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
 	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
 	Links        []*YamlLink     `yaml:"links,omitempty"`
@@ -24,6 +25,12 @@ type IngestConfig struct {
 func (i *IngestConfig) Convert() *CartographerConfig {
 
 	pl := []*proto.Link{}
+	namespacedLinks := make(map[string][]*proto.Link)
+	ns, err := proto.GetNamespace(i.Namespace)
+	if err != nil {
+		log.Fatalf("Error validating namespace %q: %s", i.Namespace, err)
+	}
+
 	for _, l := range i.Links {
 
 		protoLink, err := proto.NewLinkBuilder().
@@ -38,14 +45,18 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 		if err != nil {
 			log.Fatalf("Error building link: %s", err)
 		}
+
 		pl = append(pl, protoLink)
+		namespacedLinks[ns] = append(namespacedLinks[ns], protoLink)
 	}
 
 	c := &CartographerConfig{
-		Links:        pl,
-		AutoTags:     i.AutoTags,
-		ServerConfig: i.ServerConfig,
-		ApiVersion:   i.ApiVersion,
+		Namespace:        ns,
+		Links:            pl,
+		LinksByNamespace: namespacedLinks,
+		AutoTags:         i.AutoTags,
+		ServerConfig:     i.ServerConfig,
+		ApiVersion:       i.ApiVersion,
 	}
 
 	log.Debugf("CartographerConfig: %+v", c)
@@ -124,7 +135,16 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 		c.ServerConfig = mc.ServerConfig
 		mc.SetApi()
 	}
+	if c.Namespace == "" {
+		c.Namespace = mc.Namespace
+	}
 
 	c.AutoTags = append(c.AutoTags, mc.AutoTags...)
 	c.Links = append(c.Links, mc.Links...)
+	if c.LinksByNamespace == nil {
+		c.LinksByNamespace = make(map[string][]*proto.Link)
+	}
+	for ns, links := range mc.LinksByNamespace {
+		c.LinksByNamespace[ns] = append(c.LinksByNamespace[ns], links...)
+	}
 }
