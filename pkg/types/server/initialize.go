@@ -26,7 +26,7 @@ func (c *CartographerServer) Initialize() error {
 		log.Debugf("Populating Cache for Backend ns %s", r.Request.GetNamespace())
 		for _, link := range r.Request.GetLinks() {
 			c.AddToCache(link, r.Request.GetNamespace())
-			metrics.IncrementObjectCount("link", 1)
+			metrics.IncrementObjectCount("link", r.Request.GetNamespace(), 1)
 		}
 	}
 

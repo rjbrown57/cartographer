@@ -32,7 +32,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	for _, v := range in.Request.GetLinks() {
 		newData[v.GetKey()] = v
 		c.AddToCache(v, ns)
-		metrics.IncrementObjectCount("link", 1)
+		metrics.IncrementObjectCount("link", ns, 1)
 	}
 
 	ar := backend.NewBackendAddRequest(newData, ns)

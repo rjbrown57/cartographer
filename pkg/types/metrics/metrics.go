@@ -14,7 +14,7 @@ var (
 			Name: "cartographer_objects",
 			Help: "Current number of objects",
 		},
-		[]string{"type"},
+		[]string{"type", "namespace"},
 	)
 
 	BackendOperationDuration = promauto.NewHistogramVec(
@@ -27,14 +27,14 @@ var (
 	)
 )
 
-// Metrics helper functions
-func IncrementObjectCount(objectType string, count float64) {
-	CartographerObjects.WithLabelValues(objectType).Add(count)
+// IncrementObjectCount increments object metrics scoped by object type and namespace.
+func IncrementObjectCount(objectType, namespace string, count float64) {
+	CartographerObjects.WithLabelValues(objectType, namespace).Add(count)
 }
 
-// DecrementObjectCount decrements the count of an object type
-func DecrementObjectCount(objectType string, count float64) {
-	CartographerObjects.WithLabelValues(objectType).Add(-count)
+// DecrementObjectCount decrements object metrics scoped by object type and namespace.
+func DecrementObjectCount(objectType, namespace string, count float64) {
+	CartographerObjects.WithLabelValues(objectType, namespace).Add(-count)
 }
 
 func RecordBackendOperationDuration(operation string, duration float64) {
