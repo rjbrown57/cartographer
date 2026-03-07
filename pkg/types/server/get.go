@@ -44,7 +44,7 @@ func getDataset(c *CartographerServer, in *proto.CartographerGetRequest, ns stri
 func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetRequest) (*proto.CartographerGetResponse, error) {
 
 	// record the duration of the get operation
-	defer metrics.RecordOperationDuration("get")()
+	defer metrics.Metrics().RecordOperationDuration("get")()
 
 	// enforce default ns behavior
 	ns, err := proto.GetNamespace(in.Request.GetNamespace())

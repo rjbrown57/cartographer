@@ -14,7 +14,7 @@ func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDel
 	var err error
 
 	// record the duration of the delete operation
-	defer metrics.RecordOperationDuration("delete")()
+	defer metrics.Metrics().RecordOperationDuration("delete")()
 
 	ns, err := proto.GetNamespace(in.GetNamespace())
 	if err != nil {

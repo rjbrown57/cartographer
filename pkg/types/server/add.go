@@ -13,7 +13,7 @@ import (
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
 
 	// record the duration of the add operation
-	defer metrics.RecordOperationDuration("add")()
+	defer metrics.Metrics().RecordOperationDuration("add")()
 
 	for _, link := range in.Request.GetLinks() {
 		auto.ProcessAutoTags(link, c.config.AutoTags)
@@ -32,7 +32,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	for _, v := range in.Request.GetLinks() {
 		newData[v.GetKey()] = v
 		c.AddToCache(v, ns)
-		metrics.IncrementObjectCount("link", ns, 1)
+		metrics.Metrics().IncrementObjectCount("link", ns, 1)
 	}
 
 	ar := backend.NewBackendAddRequest(newData, ns)

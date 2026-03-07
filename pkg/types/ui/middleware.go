@@ -44,7 +44,7 @@ func TrackingMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		metrics.TrackUniqueVisitor(visitorIDFromRequest(c), "web-ui")
+		metrics.Metrics().TrackUniqueVisitor(visitorIDFromRequest(c), "web-ui")
 		c.Next()
 	}
 }

@@ -12,7 +12,7 @@ import (
 // TestTrackingMiddlewareSetsVisitorCookie validates that tracking creates a stable visitor cookie.
 func TestTrackingMiddlewareSetsVisitorCookie(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	metrics.ClearVisitors()
+	metrics.Metrics().ClearVisitors()
 
 	router := gin.New()
 	router.Use(TrackingMiddleware())
@@ -40,15 +40,15 @@ func TestTrackingMiddlewareSetsVisitorCookie(t *testing.T) {
 		t.Fatalf("Expected cookie name %q, got %q", visitorCookieName, cookies[0].Name)
 	}
 
-	if metrics.GetUniqueVisitorCount() != 1 {
-		t.Fatalf("Expected one unique visitor, got %f", metrics.GetUniqueVisitorCount())
+	if metrics.Metrics().GetUniqueVisitorCount() != 1 {
+		t.Fatalf("Expected one unique visitor, got %f", metrics.Metrics().GetUniqueVisitorCount())
 	}
 }
 
 // TestTrackingMiddlewareReusesVisitorCookie validates existing visitor IDs are reused.
 func TestTrackingMiddlewareReusesVisitorCookie(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	metrics.ClearVisitors()
+	metrics.Metrics().ClearVisitors()
 
 	router := gin.New()
 	router.Use(TrackingMiddleware())
@@ -68,15 +68,15 @@ func TestTrackingMiddlewareReusesVisitorCookie(t *testing.T) {
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, req2)
 
-	if metrics.GetUniqueVisitorCount() != 1 {
-		t.Fatalf("Expected one unique visitor, got %f", metrics.GetUniqueVisitorCount())
+	if metrics.Metrics().GetUniqueVisitorCount() != 1 {
+		t.Fatalf("Expected one unique visitor, got %f", metrics.Metrics().GetUniqueVisitorCount())
 	}
 }
 
 // TestTrackingMiddlewareSkipsExcludedPaths validates excluded routes are not tracked.
 func TestTrackingMiddlewareSkipsExcludedPaths(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	metrics.ClearVisitors()
+	metrics.Metrics().ClearVisitors()
 
 	router := gin.New()
 	router.Use(TrackingMiddleware())
@@ -92,7 +92,7 @@ func TestTrackingMiddlewareSkipsExcludedPaths(t *testing.T) {
 		t.Fatalf("Expected status 200, got %d", w.Code)
 	}
 
-	if metrics.GetUniqueVisitorCount() != 0 {
-		t.Fatalf("Expected zero unique visitors, got %f", metrics.GetUniqueVisitorCount())
+	if metrics.Metrics().GetUniqueVisitorCount() != 0 {
+		t.Fatalf("Expected zero unique visitors, got %f", metrics.Metrics().GetUniqueVisitorCount())
 	}
 }
