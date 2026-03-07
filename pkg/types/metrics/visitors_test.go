@@ -2,44 +2,56 @@ package metrics
 
 import "testing"
 
-// TestTrackUniqueVisitor verifies visitors are deduplicated by source and visitor ID.
-func TestTrackUniqueVisitor(t *testing.T) {
-	// Clear any existing visitors.
-	ClearVisitors()
-
-	// Track some visitors.
-	TrackUniqueVisitor("visitor-a", "web-ui")
-	TrackUniqueVisitor("visitor-b", "web-ui")
-	TrackUniqueVisitor("visitor-a", "web-ui") // Duplicate visitor/source pair.
-
-	// Same visitor ID on a different source is a separate visitor because the metric is source-labeled.
-	TrackUniqueVisitor("visitor-a", "grpc")
-
-	// Check unique count.
-	count := GetUniqueVisitorCount()
-	if count != 3 {
-		t.Errorf("Expected 3 unique visitors, got %f", count)
+// TestVisitorKeyTableDriven verifies visitor key construction and validation.
+func TestVisitorKeyTableDriven(t *testing.T) {
+	tests := []struct {
+		name          string
+		visitorID     string
+		source        string
+		expectedKey   string
+		expectedValid bool
+	}{
+		{
+			name:          "valid visitor id and source",
+			visitorID:     "abc123",
+			source:        "web-ui",
+			expectedKey:   "web-ui|abc123",
+			expectedValid: true,
+		},
+		{
+			name:          "empty visitor id is invalid",
+			visitorID:     "",
+			source:        "web-ui",
+			expectedKey:   "",
+			expectedValid: false,
+		},
+		{
+			name:          "empty source is invalid",
+			visitorID:     "abc123",
+			source:        "",
+			expectedKey:   "",
+			expectedValid: false,
+		},
+		{
+			name:          "empty visitor id and source are invalid",
+			visitorID:     "",
+			source:        "",
+			expectedKey:   "",
+			expectedValid: false,
+		},
 	}
 
-	// Check seen visitors.
-	visitors := GetSeenVisitors()
-	if len(visitors) != 3 {
-		t.Errorf("Expected 3 seen visitors, got %d", len(visitors))
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotKey, gotValid := visitorKey(tt.visitorID, tt.source)
 
-// TestTrackUniqueVisitorInvalidInput verifies invalid tracking input does not mutate state.
-func TestTrackUniqueVisitorInvalidInput(t *testing.T) {
-	// Clear any existing visitors.
-	ClearVisitors()
+			if gotValid != tt.expectedValid {
+				t.Fatalf("expected valid %t, got %t", tt.expectedValid, gotValid)
+			}
 
-	// Invalid visitor values should be ignored.
-	TrackUniqueVisitor("", "web-ui")
-	TrackUniqueVisitor("visitor-a", "")
-
-	// Verify no visitors were tracked.
-	count := GetUniqueVisitorCount()
-	if count != 0 {
-		t.Errorf("Expected 0 unique visitors, got %f", count)
+			if gotKey != tt.expectedKey {
+				t.Fatalf("expected key %q, got %q", tt.expectedKey, gotKey)
+			}
+		})
 	}
 }

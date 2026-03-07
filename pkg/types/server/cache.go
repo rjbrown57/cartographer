@@ -23,7 +23,7 @@ func (c *CartographerServer) AddToCache(v any, ns string) {
 			log.Errorf("Error indexing link %s: %v", docID, err)
 		}
 
-		metrics.IncrementObjectCount("searchIndexCount", ns, 1)
+		metrics.Metrics().IncrementObjectCount("searchIndexCount", ns, 1)
 	}
 	c.mu.Unlock()
 }
@@ -41,7 +41,7 @@ func (c *CartographerServer) DeleteFromCache(ns string, key ...string) {
 		if err != nil {
 			log.Errorf("Error deleting %s from bleve: %v", docID, err)
 		} else {
-			metrics.DecrementObjectCount("searchIndexCount", ns, 1)
+			metrics.Metrics().DecrementObjectCount("searchIndexCount", ns, 1)
 		}
 	}
 	c.mu.Unlock()

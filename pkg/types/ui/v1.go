@@ -223,7 +223,7 @@ func aboutFunc(siteName string) gin.HandlerFunc {
 			"version":         version,
 			"commit":          commit,
 			"date":            date,
-			"unique_visitors": metrics.GetUniqueVisitorCount(),
+			"unique_visitors": metrics.Metrics().GetUniqueVisitorCount(),
 		})
 	}
 }
