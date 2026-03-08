@@ -35,11 +35,30 @@ func visitorIDFromRequest(c *gin.Context) string {
 	return newVisitorID
 }
 
+// isLikelyBrowserRequest identifies requests likely originating from an interactive browser.
+func isLikelyBrowserRequest(c *gin.Context) bool {
+
+	// check common browser used headers if set return true to indicate this is a browser session
+	for _, header := range []string{"Sec-Fetch-Mode", "Sec-Fetch-Site", "Sec-Fetch-Dest", "User-Agent"} {
+		if c.GetHeader(header) != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // TrackingMiddleware tracks unique visitors while excluding non-user-facing endpoints.
 func TrackingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Exclude healthz and metrics.
 		if slices.Contains(excludePaths, c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
+		// Ignore requests that do not look like a browser to avoid bot/probe/API skew.
+		if !isLikelyBrowserRequest(c) {
 			c.Next()
 			return
 		}
