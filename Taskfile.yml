@@ -60,7 +60,7 @@ tasks:
   test-cartographer:
     desc: "run all go tests"
     cmds:
-    - go test ./...
+    - go list ./... | grep -v '/web/node_modules/' | xargs go test
   test-basic-explorer:
     desc: "test basic explorer"
     cmds:
