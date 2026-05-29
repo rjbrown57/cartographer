@@ -12,9 +12,11 @@ let CartographerData;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList';
+const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 export class Cartographer {
     Cards = [];
     SearchBar;
+    renderVersion = 0;
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
         SetupViewToggle();
@@ -22,13 +24,17 @@ export class Cartographer {
         this.Initialize();
     }
     async Initialize() {
-        await SetupNamespaceSelector();
+        await SetupNamespaceSelector(this.SwitchNamespace.bind(this));
+        await this.LoadCurrentNamespace();
+    }
+    async LoadCurrentNamespace() {
         await QueryMainData();
         if (!CartographerData || !Array.isArray(CartographerData.notes)) {
             console.error('No notes data available to render');
             RenderNavMetadata([]);
             return;
         }
+        this.Cards.splice(0, this.Cards.length);
         CartographerData.notes.forEach((note) => {
             const resolvedID = note.id || note.url || note.title;
             if (!resolvedID) {
@@ -43,6 +49,24 @@ export class Cartographer {
         RenderNavMetadata(this.Cards);
         this.renderCards();
     }
+    async SwitchNamespace(namespace, nextURL) {
+        try {
+            window.history.pushState({}, '', nextURL.toString());
+            query.SetSelectedNamespace(namespace);
+            document.body.classList.add('namespace-switching');
+            const searchElement = document.getElementById('searchBar');
+            if (searchElement) {
+                searchElement.value = '';
+            }
+            await SetupNamespaceSelector(this.SwitchNamespace.bind(this));
+            await this.LoadCurrentNamespace();
+        }
+        finally {
+            requestAnimationFrame(() => {
+                document.body.classList.remove('namespace-switching');
+            });
+        }
+    }
     showCards() {
         this.Cards.forEach((card) => {
             card.log();
@@ -54,6 +78,8 @@ export class Cartographer {
             console.error("Container element not found");
             return;
         }
+        const currentRenderVersion = ++this.renderVersion;
+        container.innerHTML = '';
         const urlParams = new URLSearchParams(window.location.search);
         const hasSearchParams = urlParams.has('tag') || urlParams.has('term');
         const INITIAL_CARD_LIMIT = 100;
@@ -68,6 +94,9 @@ export class Cartographer {
             const remainingCards = this.Cards.slice(INITIAL_CARD_LIMIT);
             let currentIndex = 0;
             const processChunk = () => {
+                if (currentRenderVersion !== this.renderVersion) {
+                    return;
+                }
                 const endIndex = Math.min(currentIndex + CHUNK_SIZE, remainingCards.length);
                 const chunk = remainingCards.slice(currentIndex, endIndex);
                 const chunkFragment = document.createDocumentFragment();
@@ -103,6 +132,12 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+function GetTopTagsCollapsed() {
+    return localStorage.getItem(TopTagsCollapsedStorageKey) === 'true';
+}
+function SetTopTagsCollapsed(collapsed) {
+    localStorage.setItem(TopTagsCollapsedStorageKey, String(collapsed));
 }
 function SetupNoteSubmission() {
     const form = document.getElementById('noteForm');
@@ -327,7 +362,7 @@ function SetupNoteSubmission() {
 function GetNamespacesEndpoint() {
     return NamespaceEndpoint;
 }
-async function SetupNamespaceSelector() {
+async function SetupNamespaceSelector(onSwitch) {
     const namespaceList = document.getElementById(NamespaceListId);
     if (!namespaceList) {
         return;
@@ -353,13 +388,9 @@ async function SetupNamespaceSelector() {
         window.history.replaceState({}, '', url.toString());
     }
     namespaceList.innerHTML = '';
-    const icon = document.createElement('i');
-    icon.className = 'bi bi-diagram-3 nav-meta__icon';
-    const label = document.createElement('span');
-    label.className = 'nav-meta__label';
-    label.textContent = 'Namespaces';
-    namespaceList.appendChild(icon);
-    namespaceList.appendChild(label);
+    namespaceList.setAttribute('role', 'tablist');
+    namespaceList.setAttribute('aria-label', 'Namespaces');
+    let switchingNamespace = false;
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
         nextURL.searchParams.delete('tag');
@@ -372,22 +403,45 @@ async function SetupNamespaceSelector() {
         }
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'nav-tag';
-        if (namespace === currentNamespace) {
-            button.classList.add('nav-tag--active');
-        }
+        button.className = 'namespace-tab';
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(namespace === currentNamespace));
+        button.setAttribute('aria-current', namespace === currentNamespace ? 'page' : 'false');
         const namespaceText = document.createElement('span');
-        namespaceText.className = 'nav-tag__text';
+        namespaceText.className = 'namespace-tab__text';
         namespaceText.textContent = namespace;
         namespaceText.title = namespace;
         button.appendChild(namespaceText);
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', async (event) => {
             event.preventDefault();
-            if (namespace === currentNamespace) {
+            if (namespace === currentNamespace || switchingNamespace) {
                 return;
             }
+            switchingNamespace = true;
             query.SetSelectedNamespace(namespace);
-            window.location.assign(nextURL.toString());
+            namespaceList.querySelectorAll('.namespace-tab').forEach((tab) => {
+                tab.setAttribute('aria-selected', 'false');
+                tab.setAttribute('aria-current', 'false');
+                tab.disabled = true;
+            });
+            button.setAttribute('aria-selected', 'true');
+            button.setAttribute('aria-current', 'page');
+            button.classList.add('namespace-tab--loading');
+            document.body.classList.add('namespace-switching');
+            try {
+                if (onSwitch) {
+                    await onSwitch(namespace, nextURL);
+                }
+                else {
+                    window.location.assign(nextURL.toString());
+                }
+            }
+            catch (err) {
+                console.error(err);
+                switchingNamespace = false;
+                document.body.classList.remove('namespace-switching');
+                await SetupNamespaceSelector(onSwitch);
+            }
         });
         namespaceList.appendChild(button);
     });
@@ -455,21 +509,42 @@ function RenderNavMetadata(cardsList) {
             .filter((term) => term !== '')
             .forEach((term) => selectedTags.add(term));
     }
-    const buildBase = (container, iconClass, labelText) => {
+    const buildBase = (container, iconClass, labelText, collapsed) => {
         container.innerHTML = '';
+        container.classList.toggle('nav-tags--collapsed', collapsed);
         const icon = document.createElement('i');
         icon.className = `${iconClass} nav-meta__icon`;
         const label = document.createElement('span');
         label.className = 'nav-meta__label';
         label.textContent = labelText;
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'nav-tags__toggle';
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.setAttribute('aria-controls', 'navMetaTags');
+        toggle.innerHTML = collapsed
+            ? '<i class="bi bi-chevron-right"></i>'
+            : '<i class="bi bi-chevron-down"></i>';
+        toggle.addEventListener('click', () => {
+            SetTopTagsCollapsed(!collapsed);
+            RenderNavMetadata(cardsList);
+        });
         container.appendChild(icon);
         container.appendChild(label);
+        container.appendChild(toggle);
         return { icon, label };
     };
-    buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
     const topTags = [...tagFrequency.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-    if (topTags.length === 0) {
+    const topTagsCollapsed = GetTopTagsCollapsed();
+    buildBase(tagsContainer, 'bi bi-tags', 'Top tags', topTagsCollapsed);
+    if (topTagsCollapsed) {
+        const summary = document.createElement('span');
+        summary.className = 'nav-tags__summary';
+        summary.textContent = `${topTags.length} tags`;
+        tagsContainer.appendChild(summary);
+    }
+    if (!topTagsCollapsed && topTags.length === 0) {
         const emptyState = document.createElement('span');
         emptyState.className = 'text-secondary small';
         emptyState.textContent = 'No tags available yet';
@@ -497,7 +572,9 @@ function RenderNavMetadata(cardsList) {
         });
         tagsContainer.appendChild(button);
     };
-    topTags.forEach(([tag, count]) => renderTagButton(tag, count));
+    if (!topTagsCollapsed) {
+        topTags.forEach(([tag, count]) => renderTagButton(tag, count));
+    }
     metaRow.classList.remove('is-hidden');
     metaRow.classList.remove(SKELETON_CLASS);
     metaRow.classList.add(ENTER_CLASS);

@@ -58,7 +58,7 @@
 			display: flex;
 			flex-wrap: wrap;
 			align-items: center;
-			gap: 0.6rem;
+			gap: 0.45rem;
 			row-gap: 0.35rem;
 		}
 
@@ -92,6 +92,35 @@
 			max-height: 64px;
 			overflow: hidden;
 			width: 100%;
+		}
+
+		.nav-tags--collapsed {
+			max-height: 32px;
+		}
+
+		.nav-tags__toggle {
+			background: rgba(15, 23, 42, 0.18);
+			border: 1px solid rgba(148, 163, 184, 0.2);
+			border-radius: 999px;
+			color: rgba(226, 232, 240, 0.82);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.45rem;
+			height: 1.45rem;
+			padding: 0;
+			transition: background 0.15s ease, color 0.15s ease;
+		}
+
+		.nav-tags__toggle:hover {
+			background: rgba(56, 189, 248, 0.18);
+			color: #f8fafc;
+		}
+
+		.nav-tags__summary {
+			color: rgba(226, 232, 240, 0.72);
+			font-size: 0.72rem;
+			font-weight: 600;
 		}
 
 		.nav-meta__label {
@@ -167,12 +196,86 @@
 			animation: shimmer 1.25s ease-in-out infinite;
 		}
 
+		.namespace-tabs {
+			align-items: flex-end;
+			gap: 0;
+			max-height: none;
+			margin-top: 0.1rem;
+			padding: 0.2rem 0 0;
+			overflow-x: auto;
+			overflow-y: hidden;
+			scrollbar-width: thin;
+			border-bottom: 1px solid rgba(148, 163, 184, 0.26);
+		}
+
+		.namespace-tab {
+			background: transparent;
+			border: 1px solid transparent;
+			border-bottom: 0;
+			border-radius: 8px 8px 0 0;
+			color: rgba(226, 232, 240, 0.78);
+			display: inline-flex;
+			align-items: center;
+			margin-bottom: -1px;
+			min-height: 2.25rem;
+			padding: 0.45rem 0.95rem;
+			font-size: 0.78rem;
+			font-weight: 700;
+			white-space: nowrap;
+			transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+		}
+
+		.namespace-tab:disabled {
+			cursor: wait;
+		}
+
+		.namespace-tab + .namespace-tab {
+			margin-left: -1px;
+		}
+
+		.namespace-tab:hover {
+			background: rgba(15, 23, 42, 0.18);
+			color: #f8fafc;
+			border-color: rgba(148, 163, 184, 0.2);
+		}
+
+		.namespace-tab[aria-selected="true"] {
+			background: var(--app-bg);
+			border-color: rgba(148, 163, 184, 0.34);
+			border-bottom-color: var(--app-bg);
+			box-shadow: inset 0 3px 0 var(--nav-accent);
+			color: var(--text-primary);
+		}
+
+		.namespace-tab--loading::after {
+			content: "";
+			width: 0.45rem;
+			height: 0.45rem;
+			margin-left: 0.45rem;
+			border: 2px solid rgba(15, 23, 42, 0.18);
+			border-top-color: var(--accent);
+			border-radius: 999px;
+			animation: spin 0.7s linear infinite;
+		}
+
+		.namespace-tab__text {
+			max-width: 12rem;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
 		@keyframes shimmer {
 			from {
 				background-position: 200% 0;
 			}
 			to {
 				background-position: -200% 0;
+			}
+		}
+
+		@keyframes spin {
+			to {
+				transform: rotate(360deg);
 			}
 		}
 
@@ -314,7 +417,36 @@
 
 		.app-container {
 			max-width: 1680px;
-			padding: 1.75rem clamp(0.75rem, 2vw, 1.25rem) 4rem;
+			padding: 1.35rem clamp(0.75rem, 2vw, 1.25rem) 4rem;
+			animation: contentEnter 0.18s ease-out;
+			transition: opacity 0.16s ease, transform 0.16s ease;
+		}
+
+		body.namespace-switching .app-container {
+			opacity: 0.45;
+			transform: translateY(6px);
+			pointer-events: none;
+		}
+
+		@keyframes contentEnter {
+			from {
+				opacity: 0.65;
+				transform: translateY(5px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			.app-container,
+			body.namespace-switching .app-container,
+			.namespace-tab--loading::after {
+				animation: none;
+				transition: none;
+				transform: none;
+			}
 		}
 
 		.list-header {
@@ -913,13 +1045,10 @@
 		<div id="navMetaRow" class="nav-meta is-hidden">
 			<div class="container-fluid">
 				<div class="nav-meta__content">
+					<div class="nav-tags namespace-tabs" id="namespaceList"></div>
 					<div class="nav-tags" id="navMetaTags">
 						<i class="bi bi-tags nav-meta__icon"></i>
 						<span class="nav-meta__label">Top tags</span>
-					</div>
-					<div class="nav-tags" id="namespaceList">
-						<i class="bi bi-diagram-3 nav-meta__icon"></i>
-						<span class="nav-meta__label">Namespaces</span>
 					</div>
 				</div>
 			</div>
