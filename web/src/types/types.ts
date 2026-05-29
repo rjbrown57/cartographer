@@ -1,4 +1,3 @@
-import * as dropdown from   '../components/dropDown.js';
 import * as cards from '../cards/cards.js';
 import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
@@ -17,9 +16,6 @@ let CartographerData: CartoResponse;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList'
-const NamespaceButtonId = 'namespaceButton'
-const NamespaceButtonLabelId = 'namespaceButtonLabel'
-const NamespaceDropdownId = 'namespacedropdown'
 
 export type CartoResponse = {
     notes: NoteData[];
@@ -441,10 +437,8 @@ function GetNamespacesEndpoint(): string {
 
 // SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
 async function SetupNamespaceSelector(): Promise<void> {
-    const namespaceButton = document.getElementById(NamespaceButtonId) as HTMLElement | null;
-    const namespaceLabel = document.getElementById(NamespaceButtonLabelId) as HTMLElement | null;
     const namespaceList = document.getElementById(NamespaceListId) as HTMLElement | null;
-    if (!namespaceButton || !namespaceLabel || !namespaceList) {
+    if (!namespaceList) {
         return;
     }
 
@@ -460,7 +454,6 @@ async function SetupNamespaceSelector(): Promise<void> {
     }
 
     availableNamespaces.sort((a, b) => a.localeCompare(b));
-    namespaceLabel.textContent = currentNamespace;
 
     query.SetSelectedNamespace(currentNamespace);
 
@@ -475,11 +468,15 @@ async function SetupNamespaceSelector(): Promise<void> {
         window.history.replaceState({}, '', url.toString());
     }
 
-    namespaceButton.onclick = function() {
-        dropdown.ToggleDropdown(NamespaceDropdownId, NamespaceButtonId);
-    };
-
     namespaceList.innerHTML = '';
+    const icon = document.createElement('i');
+    icon.className = 'bi bi-diagram-3 nav-meta__icon';
+    const label = document.createElement('span');
+    label.className = 'nav-meta__label';
+    label.textContent = 'Namespaces';
+    namespaceList.appendChild(icon);
+    namespaceList.appendChild(label);
+
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
         // Namespace switches should start from a clean filter state.
@@ -491,18 +488,30 @@ async function SetupNamespaceSelector(): Promise<void> {
             nextURL.searchParams.set('namespace', namespace);
         }
 
-        const entry = document.createElement('div');
-        const link = document.createElement('a');
-        link.className = 'dropdown-item-link';
-        link.href = nextURL.toString();
-        link.textContent = namespace;
-        link.onclick = (event) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'nav-tag';
+        if (namespace === currentNamespace) {
+            button.classList.add('nav-tag--active');
+        }
+
+        const namespaceText = document.createElement('span');
+        namespaceText.className = 'nav-tag__text';
+        namespaceText.textContent = namespace;
+        namespaceText.title = namespace;
+
+        button.appendChild(namespaceText);
+        button.addEventListener('click', (event) => {
             event.preventDefault();
+            if (namespace === currentNamespace) {
+                return;
+            }
+
             query.SetSelectedNamespace(namespace);
             window.location.assign(nextURL.toString());
-        };
-        entry.appendChild(link);
-        namespaceList.appendChild(entry);
+        });
+
+        namespaceList.appendChild(button);
     });
 }
 
@@ -550,22 +559,16 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     const siteName = document.getElementById('siteName');
     const SKELETON_CLASS = 'nav-meta--loading';
     const ENTER_CLASS = 'nav-meta--enter';
-    const SKELETON_COUNT = 6;
 
     // Bail if required DOM nodes are missing.
     if (!metaRow || !tagsContainer) {
         return;
     }
 
-    // Hide the metadata row when there are no cards to summarize.
-    if (!cardsList || cardsList.length === 0) {
-        metaRow.classList.add('is-hidden');
-        return;
-    }
-
     // Count tag occurrences across all cards.
     const tagFrequency = new Map<string, number>();
-    cardsList.forEach(card => {
+    const availableCards = cardsList || [];
+    availableCards.forEach(card => {
         if (!card.tags) {
             return;
         }
@@ -579,7 +582,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     });
 
     if (siteName) {
-        siteName.setAttribute('title', `${cardsList.length} notes \u2022 ${tagFrequency.size} tags`);
+        siteName.setAttribute('title', `${availableCards.length} notes \u2022 ${tagFrequency.size} tags`);
     }
 
     // Build selected tag filter set so nav bubbles can reflect current selection state.
@@ -610,20 +613,6 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         container.appendChild(label);
         return { icon, label };
     };
-
-    // When no data yet, show a lightweight skeleton state instead of popping in.
-    if (!cardsList || cardsList.length === 0) {
-        buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
-        for (let i = 0; i < SKELETON_COUNT; i++) {
-            const skeleton = document.createElement('span');
-            skeleton.className = 'nav-tag nav-tag--skeleton';
-            tagsContainer.appendChild(skeleton);
-        }
-        metaRow.classList.remove('is-hidden');
-        metaRow.classList.add(SKELETON_CLASS);
-        metaRow.classList.remove(ENTER_CLASS);
-        return;
-    }
 
     buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
 

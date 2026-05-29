@@ -1,4 +1,3 @@
-import * as dropdown from '../components/dropDown.js';
 import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
@@ -13,9 +12,6 @@ let CartographerData;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList';
-const NamespaceButtonId = 'namespaceButton';
-const NamespaceButtonLabelId = 'namespaceButtonLabel';
-const NamespaceDropdownId = 'namespacedropdown';
 export class Cartographer {
     Cards = [];
     SearchBar;
@@ -332,10 +328,8 @@ function GetNamespacesEndpoint() {
     return NamespaceEndpoint;
 }
 async function SetupNamespaceSelector() {
-    const namespaceButton = document.getElementById(NamespaceButtonId);
-    const namespaceLabel = document.getElementById(NamespaceButtonLabelId);
     const namespaceList = document.getElementById(NamespaceListId);
-    if (!namespaceButton || !namespaceLabel || !namespaceList) {
+    if (!namespaceList) {
         return;
     }
     const availableNamespaces = await GetNamespaces();
@@ -347,7 +341,6 @@ async function SetupNamespaceSelector() {
         availableNamespaces.push(currentNamespace);
     }
     availableNamespaces.sort((a, b) => a.localeCompare(b));
-    namespaceLabel.textContent = currentNamespace;
     query.SetSelectedNamespace(currentNamespace);
     const url = new URL(window.location.href);
     const namespaceParam = url.searchParams.get('namespace');
@@ -359,10 +352,14 @@ async function SetupNamespaceSelector() {
         url.searchParams.delete('namespace');
         window.history.replaceState({}, '', url.toString());
     }
-    namespaceButton.onclick = function () {
-        dropdown.ToggleDropdown(NamespaceDropdownId, NamespaceButtonId);
-    };
     namespaceList.innerHTML = '';
+    const icon = document.createElement('i');
+    icon.className = 'bi bi-diagram-3 nav-meta__icon';
+    const label = document.createElement('span');
+    label.className = 'nav-meta__label';
+    label.textContent = 'Namespaces';
+    namespaceList.appendChild(icon);
+    namespaceList.appendChild(label);
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
         nextURL.searchParams.delete('tag');
@@ -373,18 +370,26 @@ async function SetupNamespaceSelector() {
         else {
             nextURL.searchParams.set('namespace', namespace);
         }
-        const entry = document.createElement('div');
-        const link = document.createElement('a');
-        link.className = 'dropdown-item-link';
-        link.href = nextURL.toString();
-        link.textContent = namespace;
-        link.onclick = (event) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'nav-tag';
+        if (namespace === currentNamespace) {
+            button.classList.add('nav-tag--active');
+        }
+        const namespaceText = document.createElement('span');
+        namespaceText.className = 'nav-tag__text';
+        namespaceText.textContent = namespace;
+        namespaceText.title = namespace;
+        button.appendChild(namespaceText);
+        button.addEventListener('click', (event) => {
             event.preventDefault();
+            if (namespace === currentNamespace) {
+                return;
+            }
             query.SetSelectedNamespace(namespace);
             window.location.assign(nextURL.toString());
-        };
-        entry.appendChild(link);
-        namespaceList.appendChild(entry);
+        });
+        namespaceList.appendChild(button);
     });
 }
 async function QueryMainData() {
@@ -418,16 +423,12 @@ function RenderNavMetadata(cardsList) {
     const siteName = document.getElementById('siteName');
     const SKELETON_CLASS = 'nav-meta--loading';
     const ENTER_CLASS = 'nav-meta--enter';
-    const SKELETON_COUNT = 6;
     if (!metaRow || !tagsContainer) {
         return;
     }
-    if (!cardsList || cardsList.length === 0) {
-        metaRow.classList.add('is-hidden');
-        return;
-    }
     const tagFrequency = new Map();
-    cardsList.forEach(card => {
+    const availableCards = cardsList || [];
+    availableCards.forEach(card => {
         if (!card.tags) {
             return;
         }
@@ -440,7 +441,7 @@ function RenderNavMetadata(cardsList) {
         });
     });
     if (siteName) {
-        siteName.setAttribute('title', `${cardsList.length} notes \u2022 ${tagFrequency.size} tags`);
+        siteName.setAttribute('title', `${availableCards.length} notes \u2022 ${tagFrequency.size} tags`);
     }
     const selectedTags = new Set(new URLSearchParams(window.location.search)
         .getAll('tag')
@@ -465,18 +466,6 @@ function RenderNavMetadata(cardsList) {
         container.appendChild(label);
         return { icon, label };
     };
-    if (!cardsList || cardsList.length === 0) {
-        buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
-        for (let i = 0; i < SKELETON_COUNT; i++) {
-            const skeleton = document.createElement('span');
-            skeleton.className = 'nav-tag nav-tag--skeleton';
-            tagsContainer.appendChild(skeleton);
-        }
-        metaRow.classList.remove('is-hidden');
-        metaRow.classList.add(SKELETON_CLASS);
-        metaRow.classList.remove(ENTER_CLASS);
-        return;
-    }
     buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
     const topTags = [...tagFrequency.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
