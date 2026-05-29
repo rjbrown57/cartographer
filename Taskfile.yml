@@ -33,12 +33,15 @@ tasks:
     - go fmt ./...
     - goreleaser --snapshot --clean --config ./.goreleaser.yml
   generate:
-    desc: "Generate Fake Data and add to cartographer. Can re-run to add more data"
+    desc: "Generate note-like data and add it to cartographer. Can re-run to add more data"
     vars:
-      num: 5000
+      num: 2500
+      profile: mixed
+      bodySize: 700
+      namespace: default
       dataPath: /tmp/data.yaml
     cmds:
-    - cartographer test generate -n {{.num}} > {{.dataPath}}
+    - cartographer test generate -n {{.num}} --profile {{.profile}} --body-size {{.bodySize}} --namespace {{.namespace}} > {{.dataPath}}
     - cartographer client add -f {{.dataPath}}
   serve:
     desc: "start cartographer"
