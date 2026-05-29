@@ -94,26 +94,26 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 
 // YamlNote is a struct that is used to ingest note data from a yaml file.
 type YamlNote struct {
-	URL         string            `yaml:"url"`
-	Title       string            `yaml:"title"`
-	Body        string            `yaml:"body"`
-	Displayname string            `yaml:"displayname"`
-	Description string            `yaml:"description"`
-	Tags        []string          `yaml:"tags"`
-	Data        map[string]any    `yaml:"data"`
-	Id          string            `yaml:"id"`
+	URL         string            `yaml:"url,omitempty"`
+	Title       string            `yaml:"title,omitempty"`
+	Body        string            `yaml:"body,omitempty"`
+	Displayname string            `yaml:"displayname,omitempty"`
+	Description string            `yaml:"description,omitempty"`
+	Tags        []string          `yaml:"tags,omitempty"`
+	Data        map[string]any    `yaml:"data,omitempty"`
+	Id          string            `yaml:"id,omitempty"`
 	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
 // YamlLink is a struct that is used to ingest data from a yaml file.
 // This legacy shape is normalized into notes during ingest.
 type YamlLink struct {
-	URL         string            `yaml:"url"`
-	Displayname string            `yaml:"displayname"`
-	Description string            `yaml:"description"`
-	Tags        []string          `yaml:"tags"`
-	Data        map[string]any    `yaml:"data"`
-	Id          string            `yaml:"id"`
+	URL         string            `yaml:"url,omitempty"`
+	Displayname string            `yaml:"displayname,omitempty"`
+	Description string            `yaml:"description,omitempty"`
+	Tags        []string          `yaml:"tags,omitempty"`
+	Data        map[string]any    `yaml:"data,omitempty"`
+	Id          string            `yaml:"id,omitempty"`
 	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
