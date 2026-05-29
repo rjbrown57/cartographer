@@ -1,6 +1,6 @@
 import * as dropdown from   '../components/dropDown.js';
 import * as cards from '../cards/cards.js';
-import { Link } from '../cards/links.js';
+import { Note } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
@@ -15,27 +15,36 @@ const EncodingHeader = {
 let CartographerData: CartoResponse;
 
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
+const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList'
 const NamespaceButtonId = 'namespaceButton'
 const NamespaceButtonLabelId = 'namespaceButtonLabel'
 const NamespaceDropdownId = 'namespacedropdown'
 
 export type CartoResponse = {
-    links: LinkData[];
+    notes: NoteData[];
 }
 
 export type NamespaceResponse = {
     msg: string[];
 }
 
-export type LinkData = {
+export type NoteData = {
     id: string;
-    displayname: string;
+    title: string;
     url: string;
-    description: string;
+    body: string;
     tags: string[];
     data?: Record<string, any>;
 }
+
+type NoteEditEvent = CustomEvent<{
+    id: string;
+    title: string;
+    body: string;
+    url: string;
+    tags: string[];
+}>;
 
 // Cartographer class is used to represent a collection of cards
 // move to it's own file
@@ -46,6 +55,7 @@ export class Cartographer {
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
         SetupViewToggle();
+        SetupNoteSubmission();
         this.Initialize();
     }
 
@@ -55,33 +65,31 @@ export class Cartographer {
 
         await QueryMainData();
 
-        if (!CartographerData || !Array.isArray(CartographerData.links)) {
-            console.error('No links data available to render');
+        if (!CartographerData || !Array.isArray(CartographerData.notes)) {
+            console.error('No notes data available to render');
             RenderNavMetadata([]);
             return;
         }
 
-        CartographerData.links.forEach((link) => {
-            // Normalize link fields so namespaces that store key-only records
-            // (id without url/displayname) still render usable cards.
-            const resolvedURL = link.url || link.id;
-            if (!resolvedURL) {
+        CartographerData.notes.forEach((note) => {
+            const resolvedID = note.id || note.url || note.title;
+            if (!resolvedID) {
                 return;
             }
 
-            const resolvedDisplayName = link.displayname || resolvedURL;
-            const resolvedDescription = link.description || '';
-            const resolvedTags = Array.isArray(link.tags) ? link.tags : [];
-            const resolvedID = link.id || resolvedURL;
+            const resolvedURL = note.url || '';
+            const resolvedTitle = note.title || resolvedURL || resolvedID;
+            const resolvedBody = note.body || resolvedURL || '';
+            const resolvedTags = Array.isArray(note.tags) ? note.tags : [];
 
             this.Cards.push(
-                new Link(
+                new Note(
                     resolvedID,
-                    resolvedDisplayName,
+                    resolvedTitle,
+                    resolvedBody,
                     resolvedURL,
-                    resolvedDescription,
                     resolvedTags,
-                    link.data
+                    note.data
                 )
             );
         });
@@ -174,6 +182,182 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+
+// SetupNoteSubmission wires the note form to the live backend endpoint.
+function SetupNoteSubmission(): void {
+    const form = document.getElementById('noteForm') as HTMLFormElement | null;
+    const status = document.getElementById('noteFormStatus') as HTMLElement | null;
+    const composer = document.getElementById('noteComposer') as HTMLElement | null;
+    const toggle = document.getElementById('noteComposerToggle') as HTMLButtonElement | null;
+    const close = document.getElementById('noteComposerClose') as HTMLButtonElement | null;
+    const noteID = document.getElementById('noteID') as HTMLInputElement | null;
+    const titleInput = document.getElementById('noteTitle') as HTMLInputElement | null;
+    const urlInput = document.getElementById('noteURL') as HTMLInputElement | null;
+    const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
+    const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
+    const modeLabel = document.getElementById('noteComposerModeLabel') as HTMLElement | null;
+    const submitLabel = document.getElementById('noteSubmitLabel') as HTMLElement | null;
+    if (!form) {
+        return;
+    }
+
+    const setComposerOpen = (open: boolean) => {
+        if (!composer || !toggle) {
+            return;
+        }
+
+        composer.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.classList.toggle('nav-action--active', open);
+
+        if (open) {
+            titleInput?.focus();
+        }
+    };
+
+    const setCreateMode = () => {
+        if (noteID) {
+            noteID.value = '';
+        }
+        if (submitLabel) {
+            submitLabel.textContent = 'Save note';
+        }
+        if (modeLabel) {
+            modeLabel.textContent = 'Add note';
+        }
+        if (status) {
+            status.textContent = '';
+            status.className = 'note-form-status';
+        }
+    };
+
+    toggle?.addEventListener('click', () => {
+        const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
+        if (!isOpen) {
+            form.reset();
+            setCreateMode();
+        }
+        setComposerOpen(!isOpen);
+    });
+
+    close?.addEventListener('click', () => {
+        setComposerOpen(false);
+        toggle?.focus();
+    });
+
+    composer?.addEventListener('click', (event) => {
+        if (event.target === composer) {
+            setComposerOpen(false);
+            toggle?.focus();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && composer && !composer.classList.contains('is-hidden')) {
+            setComposerOpen(false);
+            toggle?.focus();
+        }
+    });
+
+    document.addEventListener('cartographer:edit-note', ((event: Event) => {
+        const detail = (event as NoteEditEvent).detail;
+        if (!detail) {
+            return;
+        }
+
+        if (noteID) {
+            noteID.value = detail.id;
+        }
+        if (titleInput) {
+            titleInput.value = detail.title;
+        }
+        if (urlInput) {
+            urlInput.value = detail.url;
+        }
+        if (bodyInput) {
+            bodyInput.value = detail.body;
+        }
+        if (tagsInput) {
+            tagsInput.value = detail.tags.join(', ');
+        }
+        if (submitLabel) {
+            submitLabel.textContent = 'Save changes';
+        }
+        if (modeLabel) {
+            modeLabel.textContent = 'Edit note';
+        }
+        if (status) {
+            status.textContent = 'Editing existing note.';
+            status.className = 'note-form-status text-secondary';
+        }
+
+        setComposerOpen(true);
+    }) as EventListener);
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const existingID = noteID?.value.trim() || '';
+        const title = titleInput?.value.trim() || '';
+        const url = urlInput?.value.trim() || '';
+        const body = bodyInput?.value.trim() || '';
+        const tagsValue = tagsInput?.value.trim() || '';
+        const tags = tagsValue.split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '');
+
+        if (!title || !body) {
+            if (status) {
+                status.textContent = 'Title and markdown body are required.';
+                status.className = 'note-form-status text-danger';
+            }
+            return;
+        }
+
+        const payload = {
+            id: existingID || crypto.randomUUID(),
+            title,
+            body,
+            url,
+            tags,
+            namespace: query.GetSelectedNamespace(),
+        };
+
+        if (status) {
+            status.textContent = existingID ? 'Saving changes...' : 'Saving note...';
+            status.className = 'note-form-status text-secondary';
+        }
+
+        try {
+            const response = await fetch(NotesEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
+            }
+
+            cache.invalidateCache();
+            if (status) {
+                status.textContent = existingID ? 'Changes saved.' : 'Note saved.';
+                status.className = 'note-form-status text-success';
+            }
+            form.reset();
+            setCreateMode();
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to save note.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    });
 }
 
 // GetNamespacesEndpoint builds the endpoint used to fetch currently active namespace names.
@@ -321,7 +505,7 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     });
 
     if (siteName) {
-        siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
+        siteName.setAttribute('title', `${cardsList.length} notes \u2022 ${tagFrequency.size} tags`);
     }
 
     // Build selected tag filter set so nav bubbles can reflect current selection state.

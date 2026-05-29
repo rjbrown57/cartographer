@@ -86,7 +86,7 @@ const docTemplate = `{
         },
         "/v1/get": {
             "get": {
-                "description": "Retrieve all links and tags with optional filtering by tags and terms via query parameters",
+                "description": "Retrieve all notes and tags with optional filtering by tags and terms via query parameters",
                 "consumes": [
                     "application/json"
                 ],
@@ -225,7 +225,7 @@ const docTemplate = `{
         },
         "/v1/get/tags/{tag}": {
             "get": {
-                "description": "Retrieve links filtered by tag name. Can accept additional tags via query parameters.",
+                "description": "Retrieve notes filtered by tag name. Can accept additional tags via query parameters.",
                 "consumes": [
                     "application/json"
                 ],
@@ -235,7 +235,7 @@ const docTemplate = `{
                 "tags": [
                     "get"
                 ],
-                "summary": "Get links by tag",
+                "summary": "Get notes by tag",
                 "parameters": [
                     {
                         "type": "string",
@@ -258,7 +258,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Links filtered by tag",
+                        "description": "Notes filtered by tag",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

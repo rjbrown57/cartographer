@@ -16,7 +16,7 @@ func NewTemplatingHeaders(c *gin.Context, pr *proto.CartographerResponse) *gin.H
 
 	// Add Strings to Map
 	maps.Copy(m, map[string]any{
-		"Links":    pr.Links,
+		"Notes":    pr.Notes,
 		"Tags":     pr.Tags,
 		"SiteName": sitename,
 	})
