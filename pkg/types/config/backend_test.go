@@ -1,21 +1,18 @@
 package config
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/rjbrown57/cartographer/pkg/backends/boltdb"
 )
 
+// TestGetBackend verifies backend config builds the requested backend type.
 func TestGetBackend(t *testing.T) {
-
-	t.Cleanup(func() {
-		os.Remove("/tmp/cartographer.db")
-	})
 
 	backend := BackendConfig{
 		BackendType: "boltdb",
-		BackendPath: "/tmp/cartographer.db",
+		BackendPath: filepath.Join(t.TempDir(), "cartographer.db"),
 	}
 
 	b := backend.GetBackend()
