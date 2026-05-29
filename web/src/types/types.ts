@@ -16,6 +16,7 @@ let CartographerData: CartoResponse;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList'
+const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 
 export type CartoResponse = {
     notes: NoteData[];
@@ -42,11 +43,14 @@ type NoteEditEvent = CustomEvent<{
     tags: string[];
 }>;
 
+type NamespaceSwitchHandler = (namespace: string, nextURL: URL) => Promise<void>;
+
 // Cartographer class is used to represent a collection of cards
 // move to it's own file
 export class Cartographer {
     Cards: cards.Card[] = [];
     SearchBar: SearchBar;
+    private renderVersion: number = 0;
     // Initialize data, build cards, and wire up UI controls.
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
@@ -57,8 +61,12 @@ export class Cartographer {
 
     // Initialize prepares namespace state, loads backend data, and then renders cards.
     private async Initialize(): Promise<void> {
-        await SetupNamespaceSelector();
+        await SetupNamespaceSelector(this.SwitchNamespace.bind(this));
+        await this.LoadCurrentNamespace();
+    }
 
+    // LoadCurrentNamespace fetches, rebuilds, and renders cards for the selected namespace.
+    private async LoadCurrentNamespace(): Promise<void> {
         await QueryMainData();
 
         if (!CartographerData || !Array.isArray(CartographerData.notes)) {
@@ -67,6 +75,7 @@ export class Cartographer {
             return;
         }
 
+        this.Cards.splice(0, this.Cards.length);
         CartographerData.notes.forEach((note) => {
             const resolvedID = note.id || note.url || note.title;
             if (!resolvedID) {
@@ -93,6 +102,27 @@ export class Cartographer {
         RenderNavMetadata(this.Cards);
         this.renderCards();
     }
+
+    // SwitchNamespace updates namespace state and refreshes cards without a full page reload.
+    private async SwitchNamespace(namespace: string, nextURL: URL): Promise<void> {
+        try {
+            window.history.pushState({}, '', nextURL.toString());
+            query.SetSelectedNamespace(namespace);
+            document.body.classList.add('namespace-switching');
+
+            const searchElement = document.getElementById('searchBar') as HTMLInputElement | null;
+            if (searchElement) {
+                searchElement.value = '';
+            }
+
+            await SetupNamespaceSelector(this.SwitchNamespace.bind(this));
+            await this.LoadCurrentNamespace();
+        } finally {
+            requestAnimationFrame(() => {
+                document.body.classList.remove('namespace-switching');
+            });
+        }
+    }
     
     // Log each card to the console for quick inspection.
     showCards(): void {
@@ -108,6 +138,8 @@ export class Cartographer {
             console.error("Container element not found");
             return;
         }
+        const currentRenderVersion = ++this.renderVersion;
+        container.innerHTML = '';
 
         // Check if URL has search parameters (tag or term)
         // If so, show all cards since backend has already filtered
@@ -135,6 +167,10 @@ export class Cartographer {
             
             // Render the next chunk of cards and schedule remaining work.
             const processChunk = () => {
+                if (currentRenderVersion !== this.renderVersion) {
+                    return;
+                }
+
                 const endIndex = Math.min(currentIndex + CHUNK_SIZE, remainingCards.length);
                 const chunk = remainingCards.slice(currentIndex, endIndex);
                 
@@ -178,6 +214,16 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+
+// GetTopTagsCollapsed returns whether the top tags row should render collapsed.
+function GetTopTagsCollapsed(): boolean {
+    return localStorage.getItem(TopTagsCollapsedStorageKey) === 'true';
+}
+
+// SetTopTagsCollapsed persists whether the top tags row should render collapsed.
+function SetTopTagsCollapsed(collapsed: boolean): void {
+    localStorage.setItem(TopTagsCollapsedStorageKey, String(collapsed));
 }
 
 // SetupNoteSubmission wires the note form to the live backend endpoint.
@@ -436,7 +482,7 @@ function GetNamespacesEndpoint(): string {
 }
 
 // SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
-async function SetupNamespaceSelector(): Promise<void> {
+async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promise<void> {
     const namespaceList = document.getElementById(NamespaceListId) as HTMLElement | null;
     if (!namespaceList) {
         return;
@@ -469,13 +515,9 @@ async function SetupNamespaceSelector(): Promise<void> {
     }
 
     namespaceList.innerHTML = '';
-    const icon = document.createElement('i');
-    icon.className = 'bi bi-diagram-3 nav-meta__icon';
-    const label = document.createElement('span');
-    label.className = 'nav-meta__label';
-    label.textContent = 'Namespaces';
-    namespaceList.appendChild(icon);
-    namespaceList.appendChild(label);
+    namespaceList.setAttribute('role', 'tablist');
+    namespaceList.setAttribute('aria-label', 'Namespaces');
+    let switchingNamespace = false;
 
     availableNamespaces.forEach((namespace) => {
         const nextURL = new URL(window.location.href);
@@ -490,25 +532,47 @@ async function SetupNamespaceSelector(): Promise<void> {
 
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'nav-tag';
-        if (namespace === currentNamespace) {
-            button.classList.add('nav-tag--active');
-        }
+        button.className = 'namespace-tab';
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(namespace === currentNamespace));
+        button.setAttribute('aria-current', namespace === currentNamespace ? 'page' : 'false');
 
         const namespaceText = document.createElement('span');
-        namespaceText.className = 'nav-tag__text';
+        namespaceText.className = 'namespace-tab__text';
         namespaceText.textContent = namespace;
         namespaceText.title = namespace;
 
         button.appendChild(namespaceText);
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', async (event) => {
             event.preventDefault();
-            if (namespace === currentNamespace) {
+            if (namespace === currentNamespace || switchingNamespace) {
                 return;
             }
 
+            switchingNamespace = true;
             query.SetSelectedNamespace(namespace);
-            window.location.assign(nextURL.toString());
+            namespaceList.querySelectorAll('.namespace-tab').forEach((tab) => {
+                tab.setAttribute('aria-selected', 'false');
+                tab.setAttribute('aria-current', 'false');
+                (tab as HTMLButtonElement).disabled = true;
+            });
+            button.setAttribute('aria-selected', 'true');
+            button.setAttribute('aria-current', 'page');
+            button.classList.add('namespace-tab--loading');
+            document.body.classList.add('namespace-switching');
+
+            try {
+                if (onSwitch) {
+                    await onSwitch(namespace, nextURL);
+                } else {
+                    window.location.assign(nextURL.toString());
+                }
+            } catch (err) {
+                console.error(err);
+                switchingNamespace = false;
+                document.body.classList.remove('namespace-switching');
+                await SetupNamespaceSelector(onSwitch);
+            }
         });
 
         namespaceList.appendChild(button);
@@ -602,26 +666,48 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
             .forEach((term) => selectedTags.add(term));
     }
     // Helper to reset and rebuild the tags area with the base icon/label.
-    const buildBase = (container: HTMLElement, iconClass: string, labelText: string) => {
+    const buildBase = (container: HTMLElement, iconClass: string, labelText: string, collapsed: boolean) => {
         container.innerHTML = '';
+        container.classList.toggle('nav-tags--collapsed', collapsed);
         const icon = document.createElement('i');
         icon.className = `${iconClass} nav-meta__icon`;
         const label = document.createElement('span');
         label.className = 'nav-meta__label';
         label.textContent = labelText;
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'nav-tags__toggle';
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.setAttribute('aria-controls', 'navMetaTags');
+        toggle.innerHTML = collapsed
+            ? '<i class="bi bi-chevron-right"></i>'
+            : '<i class="bi bi-chevron-down"></i>';
+        toggle.addEventListener('click', () => {
+            SetTopTagsCollapsed(!collapsed);
+            RenderNavMetadata(cardsList);
+        });
         container.appendChild(icon);
         container.appendChild(label);
+        container.appendChild(toggle);
         return { icon, label };
     };
-
-    buildBase(tagsContainer, 'bi bi-tags', 'Top tags');
 
     // Pick the top tags by count (then name).
     const topTags = [...tagFrequency.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const topTagsCollapsed = GetTopTagsCollapsed();
+
+    buildBase(tagsContainer, 'bi bi-tags', 'Top tags', topTagsCollapsed);
+
+    if (topTagsCollapsed) {
+        const summary = document.createElement('span');
+        summary.className = 'nav-tags__summary';
+        summary.textContent = `${topTags.length} tags`;
+        tagsContainer.appendChild(summary);
+    }
 
     // Render empty state if there are no tags.
-    if (topTags.length === 0) {
+    if (!topTagsCollapsed && topTags.length === 0) {
         const emptyState = document.createElement('span');
         emptyState.className = 'text-secondary small';
         emptyState.textContent = 'No tags available yet';
@@ -657,7 +743,9 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
         tagsContainer.appendChild(button);
     };
 
-    topTags.forEach(([tag, count]) => renderTagButton(tag, count));
+    if (!topTagsCollapsed) {
+        topTags.forEach(([tag, count]) => renderTagButton(tag, count));
+    }
 
     // Ensure the metadata row is visible once populated and animate it in.
     metaRow.classList.remove('is-hidden');
