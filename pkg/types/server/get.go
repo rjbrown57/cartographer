@@ -11,33 +11,33 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
 )
 
-// getDataset returns namespace-scoped links for data requests, using cache-only reads when possible.
-func getDataset(c *CartographerServer, in *proto.CartographerGetRequest, ns string) ([]*proto.Link, error) {
+// getDataset returns namespace-scoped notes for data requests, using cache-only reads when possible.
+func getDataset(c *CartographerServer, in *proto.CartographerGetRequest, ns string) ([]*proto.Note, error) {
 
-	links := make([]*proto.Link, 0)
+	notes := make([]*proto.Note, 0)
 	var err error
 
 	switch {
-	// if there are no tags or terms, send all links for the NS
+	// if there are no tags or terms, send all notes for the NS
 	case len(in.Request.GetTags()) == 0 && len(in.Request.GetTerms()) == 0:
 		c.mu.RLock()
-		links = c.nsCache.GetLinks(ns)
+		notes = c.nsCache.GetNotes(ns)
 		c.mu.RUnlock()
 	case len(in.Request.GetTags()) > 0 && len(in.Request.GetTerms()) == 0:
 		// if there are tags but no terms, handle via the tag cache
-		links, err = c.Search(in, &SearchOptions{Limit: SearchLimitTags})
+		notes, err = c.Search(in, &SearchOptions{Limit: SearchLimitTags})
 		if err != nil {
 			return nil, err
 		}
-	// otherwise search the index for the links
+	// otherwise search the index for the notes
 	default:
-		links, err = c.Search(in, &SearchOptions{Limit: SearchLimitAll})
+		notes, err = c.Search(in, &SearchOptions{Limit: SearchLimitAll})
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return links, nil
+	return notes, nil
 }
 
 // Get handles read requests and serves all results from namespace-scoped caches.
@@ -63,13 +63,13 @@ func (c *CartographerServer) Get(_ context.Context, in *proto.CartographerGetReq
 	log.Tracef("Get Request: %v", in.Type)
 
 	switch in.Type {
-	// RequestType_REQUEST_TYPE_DATA returns a list of links
+	// RequestType_REQUEST_TYPE_DATA returns a list of notes
 	// It can be filtered by tags and/or terms.
 	case proto.RequestType_REQUEST_TYPE_DATA:
 
 		var err error
 
-		r.Response.Links, err = getDataset(c, in, ns)
+		r.Response.Notes, err = getDataset(c, in, ns)
 		if err != nil {
 			return nil, err
 		}

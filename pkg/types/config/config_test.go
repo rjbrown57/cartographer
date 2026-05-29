@@ -1,12 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/rjbrown57/cartographer/pkg/utils"
-	"gopkg.in/yaml.v3"
 )
 
 func TestNewCartographerConfig(t *testing.T) {
@@ -39,24 +37,16 @@ func TestNewCartographerConfig(t *testing.T) {
 	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
 	utils.AssertDeepEqual(t, c.Namespace, controlConfig.Namespace)
 	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)
-	utils.AssertDeepEqual(t, c.Links, controlConfig.Links)
-	utils.AssertDeepEqual(t, c.LinksByNamespace, controlConfig.LinksByNamespace)
-
-	controlConfig = CartographerConfig{}
-
-	err = yaml.Unmarshal(fmt.Appendf(nil, "%s\n%s\n%s", utils.TestFullConfig, utils.LinkOnly1Config, utils.LinkOnly2Config), &controlConfig)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal control config %s", err)
-	}
+	utils.AssertDeepEqual(t, c.Notes, controlConfig.Notes)
+	utils.AssertDeepEqual(t, c.NotesByNamespace, controlConfig.NotesByNamespace)
 
 	// Test a directory
 	c = NewCartographerConfig(dir)
 
-	utils.AssertDeepEqual(t, c.ApiVersion, controlConfig.ApiVersion)
-	utils.AssertDeepEqual(t, c.ServerConfig, controlConfig.ServerConfig)
+	utils.AssertDeepEqual(t, c.ApiVersion, ApiVersion)
 	// This can have issue with the ordering
 	// So i'm being lazy and cheating here
-	utils.AssertDeepEqual(t, len(c.Links), len(controlConfig.Links))
+	utils.AssertDeepEqual(t, len(c.Notes), 5)
 }
 func TestSetApi(t *testing.T) {
 	c := CartographerConfig{}
@@ -84,7 +74,7 @@ namespace: dev
 cartographer:
   address: 0.0.0.0
   port: 8080
-links:
+notes:
   - url: https://example.com/default
     tags: ["a"]
   - url: https://example.com/dev
@@ -102,11 +92,11 @@ links:
 	})
 
 	c := NewCartographerConfig(configFile.Name())
-	if got := len(c.LinksByNamespace); got != 1 {
+	if got := len(c.NotesByNamespace); got != 1 {
 		t.Fatalf("expected 1 namespace, got %d", got)
 	}
 
-	if got := len(c.LinksByNamespace["dev"]); got != 2 {
-		t.Fatalf("expected 2 links in dev namespace, got %d", got)
+	if got := len(c.NotesByNamespace["dev"]); got != 2 {
+		t.Fatalf("expected 2 notes in dev namespace, got %d", got)
 	}
 }

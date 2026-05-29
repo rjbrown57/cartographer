@@ -27,26 +27,26 @@ var GenerateCmd = &cobra.Command{
 		// This is to avoid the log messages from the generate command from being printed to the console
 		log.ConfigureLog(false, 0)
 
-		genLinks := make([]*proto.Link, 0)
+		genNotes := make([]*proto.Note, 0)
 		for i := 0; i < num; i++ {
 
-			pl, err := proto.NewLinkBuilder().
+			note, err := proto.NewNoteBuilder().
 				WithURL(utils.GenerateFakeURL()).
 				WithTags([]string{"default"}).
 				WithData(utils.GenerateFakeData()).
 				Build()
 			if err != nil {
-				log.Fatalf("Error building link: %s", err)
+				log.Fatalf("Error building note: %s", err)
 			}
-			genLinks = append(genLinks, pl)
+			genNotes = append(genNotes, note)
 		}
 
 		c := config.CartographerConfig{
-			Links: genLinks,
+			Notes: genNotes,
 		}
 		o, err := yaml.Marshal(c)
 		if err != nil {
-			log.Fatalf("Unable to marshal generated links %s", err)
+			log.Fatalf("Unable to marshal generated notes %s", err)
 		}
 
 		fmt.Printf("%s", o)
@@ -54,7 +54,7 @@ var GenerateCmd = &cobra.Command{
 }
 
 func init() {
-	GenerateCmd.Flags().IntVarP(&num, "num", "n", 1, "number of links to generate")
+	GenerateCmd.Flags().IntVarP(&num, "num", "n", 1, "number of notes to generate")
 	err := GenerateCmd.MarkFlagRequired("num")
 	if err != nil {
 		log.Fatalf("%s", err)

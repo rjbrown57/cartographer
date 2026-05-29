@@ -11,13 +11,13 @@ import (
 func TestProcessAutoTags(t *testing.T) {
 	tests := []struct {
 		name     string
-		link     *proto.Link
+		link     *proto.Note
 		autoTags []*AutoTag
 		expected []string
 	}{
 		{
 			name: "Single match",
-			link: &proto.Link{Url: "http://example.com"},
+			link: &proto.Note{Url: "http://example.com"},
 			autoTags: []*AutoTag{
 				{
 					Regex:       regexp.MustCompile("example"),
@@ -29,7 +29,7 @@ func TestProcessAutoTags(t *testing.T) {
 		},
 		{
 			name: "dedup validation",
-			link: &proto.Link{Url: "http://example.com", Tags: []string{"example-tag"}},
+			link: &proto.Note{Url: "http://example.com", Tags: []string{"example-tag"}},
 			autoTags: []*AutoTag{
 				{
 					Regex:       regexp.MustCompile("example"),
@@ -41,7 +41,7 @@ func TestProcessAutoTags(t *testing.T) {
 		},
 		{
 			name: "Multiple matches",
-			link: &proto.Link{Url: "http://example.com"},
+			link: &proto.Note{Url: "http://example.com"},
 			autoTags: []*AutoTag{
 				{
 					Regex:       regexp.MustCompile("example"),
@@ -58,7 +58,7 @@ func TestProcessAutoTags(t *testing.T) {
 		},
 		{
 			name: "No match",
-			link: &proto.Link{Url: "http://example.com"},
+			link: &proto.Note{Url: "http://example.com"},
 			autoTags: []*AutoTag{
 				{
 					Regex:       regexp.MustCompile("nomatch"),

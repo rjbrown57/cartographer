@@ -28,9 +28,9 @@ type CartographerConfig struct {
 	Namespace    string          `yaml:"namespace,omitempty"`
 	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
 	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
-	Links        []*proto.Link   `yaml:"links,omitempty"`
-	// LinksByNamespace is derived during ingest and is used for namespace-aware add paths.
-	LinksByNamespace map[string][]*proto.Link `yaml:"-"`
+	Notes        []*proto.Note   `yaml:"notes,omitempty"`
+	// NotesByNamespace is derived during ingest and is used for namespace-aware add paths.
+	NotesByNamespace map[string][]*proto.Note `yaml:"-"`
 }
 
 func NewCartographerConfig(configPath string) *CartographerConfig {
@@ -54,7 +54,7 @@ func (c *CartographerConfig) SetApi() {
 }
 
 func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*proto.CartographerAddResponse, error) {
-	c.EnsureLinksByNamespace()
+	c.EnsureNotesByNamespace()
 
 	resp := &proto.CartographerAddResponse{
 		Response: &proto.CartographerResponse{},
@@ -64,7 +64,7 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*p
 	for _, ns := range namespaces {
 		r := proto.CartographerAddRequest{
 			Request: &proto.CartographerRequest{
-				Links:     c.LinksByNamespace[ns],
+				Notes:     c.NotesByNamespace[ns],
 				Namespace: ns,
 			},
 		}
@@ -75,7 +75,7 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*p
 		}
 
 		if addResp != nil && addResp.Response != nil {
-			resp.Response.Links = append(resp.Response.Links, addResp.Response.GetLinks()...)
+			resp.Response.Notes = append(resp.Response.Notes, addResp.Response.GetNotes()...)
 		}
 	}
 
@@ -84,24 +84,24 @@ func (c *CartographerConfig) AddToBackend(client *client.CartographerClient) (*p
 
 // GetNamespaces returns configured namespaces sorted for deterministic iteration.
 func (c *CartographerConfig) GetNamespaces() []string {
-	c.EnsureLinksByNamespace()
+	c.EnsureNotesByNamespace()
 
-	namespaces := make([]string, 0, len(c.LinksByNamespace))
-	for ns := range c.LinksByNamespace {
+	namespaces := make([]string, 0, len(c.NotesByNamespace))
+	for ns := range c.NotesByNamespace {
 		namespaces = append(namespaces, ns)
 	}
 	slices.Sort(namespaces)
 	return namespaces
 }
 
-// EnsureLinksByNamespace backfills namespace buckets for legacy in-memory configs.
-func (c *CartographerConfig) EnsureLinksByNamespace() {
-	if len(c.LinksByNamespace) > 0 {
+// EnsureNotesByNamespace backfills namespace buckets for legacy in-memory configs.
+func (c *CartographerConfig) EnsureNotesByNamespace() {
+	if len(c.NotesByNamespace) > 0 {
 		return
 	}
 
-	c.LinksByNamespace = make(map[string][]*proto.Link)
-	if len(c.Links) == 0 {
+	c.NotesByNamespace = make(map[string][]*proto.Note)
+	if len(c.Notes) == 0 {
 		return
 	}
 
@@ -109,5 +109,5 @@ func (c *CartographerConfig) EnsureLinksByNamespace() {
 	if err != nil {
 		ns = proto.DefaultNamespace
 	}
-	c.LinksByNamespace[ns] = append(c.LinksByNamespace[ns], c.Links...)
+	c.NotesByNamespace[ns] = append(c.NotesByNamespace[ns], c.Notes...)
 }

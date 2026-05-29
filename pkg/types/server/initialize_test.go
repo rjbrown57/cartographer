@@ -34,8 +34,8 @@ func TestInitialize(t *testing.T) {
 				t.Fatalf("Failed to get backend data")
 			}
 
-			if len(defaultNS.LinkCache) != tt.expectedLinks {
-				t.Fatalf("Expected %d links, got %d", tt.expectedLinks, len(defaultNS.LinkCache))
+			if len(defaultNS.NoteCache) != tt.expectedLinks {
+				t.Fatalf("Expected %d notes, got %d", tt.expectedLinks, len(defaultNS.NoteCache))
 			}
 		})
 	}

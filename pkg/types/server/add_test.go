@@ -23,12 +23,12 @@ func TestAdd(t *testing.T) {
 			request: &proto.CartographerAddRequest{
 				Request: &proto.CartographerRequest{
 					Namespace: "add-test",
-					Links: []*proto.Link{
+					Notes: []*proto.Note{
 						{
-							Id:          "add-test-id",
-							Url:         "https://example.com/add-test",
-							Description: "add test link",
-							Tags:        []string{"add", "server"},
+							Id:   "add-test-id",
+							Url:  "https://example.com/add-test",
+							Body: "add test link",
+							Tags: []string{"add", "server"},
 						},
 					},
 				},
@@ -43,7 +43,7 @@ func TestAdd(t *testing.T) {
 			request: &proto.CartographerAddRequest{
 				Request: &proto.CartographerRequest{
 					Namespace: "INVALID_NAMESPACE",
-					Links: []*proto.Link{
+					Notes: []*proto.Note{
 						{
 							Id:  "invalid-ns-add-id",
 							Url: "https://example.com/invalid-ns",
@@ -83,10 +83,10 @@ func TestAdd(t *testing.T) {
 			if resp == nil || resp.Response == nil {
 				t.Fatal("expected non-nil add response")
 			}
-			if got := len(resp.Response.GetLinks()); got != 1 {
+			if got := len(resp.Response.GetNotes()); got != 1 {
 				t.Fatalf("expected 1 returned link, got %d", got)
 			}
-			if got := resp.Response.GetLinks()[0].GetKey(); got != tc.id {
+			if got := resp.Response.GetNotes()[0].GetKey(); got != tc.id {
 				t.Fatalf("expected returned link key %q, got %q", tc.id, got)
 			}
 
@@ -96,7 +96,7 @@ func TestAdd(t *testing.T) {
 				testServer.mu.RUnlock()
 				t.Fatalf("expected namespace %q to exist in cache", tc.namespace)
 			}
-			cachedLink, ok := cachedNS.LinkCache[tc.id]
+			cachedLink, ok := cachedNS.NoteCache[tc.id]
 			testServer.mu.RUnlock()
 			if !ok {
 				t.Fatalf("expected link %q to exist in namespace cache", tc.id)

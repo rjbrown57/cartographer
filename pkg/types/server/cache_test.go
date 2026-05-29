@@ -39,11 +39,11 @@ func TestCacheOperations(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			link := &proto.Link{
-				Id:          tc.key,
-				Url:         "https://example.com/" + tc.key,
-				Description: tc.term,
-				Tags:        []string{"cache", "test"},
+			link := &proto.Note{
+				Id:   tc.key,
+				Url:  "https://example.com/" + tc.key,
+				Body: tc.term,
+				Tags: []string{"cache", "test"},
 			}
 
 			testServer.AddToCache(link, tc.namespace)
@@ -66,14 +66,14 @@ func TestCacheOperations(t *testing.T) {
 				testServer.mu.RUnlock()
 				t.Fatalf("expected namespace %q in cache", tc.namespace)
 			}
-			cachedLink, exists := cachedNS.LinkCache[tc.key]
+			cachedLink, exists := cachedNS.NoteCache[tc.key]
 			testServer.mu.RUnlock()
 
 			if tc.expectInCache {
 				if !exists {
 					t.Fatalf("expected link %q in namespace cache", tc.key)
 				}
-				if got := cachedLink.GetDescription(); got != tc.term {
+				if got := cachedLink.GetBody(); got != tc.term {
 					t.Fatalf("expected cached link description %q, got %q", tc.term, got)
 				}
 			} else if exists {
@@ -85,7 +85,7 @@ func TestCacheOperations(t *testing.T) {
 					Namespace: tc.namespace,
 					Terms:     []string{tc.term},
 				},
-			}, &SearchOptions{Limit: SearchLimitDescription})
+			}, &SearchOptions{Limit: SearchLimitBody})
 			if err != nil {
 				t.Fatalf("expected no error from search, got %v", err)
 			}

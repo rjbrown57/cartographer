@@ -22,12 +22,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Link represents a bookmark or link with metadata
-type Link struct {
+// Note represents searchable markdown content with optional URL metadata.
+type Note struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	Displayname   string                 `protobuf:"bytes,2,opt,name=displayname,proto3" json:"displayname,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Body          string                 `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
 	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"` // need to fix this to use repeated Tag tags
 	Data          *structpb.Struct       `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
 	Id            string                 `protobuf:"bytes,7,opt,name=id,proto3" json:"id,omitempty"`
@@ -36,20 +36,20 @@ type Link struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Link) Reset() {
-	*x = Link{}
+func (x *Note) Reset() {
+	*x = Note{}
 	mi := &file_cartographer_v1_models_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Link) String() string {
+func (x *Note) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Link) ProtoMessage() {}
+func (*Note) ProtoMessage() {}
 
-func (x *Link) ProtoReflect() protoreflect.Message {
+func (x *Note) ProtoReflect() protoreflect.Message {
 	mi := &file_cartographer_v1_models_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -61,61 +61,61 @@ func (x *Link) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Link.ProtoReflect.Descriptor instead.
-func (*Link) Descriptor() ([]byte, []int) {
+// Deprecated: Use Note.ProtoReflect.Descriptor instead.
+func (*Note) Descriptor() ([]byte, []int) {
 	return file_cartographer_v1_models_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Link) GetUrl() string {
+func (x *Note) GetUrl() string {
 	if x != nil {
 		return x.Url
 	}
 	return ""
 }
 
-func (x *Link) GetDisplayname() string {
+func (x *Note) GetTitle() string {
 	if x != nil {
-		return x.Displayname
+		return x.Title
 	}
 	return ""
 }
 
-func (x *Link) GetDescription() string {
+func (x *Note) GetBody() string {
 	if x != nil {
-		return x.Description
+		return x.Body
 	}
 	return ""
 }
 
-func (x *Link) GetTags() []string {
+func (x *Note) GetTags() []string {
 	if x != nil {
 		return x.Tags
 	}
 	return nil
 }
 
-func (x *Link) GetData() *structpb.Struct {
+func (x *Note) GetData() *structpb.Struct {
 	if x != nil {
 		return x.Data
 	}
 	return nil
 }
 
-func (x *Link) GetId() string {
+func (x *Note) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *Link) GetAnnotations() map[string]string {
+func (x *Note) GetAnnotations() map[string]string {
 	if x != nil {
 		return x.Annotations
 	}
 	return nil
 }
 
-// Tag represents a label or category for organizing links
+// Tag represents a label or category for organizing notes.
 type Tag struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -180,15 +180,15 @@ var File_cartographer_v1_models_proto protoreflect.FileDescriptor
 
 const file_cartographer_v1_models_proto_rawDesc = "" +
 	"\n" +
-	"\x1ccartographer/v1/models.proto\x12\x0fcartographer.v1\x1a\x1cgoogle/protobuf/struct.proto\"\xb7\x02\n" +
-	"\x04Link\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\x12 \n" +
-	"\vdisplayname\x18\x02 \x01(\tR\vdisplayname\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
+	"\x1ccartographer/v1/models.proto\x12\x0fcartographer.v1\x1a\x1cgoogle/protobuf/struct.proto\"\x9d\x02\n" +
+	"\x04Note\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
+	"\x04body\x18\x03 \x01(\tR\x04body\x12\x12\n" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12+\n" +
 	"\x04data\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x04data\x12\x0e\n" +
 	"\x02id\x18\a \x01(\tR\x02id\x12H\n" +
-	"\vannotations\x18\b \x03(\v2&.cartographer.v1.Link.AnnotationsEntryR\vannotations\x1a>\n" +
+	"\vannotations\x18\b \x03(\v2&.cartographer.v1.Note.AnnotationsEntryR\vannotations\x1a>\n" +
 	"\x10AnnotationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc4\x01\n" +
@@ -215,15 +215,15 @@ func file_cartographer_v1_models_proto_rawDescGZIP() []byte {
 
 var file_cartographer_v1_models_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_cartographer_v1_models_proto_goTypes = []any{
-	(*Link)(nil),            // 0: cartographer.v1.Link
+	(*Note)(nil),            // 0: cartographer.v1.Note
 	(*Tag)(nil),             // 1: cartographer.v1.Tag
-	nil,                     // 2: cartographer.v1.Link.AnnotationsEntry
+	nil,                     // 2: cartographer.v1.Note.AnnotationsEntry
 	nil,                     // 3: cartographer.v1.Tag.AnnotationsEntry
 	(*structpb.Struct)(nil), // 4: google.protobuf.Struct
 }
 var file_cartographer_v1_models_proto_depIdxs = []int32{
-	4, // 0: cartographer.v1.Link.data:type_name -> google.protobuf.Struct
-	2, // 1: cartographer.v1.Link.annotations:type_name -> cartographer.v1.Link.AnnotationsEntry
+	4, // 0: cartographer.v1.Note.data:type_name -> google.protobuf.Struct
+	2, // 1: cartographer.v1.Note.annotations:type_name -> cartographer.v1.Note.AnnotationsEntry
 	3, // 2: cartographer.v1.Tag.annotations:type_name -> cartographer.v1.Tag.AnnotationsEntry
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type

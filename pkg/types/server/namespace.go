@@ -11,35 +11,35 @@ type NSCache map[string]*CartoNamespace
 // CartoNamespaces are used to organize caching information
 type CartoNamespace struct {
 	name      string
-	LinkCache map[string]*proto.Link
-	tagCache  map[string][]*proto.Link
+	NoteCache map[string]*proto.Note
+	tagCache  map[string][]*proto.Note
 	mu        sync.RWMutex
 }
 
 func NewCartoNamespace(name string) *CartoNamespace {
 	return &CartoNamespace{
 		name:      name,
-		LinkCache: make(map[string]*proto.Link),
-		tagCache:  make(map[string][]*proto.Link),
+		NoteCache: make(map[string]*proto.Note),
+		tagCache:  make(map[string][]*proto.Note),
 		mu:        sync.RWMutex{},
 	}
 }
 
-// GetLinks returns a namespace-scoped snapshot of cached links for safe iteration without holding locks.
-func (n *NSCache) GetLinks(ns string) []*proto.Link {
+// GetNotes returns a namespace-scoped snapshot of cached notes for safe iteration without holding locks.
+func (n *NSCache) GetNotes(ns string) []*proto.Note {
 	cn, ok := (*n)[ns]
 	if !ok {
 		return nil
 	}
 
 	cn.mu.RLock()
-	links := make([]*proto.Link, 0, len(cn.LinkCache))
-	for _, link := range cn.LinkCache {
-		links = append(links, link)
+	notes := make([]*proto.Note, 0, len(cn.NoteCache))
+	for _, note := range cn.NoteCache {
+		notes = append(notes, note)
 	}
 	cn.mu.RUnlock()
 
-	return links
+	return notes
 }
 
 // GetTags returns a namespace-scoped snapshot of tag names for safe iteration without holding locks.
@@ -69,7 +69,7 @@ func (n *NSCache) GetNamespaces() []string {
 	return namespaces
 }
 
-// AddToCache adds links to the appropriate namespace cache while maintaining tag lookup state.
+// AddToCache adds notes to the appropriate namespace cache while maintaining tag lookup state.
 func (n *NSCache) AddToCache(ns string, v any) {
 	// Resolve the namespace bucket first so all cache updates for this call
 	// operate against a single namespace-scoped cache container.
@@ -81,23 +81,27 @@ func (n *NSCache) AddToCache(ns string, v any) {
 		(*n)[ns] = cn
 	}
 
-	// Lock the namespace-level cache so link/tag maps remain internally
+	// Lock the namespace-level cache so note/tag maps remain internally
 	// consistent while this object is inserted.
 	cn.mu.Lock()
 	switch v := v.(type) {
-	case *proto.Link:
-		// Primary link cache is keyed by link key for direct lookup.
-		cn.LinkCache[v.GetKey()] = v
+	case *proto.Note:
+		if existing, ok := cn.NoteCache[v.GetKey()]; ok {
+			cn.removeNoteFromTagCache(existing)
+		}
 
-		// Secondary tag index points each tag to all links carrying that tag.
-		// This keeps tag filtering fast without scanning all cached links.
+		// Primary note cache is keyed by note key for direct lookup.
+		cn.NoteCache[v.GetKey()] = v
+
+		// Secondary tag index points each tag to all notes carrying that tag.
+		// This keeps tag filtering fast without scanning all cached notes.
 		for _, tag := range v.Tags {
 			// Allocate the slice once per new tag in this namespace.
 			if _, ok := cn.tagCache[tag]; !ok {
-				cn.tagCache[tag] = make([]*proto.Link, 0)
+				cn.tagCache[tag] = make([]*proto.Note, 0)
 			}
 
-			// Append the link to the tag index for fan-out retrieval.
+			// Append the note to the tag index for fan-out retrieval.
 			cn.tagCache[tag] = append(cn.tagCache[tag], v)
 		}
 	}
@@ -105,7 +109,30 @@ func (n *NSCache) AddToCache(ns string, v any) {
 	cn.mu.Unlock()
 }
 
-// DeleteFromCache removes a link key from a namespace cache and updates tag indexes in-place.
+// removeNoteFromTagCache removes the supplied note from each of its tag buckets.
+func (n *CartoNamespace) removeNoteFromTagCache(note *proto.Note) {
+	for _, tag := range note.Tags {
+		notes, ok := n.tagCache[tag]
+		if !ok {
+			continue
+		}
+
+		out := notes[:0]
+		for _, cachedNote := range notes {
+			if cachedNote.GetKey() != note.GetKey() {
+				out = append(out, cachedNote)
+			}
+		}
+
+		if len(out) == 0 {
+			delete(n.tagCache, tag)
+			continue
+		}
+		n.tagCache[tag] = out
+	}
+}
+
+// DeleteFromCache removes a note key from a namespace cache and updates tag indexes in-place.
 func (n *NSCache) DeleteFromCache(ns string, key string) {
 	// Fast-path: if the namespace cache has not been created there is nothing to delete.
 	cn, ok := (*n)[ns]
@@ -115,34 +142,15 @@ func (n *NSCache) DeleteFromCache(ns string, key string) {
 
 	// Lock the namespace once so the primary cache and tag index stay consistent during deletion.
 	cn.mu.Lock()
-	// Resolve the link first so we can clean up tag reverse indexes before dropping the primary entry.
-	link, ok := cn.LinkCache[key]
+	// Resolve the note first so we can clean up tag reverse indexes before dropping the primary entry.
+	note, ok := cn.NoteCache[key]
 	if !ok {
 		cn.mu.Unlock()
 		return
 	}
 
-	delete(cn.LinkCache, key)
+	delete(cn.NoteCache, key)
 
-	// Remove the link from each tag bucket using in-place compaction to avoid extra allocations.
-	for _, tag := range link.Tags {
-		links, ok := cn.tagCache[tag]
-		if !ok {
-			continue
-		}
-
-		out := links[:0]
-		for _, l := range links {
-			if l.GetKey() != key {
-				out = append(out, l)
-			}
-		}
-
-		if len(out) == 0 {
-			delete(cn.tagCache, tag)
-			continue
-		}
-		cn.tagCache[tag] = out
-	}
+	cn.removeNoteFromTagCache(note)
 	cn.mu.Unlock()
 }

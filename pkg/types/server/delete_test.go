@@ -31,12 +31,12 @@ func TestDelete(t *testing.T) {
 				_, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
 					Request: &proto.CartographerRequest{
 						Namespace: namespace,
-						Links: []*proto.Link{
+						Notes: []*proto.Note{
 							{
-								Id:          id,
-								Url:         "https://example.com/delete-success",
-								Description: "delete success test",
-								Tags:        []string{"delete", "server"},
+								Id:   id,
+								Url:  "https://example.com/delete-success",
+								Body: "delete success test",
+								Tags: []string{"delete", "server"},
 							},
 						},
 					},
@@ -90,12 +90,12 @@ func TestDelete(t *testing.T) {
 				_, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
 					Request: &proto.CartographerRequest{
 						Namespace: namespace,
-						Links: []*proto.Link{
+						Notes: []*proto.Note{
 							{
-								Id:          id,
-								Url:         "https://example.com/delete-partial",
-								Description: "delete partial test",
-								Tags:        []string{"delete", "partial"},
+								Id:   id,
+								Url:  "https://example.com/delete-partial",
+								Body: "delete partial test",
+								Tags: []string{"delete", "partial"},
 							},
 						},
 					},
@@ -169,7 +169,7 @@ func TestDelete(t *testing.T) {
 			testServer.mu.RLock()
 			nsCache, ok := testServer.nsCache[tc.request.GetNamespace()]
 			if ok {
-				_, exists := nsCache.LinkCache[tc.verifyDeletedID]
+				_, exists := nsCache.NoteCache[tc.verifyDeletedID]
 				testServer.mu.RUnlock()
 				if exists {
 					t.Fatalf("expected id %q to be removed from cache namespace %q", tc.verifyDeletedID, tc.request.GetNamespace())

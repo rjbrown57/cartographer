@@ -9,7 +9,7 @@ cartographer:
   backend:
     type: boltdb
     path: /tmp/cartographer.db
-links:
+notes:
   # Development Tools & Platforms
   - url: https://github.com
     description: "GitHub - Code hosting and collaboration platform"
