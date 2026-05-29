@@ -363,6 +363,7 @@
 			will-change: transform;
 			backface-visibility: hidden;
 			transform: translateZ(0);
+			cursor: pointer;
 		}
 
 		.link-card:hover {
@@ -394,6 +395,14 @@
 		.link-title:hover {
 			color: var(--accent-dark);
 			text-decoration: underline;
+		}
+
+		.note-card a,
+		.note-card button,
+		.note-card input,
+		.note-card textarea,
+		.note-card select {
+			cursor: pointer;
 		}
 
 		.link-description {
@@ -637,17 +646,6 @@
 			overflow: hidden;
 		}
 
-		.link-card__toggle {
-			font-size: 1.1rem;
-			color: #64748b;
-			cursor: pointer;
-			transition: color 0.2s ease;
-		}
-
-		.link-card__toggle:hover {
-			color: #0f172a;
-		}
-
 		.data-container {
 			background: #f8fafc;
 			border-radius: 16px;
@@ -843,6 +841,7 @@
 			width: 100%;
 			max-height: 90vh;
 			overflow-y: auto;
+			cursor: default;
 			animation: overlayPop 0.3s ease;
 		}
 
