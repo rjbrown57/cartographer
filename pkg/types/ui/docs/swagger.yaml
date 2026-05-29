@@ -52,7 +52,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve all links and tags with optional filtering by tags and
+      description: Retrieve all notes and tags with optional filtering by tags and
         terms via query parameters
       parameters:
       - description: Filter by tag names (comma-separated)
@@ -148,7 +148,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve links filtered by tag name. Can accept additional tags
+      description: Retrieve notes filtered by tag name. Can accept additional tags
         via query parameters.
       parameters:
       - description: Tag name
@@ -168,7 +168,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Links filtered by tag
+          description: Notes filtered by tag
           schema:
             additionalProperties: true
             type: object
@@ -177,7 +177,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get links by tag
+      summary: Get notes by tag
       tags:
       - get
   /v1/ping:

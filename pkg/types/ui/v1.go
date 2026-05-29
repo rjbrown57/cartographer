@@ -42,7 +42,7 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 // GetHandler godoc
 // @Summary Get all data with optional filtering
-// @Description Retrieve all links and tags with optional filtering by tags and terms via query parameters
+// @Description Retrieve all notes and tags with optional filtering by tags and terms via query parameters
 // @Tags get
 // @Accept json
 // @Produce json
@@ -86,6 +86,59 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, pr)
 
+	}
+}
+
+type noteCreateRequest struct {
+	ID          string            `json:"id"`
+	Title       string            `json:"title"`
+	Body        string            `json:"body"`
+	URL         string            `json:"url"`
+	Tags        []string          `json:"tags"`
+	Namespace   string            `json:"namespace"`
+	Annotations map[string]string `json:"annotations"`
+}
+
+// postNotesFunc accepts a live note submission and forwards it through the add path.
+func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var nr noteCreateRequest
+		if err := c.ShouldBindJSON(&nr); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid note payload"})
+			return
+		}
+
+		ns, err := proto.GetNamespace(nr.Namespace)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
+
+		note, err := proto.NewNoteBuilder().
+			WithId(nr.ID).
+			WithTitle(nr.Title).
+			WithBody(nr.Body).
+			WithURL(nr.URL).
+			WithTags(nr.Tags).
+			WithAnnotations(nr.Annotations).
+			Build()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": err.Error()})
+			return
+		}
+
+		pr, err := carto.Client.Add(carto.Ctx, &proto.CartographerAddRequest{
+			Request: &proto.CartographerRequest{
+				Notes:     []*proto.Note{note},
+				Namespace: ns,
+			},
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		c.JSON(http.StatusCreated, pr)
 	}
 }
 
@@ -153,14 +206,14 @@ func getNamespacesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 }
 
 // GetByTagsHandler godoc
-// @Summary Get links by tag
-// @Description Retrieve links filtered by tag name. Can accept additional tags via query parameters.
+// @Summary Get notes by tag
+// @Description Retrieve notes filtered by tag name. Can accept additional tags via query parameters.
 // @Tags get
 // @Accept json
 // @Produce json
 // @Param tag path string true "Tag name" example("javascript")
 // @Param tag query []string false "Additional tag names" collectionFormat(multi)
-// @Success 200 {object} map[string]interface{} "Links filtered by tag"
+// @Success 200 {object} map[string]interface{} "Notes filtered by tag"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /v1/get/tags/{tag} [get]
 func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {

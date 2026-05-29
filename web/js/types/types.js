@@ -1,5 +1,5 @@
 import * as dropdown from '../components/dropDown.js';
-import { Link } from '../cards/links.js';
+import { Note } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
@@ -11,6 +11,7 @@ const EncodingHeader = {
 };
 let CartographerData;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
+const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList';
 const NamespaceButtonId = 'namespaceButton';
 const NamespaceButtonLabelId = 'namespaceButtonLabel';
@@ -21,26 +22,27 @@ export class Cartographer {
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
         SetupViewToggle();
+        SetupNoteSubmission();
         this.Initialize();
     }
     async Initialize() {
         await SetupNamespaceSelector();
         await QueryMainData();
-        if (!CartographerData || !Array.isArray(CartographerData.links)) {
-            console.error('No links data available to render');
+        if (!CartographerData || !Array.isArray(CartographerData.notes)) {
+            console.error('No notes data available to render');
             RenderNavMetadata([]);
             return;
         }
-        CartographerData.links.forEach((link) => {
-            const resolvedURL = link.url || link.id;
-            if (!resolvedURL) {
+        CartographerData.notes.forEach((note) => {
+            const resolvedID = note.id || note.url || note.title;
+            if (!resolvedID) {
                 return;
             }
-            const resolvedDisplayName = link.displayname || resolvedURL;
-            const resolvedDescription = link.description || '';
-            const resolvedTags = Array.isArray(link.tags) ? link.tags : [];
-            const resolvedID = link.id || resolvedURL;
-            this.Cards.push(new Link(resolvedID, resolvedDisplayName, resolvedURL, resolvedDescription, resolvedTags, link.data));
+            const resolvedURL = note.url || '';
+            const resolvedTitle = note.title || resolvedURL || resolvedID;
+            const resolvedBody = note.body || resolvedURL || '';
+            const resolvedTags = Array.isArray(note.tags) ? note.tags : [];
+            this.Cards.push(new Note(resolvedID, resolvedTitle, resolvedBody, resolvedURL, resolvedTags, note.data));
         });
         RenderNavMetadata(this.Cards);
         this.renderCards();
@@ -105,6 +107,163 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+function SetupNoteSubmission() {
+    const form = document.getElementById('noteForm');
+    const status = document.getElementById('noteFormStatus');
+    const composer = document.getElementById('noteComposer');
+    const toggle = document.getElementById('noteComposerToggle');
+    const close = document.getElementById('noteComposerClose');
+    const noteID = document.getElementById('noteID');
+    const titleInput = document.getElementById('noteTitle');
+    const urlInput = document.getElementById('noteURL');
+    const bodyInput = document.getElementById('noteBody');
+    const tagsInput = document.getElementById('noteTags');
+    const modeLabel = document.getElementById('noteComposerModeLabel');
+    const submitLabel = document.getElementById('noteSubmitLabel');
+    if (!form) {
+        return;
+    }
+    const setComposerOpen = (open) => {
+        if (!composer || !toggle) {
+            return;
+        }
+        composer.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.classList.toggle('nav-action--active', open);
+        if (open) {
+            titleInput?.focus();
+        }
+    };
+    const setCreateMode = () => {
+        if (noteID) {
+            noteID.value = '';
+        }
+        if (submitLabel) {
+            submitLabel.textContent = 'Save note';
+        }
+        if (modeLabel) {
+            modeLabel.textContent = 'Add note';
+        }
+        if (status) {
+            status.textContent = '';
+            status.className = 'note-form-status';
+        }
+    };
+    toggle?.addEventListener('click', () => {
+        const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
+        if (!isOpen) {
+            form.reset();
+            setCreateMode();
+        }
+        setComposerOpen(!isOpen);
+    });
+    close?.addEventListener('click', () => {
+        setComposerOpen(false);
+        toggle?.focus();
+    });
+    composer?.addEventListener('click', (event) => {
+        if (event.target === composer) {
+            setComposerOpen(false);
+            toggle?.focus();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && composer && !composer.classList.contains('is-hidden')) {
+            setComposerOpen(false);
+            toggle?.focus();
+        }
+    });
+    document.addEventListener('cartographer:edit-note', ((event) => {
+        const detail = event.detail;
+        if (!detail) {
+            return;
+        }
+        if (noteID) {
+            noteID.value = detail.id;
+        }
+        if (titleInput) {
+            titleInput.value = detail.title;
+        }
+        if (urlInput) {
+            urlInput.value = detail.url;
+        }
+        if (bodyInput) {
+            bodyInput.value = detail.body;
+        }
+        if (tagsInput) {
+            tagsInput.value = detail.tags.join(', ');
+        }
+        if (submitLabel) {
+            submitLabel.textContent = 'Save changes';
+        }
+        if (modeLabel) {
+            modeLabel.textContent = 'Edit note';
+        }
+        if (status) {
+            status.textContent = 'Editing existing note.';
+            status.className = 'note-form-status text-secondary';
+        }
+        setComposerOpen(true);
+    }));
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const existingID = noteID?.value.trim() || '';
+        const title = titleInput?.value.trim() || '';
+        const url = urlInput?.value.trim() || '';
+        const body = bodyInput?.value.trim() || '';
+        const tagsValue = tagsInput?.value.trim() || '';
+        const tags = tagsValue.split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '');
+        if (!title || !body) {
+            if (status) {
+                status.textContent = 'Title and markdown body are required.';
+                status.className = 'note-form-status text-danger';
+            }
+            return;
+        }
+        const payload = {
+            id: existingID || crypto.randomUUID(),
+            title,
+            body,
+            url,
+            tags,
+            namespace: query.GetSelectedNamespace(),
+        };
+        if (status) {
+            status.textContent = existingID ? 'Saving changes...' : 'Saving note...';
+            status.className = 'note-form-status text-secondary';
+        }
+        try {
+            const response = await fetch(NotesEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
+            }
+            cache.invalidateCache();
+            if (status) {
+                status.textContent = existingID ? 'Changes saved.' : 'Note saved.';
+                status.className = 'note-form-status text-success';
+            }
+            form.reset();
+            setCreateMode();
+            window.location.reload();
+        }
+        catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to save note.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    });
 }
 function GetNamespacesEndpoint() {
     return NamespaceEndpoint;
@@ -218,7 +377,7 @@ function RenderNavMetadata(cardsList) {
         });
     });
     if (siteName) {
-        siteName.setAttribute('title', `${cardsList.length} links \u2022 ${tagFrequency.size} tags`);
+        siteName.setAttribute('title', `${cardsList.length} notes \u2022 ${tagFrequency.size} tags`);
     }
     const selectedTags = new Set(new URLSearchParams(window.location.search)
         .getAll('tag')

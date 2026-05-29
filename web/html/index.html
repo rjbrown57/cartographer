@@ -253,6 +253,12 @@
 			color: #f8fafc;
 		}
 
+		.nav-action--active {
+			background: rgba(56, 189, 248, 0.22);
+			border-color: rgba(56, 189, 248, 0.7);
+			color: #f8fafc;
+		}
+
 		.nav-action i {
 			font-size: 1rem;
 		}
@@ -394,6 +400,118 @@
 			color: var(--text-muted);
 			font-size: 0.95rem;
 			margin: 0;
+		}
+
+		.note-title,
+		.note-list-title {
+			background: transparent;
+			border: 0;
+			padding: 0;
+			text-align: left;
+		}
+
+		.note-actions {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			margin-top: 0.1rem;
+		}
+
+		.note-action-button {
+			border: 0;
+			background: transparent;
+			color: var(--accent);
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+			font-size: 0.82rem;
+			font-weight: 600;
+			padding: 0;
+		}
+
+		.note-action-button:hover {
+			color: var(--accent-dark);
+			text-decoration: underline;
+		}
+
+		.note-markdown {
+			line-height: 1.5;
+		}
+
+		.note-markdown > :last-child {
+			margin-bottom: 0;
+		}
+
+		.note-markdown--preview {
+			display: -webkit-box;
+			-webkit-line-clamp: 4;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.note-composer {
+			position: fixed;
+			inset: 0;
+			z-index: 1060;
+			background: rgba(15, 23, 42, 0.46);
+			backdrop-filter: blur(6px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+		}
+
+		.note-composer__panel {
+			background: rgba(248, 250, 252, 0.98);
+			border: 1px solid var(--card-border);
+			border-radius: 12px;
+			box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+			max-height: min(90vh, 760px);
+			overflow-y: auto;
+			padding: 1rem;
+			width: min(960px, 100%);
+			animation: overlayPop 0.22s ease;
+		}
+
+		.note-composer__header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			font-weight: 700;
+			color: var(--text-primary);
+		}
+
+		.note-composer__close {
+			border: 0;
+			background: transparent;
+			color: #64748b;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+			border-radius: 999px;
+		}
+
+		.note-composer__close:hover {
+			background: #e2e8f0;
+			color: #0f172a;
+		}
+
+		.note-form-grid {
+			display: grid;
+			gap: 0.75rem;
+			margin-top: 0.85rem;
+		}
+
+		.note-form-status {
+			min-height: 1.25rem;
+			font-size: 0.85rem;
+		}
+
+		body.modal-open {
+			overflow: hidden;
 		}
 
 		.link-card__toggle {
@@ -620,6 +738,8 @@
 			display: none !important;
 		}
 	</style>
+	<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
 	<script type="module" src="scripts/cartographer.js"></script>
 </head>
 <body>
@@ -633,12 +753,16 @@
 			<div id="searchBarDiv" class="flex-grow-1">
 				<div class="search-bar-wrap d-flex align-items-center">
 					<span class="search-icon-wrap px-3"><i class="bi bi-search"></i></span>
-					<input id="searchBar" type="text" class="form-control search-input" placeholder="Search links and tags...">
+					<input id="searchBar" type="text" class="form-control search-input" placeholder="Search notes and tags...">
 				</div>
 			</div>
 			<button id="viewToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-pressed="false" type="button">
 				<i class="bi bi-list"></i>
 				<span class="visually-hidden">Toggle view</span>
+			</button>
+			<button id="noteComposerToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="noteComposer" type="button">
+				<i class="bi bi-journal-plus"></i>
+				<span class="visually-hidden">Add note</span>
 			</button>
 			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
 				<i class="bi bi-braces-asterisk"></i>
@@ -669,11 +793,52 @@
 		</div>
 	</nav>
 	<main class="app-container container-fluid">
+		<section id="noteComposer" class="note-composer is-hidden" aria-labelledby="noteComposerTitle">
+			<div class="note-composer__panel" role="dialog" aria-modal="true">
+				<div class="note-composer__header">
+					<div id="noteComposerTitle" class="d-flex align-items-center gap-2">
+						<i class="bi bi-journal-plus"></i>
+						<span id="noteComposerModeLabel">Add note</span>
+					</div>
+					<button id="noteComposerClose" class="note-composer__close" type="button" aria-label="Close note form">
+						<i class="bi bi-x-lg"></i>
+					</button>
+				</div>
+				<form id="noteForm" class="note-form-grid">
+					<input id="noteID" type="hidden">
+					<div class="row g-3">
+						<div class="col-12 col-lg-6">
+							<label for="noteTitle" class="form-label">Title</label>
+							<input id="noteTitle" class="form-control" type="text" autocomplete="off" required>
+						</div>
+						<div class="col-12 col-lg-6">
+							<label for="noteURL" class="form-label">URL</label>
+							<input id="noteURL" class="form-control" type="url" autocomplete="off">
+						</div>
+						<div class="col-12">
+							<label for="noteBody" class="form-label">Markdown</label>
+							<textarea id="noteBody" class="form-control" rows="8" required></textarea>
+						</div>
+						<div class="col-12 col-lg-8">
+							<label for="noteTags" class="form-label">Tags</label>
+							<input id="noteTags" class="form-control" type="text" autocomplete="off" placeholder="ops, runbook, incident">
+						</div>
+						<div class="col-12 col-lg-4 d-flex align-items-end gap-3">
+							<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
+								<i class="bi bi-save"></i>
+								<span id="noteSubmitLabel">Save note</span>
+							</button>
+							<span id="noteFormStatus" class="note-form-status"></span>
+						</div>
+					</div>
+				</form>
+			</div>
+		</section>
 		<div id="link" class="links">
 			<div id="listHeader" class="list-header is-hidden">
 				<div class="list-grid">
 					<div>Title</div>
-					<div>Description</div>
+					<div>Body</div>
 					<div class="d-flex align-items-center gap-2">
 						<i class="bi bi-tags"></i>
 						<span>Tags</span>
