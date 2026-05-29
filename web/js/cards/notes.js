@@ -46,6 +46,7 @@ export class Note {
         const card = this.self;
         this.setupCardBase(card);
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
+        card.appendChild(this.createNoteActions());
         card.appendChild(this.createCardView(dataText));
         card.appendChild(this.createListRow());
         return card;
@@ -82,7 +83,6 @@ export class Note {
         const title = this.createTitleElement('link-title note-title');
         title.textContent = this.title;
         body.appendChild(title);
-        body.appendChild(this.createNoteActions());
         const markdown = document.createElement('div');
         markdown.className = 'link-description note-markdown note-markdown--preview';
         markdown.innerHTML = RenderMarkdown(this.body);
@@ -112,7 +112,9 @@ export class Note {
         const editButton = document.createElement('button');
         editButton.type = 'button';
         editButton.className = 'note-action-button';
-        editButton.innerHTML = '<i class="bi bi-pencil-square"></i><span>Edit</span>';
+        editButton.title = 'Edit note';
+        editButton.setAttribute('aria-label', 'Edit note');
+        editButton.innerHTML = '<i class="bi bi-pencil-square"></i>';
         editButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -121,12 +123,14 @@ export class Note {
         const copyButton = document.createElement('button');
         copyButton.type = 'button';
         copyButton.className = 'note-action-button';
-        copyButton.innerHTML = '<i class="bi bi-clipboard"></i><span>Copy</span>';
+        copyButton.title = 'Copy note body';
+        copyButton.setAttribute('aria-label', 'Copy note body');
+        copyButton.innerHTML = '<i class="bi bi-clipboard"></i>';
         copyButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
             this.copyTextToClipboard(this.body, () => {
-                this.setInlineActionState(copyButton, '<i class="bi bi-check2"></i><span>Copied</span>');
+                this.setInlineActionState(copyButton, '<i class="bi bi-check2"></i>');
             });
         };
         actions.appendChild(editButton);
