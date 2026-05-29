@@ -9,7 +9,7 @@ func TestLinkBuilderBuildSetsDefaults(t *testing.T) {
 	url := "https://www.example.com/path"
 	builder := NewLinkBuilder().
 		WithURL(url).
-		WithDescription("desc").
+		WithBody("desc").
 		WithTags([]string{"tag1", "tag2"}).
 		WithAnnotations(map[string]string{"key": "value"})
 
@@ -21,11 +21,11 @@ func TestLinkBuilderBuildSetsDefaults(t *testing.T) {
 	if link.Id != url {
 		t.Fatalf("Build() id = %q, want %q", link.Id, url)
 	}
-	if link.Displayname != "example.com/path" {
-		t.Fatalf("Build() displayname = %q, want %q", link.Displayname, "example.com/path")
+	if link.Title != "example.com/path" {
+		t.Fatalf("Build() displayname = %q, want %q", link.Title, "example.com/path")
 	}
-	if link.Description != "desc" {
-		t.Fatalf("Build() description = %q, want %q", link.Description, "desc")
+	if link.Body != "desc" {
+		t.Fatalf("Build() description = %q, want %q", link.Body, "desc")
 	}
 	if !reflect.DeepEqual(link.Tags, []string{"tag1", "tag2"}) {
 		t.Fatalf("Build() tags = %v, want %v", link.Tags, []string{"tag1", "tag2"})
@@ -45,8 +45,8 @@ func TestLinkBuilderBuildRespectsDisplayName(t *testing.T) {
 		t.Fatalf("Build() error = %v", err)
 	}
 
-	if link.Displayname != "Custom Name" {
-		t.Fatalf("Build() displayname = %q, want %q", link.Displayname, "Custom Name")
+	if link.Title != "Custom Name" {
+		t.Fatalf("Build() displayname = %q, want %q", link.Title, "Custom Name")
 	}
 	if link.Id != "https://example.com/override" {
 		t.Fatalf("Build() id = %q, want %q", link.Id, "https://example.com/override")
@@ -54,7 +54,7 @@ func TestLinkBuilderBuildRespectsDisplayName(t *testing.T) {
 }
 
 func TestLinkBuilderBuildRequiresID(t *testing.T) {
-	_, err := NewLinkBuilder().WithDescription("desc").Build()
+	_, err := NewLinkBuilder().WithBody("desc").Build()
 	if err == nil {
 		t.Fatalf("Build() error = nil, want non-nil")
 	}

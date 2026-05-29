@@ -14,7 +14,8 @@ type SearchLimit string
 
 const (
 	SearchLimitAll         SearchLimit = "*"
-	SearchLimitDescription SearchLimit = "description"
+	SearchLimitDescription SearchLimit = "body"
+	SearchLimitBody        SearchLimit = "body"
 	SearchLimitURL         SearchLimit = "url"
 	SearchLimitTags        SearchLimit = "tags"
 	// initial testing found issues with data field, so we are using all for now
@@ -26,12 +27,12 @@ func (l SearchLimit) String() string {
 	return string(l)
 }
 
-// makeBleveDocID creates a namespace-qualified bleve document ID for a link key.
+// makeBleveDocID creates a namespace-qualified bleve document ID for a note key.
 func makeBleveDocID(namespace, key string) string {
 	return namespace + bleveDocIDSeparator + key
 }
 
-// parseBleveDocID splits a bleve document ID into namespace and link key components.
+// parseBleveDocID splits a bleve document ID into namespace and note key components.
 func parseBleveDocID(id string) (string, string, bool) {
 	namespace, key, ok := strings.Cut(id, bleveDocIDSeparator)
 	if !ok || namespace == "" || key == "" {
@@ -87,8 +88,8 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 	return tagFilters, nil
 }
 
-// Search executes a bleve query and resolves hits against namespace-scoped in-memory link cache.
-func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *SearchOptions) ([]*proto.Link, error) {
+// Search executes a bleve query and resolves hits against namespace-scoped in-memory note cache.
+func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *SearchOptions) ([]*proto.Note, error) {
 	ns, err := proto.GetNamespace(in.Request.GetNamespace())
 	if err != nil {
 		return nil, err
@@ -114,26 +115,26 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 		return nil, err
 	}
 
-	links := make([]*proto.Link, 0)
+	notes := make([]*proto.Note, 0)
 
 	log.Tracef("Search Results(%v): %+v", results.Took, results.Total)
 
-	// Resolve hits to links using the namespace-scoped cache only.
+	// Resolve hits to notes using the namespace-scoped cache only.
 	c.mu.RLock()
 	cn, ok := c.nsCache[ns]
 	c.mu.RUnlock()
 	if !ok {
-		return links, nil
+		return notes, nil
 	}
 
 	cn.mu.RLock()
 	for _, hit := range results.Hits {
-		hitNamespace, linkKey, ok := parseBleveDocID(hit.ID)
+		hitNamespace, noteKey, ok := parseBleveDocID(hit.ID)
 		if !ok {
 			// Backward compatibility for existing index entries that were stored
 			// without a namespace-qualified document ID.
-			if link, exists := cn.LinkCache[hit.ID]; exists {
-				links = append(links, link)
+			if note, exists := cn.NoteCache[hit.ID]; exists {
+				notes = append(notes, note)
 			}
 			continue
 		}
@@ -142,11 +143,11 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 			continue
 		}
 
-		if link, exists := cn.LinkCache[linkKey]; exists {
-			links = append(links, link)
+		if note, exists := cn.NoteCache[noteKey]; exists {
+			notes = append(notes, note)
 		}
 	}
 	cn.mu.RUnlock()
 
-	return links, nil
+	return notes, nil
 }

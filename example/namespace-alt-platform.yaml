@@ -5,7 +5,7 @@ autotags:
   - regex: ".*kubernetes.*"
     tags: ["platform", "kubernetes"]
 
-links:
+notes:
   - url: https://kubernetes.io/docs/home/
     description: "Kubernetes official documentation"
     tags: ["docs", "kubernetes"]

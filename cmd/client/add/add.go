@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	links     []string
+	notes     []string
 	tags      []string
 	namespace string
 	file      string
@@ -52,11 +52,11 @@ var AddCmd = &cobra.Command{
 			return
 		}
 
-		r := proto.NewCartographerAddRequest(links, tags, namespace)
+		r := proto.NewCartographerAddRequest(notes, tags, namespace)
 
 		response, err := c.Client.Add(c.Ctx, r)
 		if err != nil {
-			log.Fatalf("Failed to Add links %s", err)
+			log.Fatalf("Failed to Add notes %s", err)
 		}
 
 		OutputResponse(response.Response)
@@ -66,15 +66,15 @@ var AddCmd = &cobra.Command{
 func validate() {
 	// If file is unset we expect at least one of the other options to be set
 	if file == "" {
-		if len(links) == 0 {
-			log.Fatalf("At least one link must be supplied")
+		if len(notes) == 0 {
+			log.Fatalf("At least one note URL must be supplied")
 		}
 	}
 }
 
 func init() {
-	AddCmd.Flags().StringSliceVarP(&links, "links", "l", nil, "link to add to cartographer serer e.g -l=https://github.com,https://gitlab.com")
-	AddCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to add to the supplied links -t=git,k8s`)
+	AddCmd.Flags().StringSliceVarP(&notes, "notes", "l", nil, "note URL to add to cartographer server e.g -l=https://github.com,https://gitlab.com")
+	AddCmd.Flags().StringSliceVarP(&tags, "tag", "t", nil, `Tags to add to the supplied notes -t=git,k8s`)
 	AddCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace key")
 	AddCmd.Flags().StringVarP(&file, "file", "f", "", "file config to add")
 

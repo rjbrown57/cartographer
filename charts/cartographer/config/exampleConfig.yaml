@@ -9,7 +9,7 @@ cartographer:
   backend:
     type: boltdb
     path: /data/cartographer.db
-links: 
+notes: 
   - url: https://kernel.org
     description: "kubernetes main github repo"
     tags: ["linux"]

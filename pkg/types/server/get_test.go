@@ -12,7 +12,7 @@ func TestGetNamespaces(t *testing.T) {
 	const testNamespace = "get-namespaces-test"
 
 	testServer.mu.Lock()
-	testServer.nsCache.AddToCache(testNamespace, &proto.Link{Id: "l-get-namespaces"})
+	testServer.nsCache.AddToCache(testNamespace, &proto.Note{Id: "l-get-namespaces"})
 	testServer.mu.Unlock()
 	defer func() {
 		testServer.mu.Lock()

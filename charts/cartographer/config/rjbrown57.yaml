@@ -1,4 +1,4 @@
-links: 
+notes: 
   - url: https://github.com/rjbrown57/binman
     displayname: "binman" # A custom display name
     description: "binary manager"

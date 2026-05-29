@@ -61,7 +61,7 @@ var GetCmd = &cobra.Command{
 
 		response, err := c.Client.Get(c.Ctx, pr)
 		if err != nil {
-			log.Fatalf("Failed to get links %s", err)
+			log.Fatalf("Failed to get notes %s", err)
 		}
 
 		out, err := yaml.Marshal(response)

@@ -119,7 +119,7 @@ func TestSearch(t *testing.T) {
 				"https://github.com/kubernetes/kubernetes": {},
 			},
 			expectedLen: 1,
-			options:     &SearchOptions{Limit: SearchLimitDescription},
+			options:     &SearchOptions{Limit: SearchLimitBody},
 		},
 		{
 			name: "Search for data match term",
@@ -161,13 +161,13 @@ func TestSearch(t *testing.T) {
 			expectError: false,
 			expectedURL: map[string]struct{}{},
 			expectedLen: 0,
-			options:     &SearchOptions{Limit: SearchLimitDescription},
+			options:     &SearchOptions{Limit: SearchLimitBody},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			links, err := testServer.Search(tt.request, tt.options)
+			notes, err := testServer.Search(tt.request, tt.options)
 
 			if tt.expectError && err == nil {
 				t.Errorf("%s Expected error but got none", tt.name)
@@ -183,15 +183,15 @@ func TestSearch(t *testing.T) {
 				return // Test passed if we expected an error and got one
 			}
 
-			if len(links) != tt.expectedLen {
-				t.Errorf("%s Expected %d links, got %d", tt.name, tt.expectedLen, len(links))
+			if len(notes) != tt.expectedLen {
+				t.Errorf("%s Expected %d notes, got %d", tt.name, tt.expectedLen, len(notes))
 				return
 			}
 
-			for _, link := range links {
+			for _, link := range notes {
 
 				if _, ok := tt.expectedURL[link.GetKey()]; !ok {
-					t.Errorf("%s Expected to find URL %s, but it was not in results. Got: %v", tt.name, link.GetKey(), links)
+					t.Errorf("%s Expected to find URL %s, but it was not in results. Got: %v", tt.name, link.GetKey(), notes)
 				}
 			}
 		})
@@ -206,16 +206,16 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 	const termA = "namespace-a-only-term"
 	const termB = "namespace-b-only-term"
 
-	linkA := &proto.Link{
-		Id:          sharedKey,
-		Url:         "https://example.com/a",
-		Description: termA,
+	linkA := &proto.Note{
+		Id:   sharedKey,
+		Url:  "https://example.com/a",
+		Body: termA,
 	}
 
-	linkB := &proto.Link{
-		Id:          sharedKey,
-		Url:         "https://example.com/b",
-		Description: termB,
+	linkB := &proto.Note{
+		Id:   sharedKey,
+		Url:  "https://example.com/b",
+		Body: termB,
 	}
 
 	testServer.AddToCache(linkA, namespaceA)
@@ -238,7 +238,7 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 		},
 	}
 
-	resultsA, err := testServer.Search(searchA, &SearchOptions{Limit: SearchLimitDescription})
+	resultsA, err := testServer.Search(searchA, &SearchOptions{Limit: SearchLimitBody})
 	if err != nil {
 		t.Fatalf("expected no error searching namespace A, got %v", err)
 	}
@@ -247,7 +247,7 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 		t.Fatalf("expected 1 result for namespace A, got %d", len(resultsA))
 	}
 
-	if got := resultsA[0].GetDescription(); got != termA {
+	if got := resultsA[0].GetBody(); got != termA {
 		t.Fatalf("expected namespace A description %q, got %q", termA, got)
 	}
 
@@ -258,7 +258,7 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 		},
 	}
 
-	resultsB, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitDescription})
+	resultsB, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitBody})
 	if err != nil {
 		t.Fatalf("expected no error searching namespace B, got %v", err)
 	}
@@ -267,13 +267,13 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 		t.Fatalf("expected 1 result for namespace B, got %d", len(resultsB))
 	}
 
-	if got := resultsB[0].GetDescription(); got != termB {
+	if got := resultsB[0].GetBody(); got != termB {
 		t.Fatalf("expected namespace B description %q, got %q", termB, got)
 	}
 
 	testServer.DeleteFromCache(namespaceA, sharedKey)
 
-	resultsBAfterDelete, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitDescription})
+	resultsBAfterDelete, err := testServer.Search(searchB, &SearchOptions{Limit: SearchLimitBody})
 	if err != nil {
 		t.Fatalf("expected no error searching namespace B after namespace A delete, got %v", err)
 	}
@@ -282,7 +282,7 @@ func TestSearchNamespacesWithSharedKey(t *testing.T) {
 		t.Fatalf("expected 1 namespace B result after namespace A delete, got %d", len(resultsBAfterDelete))
 	}
 
-	if got := resultsBAfterDelete[0].GetDescription(); got != termB {
+	if got := resultsBAfterDelete[0].GetBody(); got != termB {
 		t.Fatalf("expected namespace B description %q after namespace A delete, got %q", termB, got)
 	}
 }

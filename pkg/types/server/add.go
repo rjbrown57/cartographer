@@ -15,8 +15,8 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// record the duration of the add operation
 	defer metrics.Metrics().RecordOperationDuration("add")()
 
-	for _, link := range in.Request.GetLinks() {
-		auto.ProcessAutoTags(link, c.config.AutoTags)
+	for _, note := range in.Request.GetNotes() {
+		auto.ProcessAutoTags(note, c.config.AutoTags)
 	}
 
 	newData := make(map[string]any)
@@ -27,12 +27,12 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	}
 
 	// This needs to be refactored with more constructors/factories etc
-	// Get links
+	// Get notes
 	// should make a dataMap constructor
-	for _, v := range in.Request.GetLinks() {
+	for _, v := range in.Request.GetNotes() {
 		newData[v.GetKey()] = v
 		c.AddToCache(v, ns)
-		metrics.Metrics().IncrementObjectCount("link", ns, 1)
+		metrics.Metrics().IncrementObjectCount("note", ns, 1)
 	}
 
 	ar := backend.NewBackendAddRequest(newData, ns)
@@ -44,10 +44,10 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	r := proto.NewCartographerResponse()
 
 	for _, v := range b.Data {
-		l := &proto.Link{}
+		n := &proto.Note{}
 
-		json.Unmarshal(v, l)
-		r.Links = append(r.Links, l)
+		json.Unmarshal(v, n)
+		r.Notes = append(r.Notes, n)
 	}
 
 	go c.Notifier.Publish(r)

@@ -22,13 +22,13 @@ func TestGet(t *testing.T) {
 		os.RemoveAll(tempDir)
 	})
 
-	testLink := &proto.Link{
-		Url:         "https://github.com/rjbrown57/cartographer",
-		Displayname: "Cartographer",
-		Description: "Cartographer is a tool for managing links",
-		Tags:        []string{"test", "test2"},
-		Id:          "https://github.com/rjbrown57/cartographer",
-		Data:        nil,
+	testLink := &proto.Note{
+		Url:   "https://github.com/rjbrown57/cartographer",
+		Title: "Cartographer",
+		Body:  "Cartographer is a tool for managing notes",
+		Tags:  []string{"test", "test2"},
+		Id:    "https://github.com/rjbrown57/cartographer",
+		Data:  nil,
 	}
 
 	resp := db.Add(backend.NewBackendAddRequest(map[string]any{
@@ -44,7 +44,7 @@ func TestGet(t *testing.T) {
 		t.Fatalf("Expected no errors, got %v", resp.Errors)
 	}
 
-	datalink := &proto.Link{}
+	datalink := &proto.Note{}
 	err := json.Unmarshal(resp.Data[testLink.GetKey()], datalink)
 	if err != nil {
 		t.Fatalf("Expected no errors, got %v", err)

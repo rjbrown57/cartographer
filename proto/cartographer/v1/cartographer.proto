@@ -21,7 +21,7 @@ package cartographer.v1;
 import "cartographer/v1/models.proto";
 import "cartographer/v1/requests.proto";
 
-// Cartographer service provides methods for managing bookmarks, links, and tags
+// Cartographer service provides methods for managing notes and tags.
 service Cartographer {
   // Ping is used for health check and connectivity testing
   rpc Ping (PingRequest) returns (PingResponse) {}
@@ -29,10 +29,10 @@ service Cartographer {
   // Get retrieves data based on the specified request type and filters
   rpc Get (CartographerGetRequest) returns (CartographerGetResponse) {}
   
-  // Add creates new links or tags
+  // Add creates new notes or tags
   rpc Add (CartographerAddRequest) returns (CartographerAddResponse) {}
   
-  // Delete removes existing links or tags by ID
+  // Delete removes existing notes or tags by ID
   rpc Delete (CartographerDeleteRequest) returns (CartographerDeleteResponse) {}
   
   // StreamGet provides a streaming interface for real-time data updates

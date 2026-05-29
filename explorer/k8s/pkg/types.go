@@ -62,7 +62,7 @@ func (e *K8sExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 		nodeNames = append(nodeNames, node.Name)
 	}
 
-	protoLink, err := proto.NewLinkBuilder().
+	protoNote, err := proto.NewNoteBuilder().
 		WithData(map[string]any{"data": nodeNames}).
 		WithTags([]string{"explorer"}).
 		WithId("k8s").
@@ -71,7 +71,7 @@ func (e *K8sExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 		return nil, err
 	}
 
-	r.Request.Links = append(r.Request.Links, protoLink)
+	r.Request.Notes = append(r.Request.Notes, protoNote)
 
 	return r, nil
 }

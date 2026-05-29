@@ -14,29 +14,29 @@ type AutoTag struct {
 	Tags        []string       `yaml:"tags,omitempty"`
 }
 
-// ProcessAutoTags will process the auto tags for a link
-func ProcessAutoTags(link *proto.Link, at []*AutoTag) {
+// ProcessAutoTags will process the auto tags for a note.
+func ProcessAutoTags(note *proto.Note, at []*AutoTag) {
 
 	autoTags := make(map[string]struct{})
 
 	// Add initial tags so we can dedup
-	for _, tag := range link.Tags {
+	for _, tag := range note.Tags {
 		autoTags[tag] = struct{}{}
 	}
 
 	for _, autoTag := range at {
 		// if the tag matches, add to the tagMap
-		if autoTag.Regex.MatchString(link.Url) {
+		if autoTag.Regex.MatchString(note.Url) || autoTag.Regex.MatchString(note.Body) || autoTag.Regex.MatchString(note.Title) {
 			for _, tag := range autoTag.Tags {
 				autoTags[tag] = struct{}{}
 			}
 		}
 	}
 
-	link.Tags = link.Tags[:0] // Clear the existing tags to avoid duplication
+	note.Tags = note.Tags[:0] // Clear the existing tags to avoid duplication
 
 	for tag := range autoTags {
-		link.Tags = append(link.Tags, tag)
+		note.Tags = append(note.Tags, tag)
 	}
 
 }

@@ -1,7 +1,7 @@
 autotags:
   - regex: ".*github.*"
     tags: ["github"]
-links: 
+notes: 
   - url: https://github.com/kubernetes/kubernetes
     description: "kubernetes main github repo"
     tags: ["k8s"]

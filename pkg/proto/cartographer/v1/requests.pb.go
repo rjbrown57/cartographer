@@ -26,7 +26,7 @@ type RequestType int32
 
 const (
 	RequestType_REQUEST_TYPE_UNSPECIFIED RequestType = 0
-	RequestType_REQUEST_TYPE_DATA        RequestType = 1 // requests that will include links
+	RequestType_REQUEST_TYPE_DATA        RequestType = 1 // requests that will include notes
 	RequestType_REQUEST_TYPE_TAG         RequestType = 2 // tag querying for existing tags
 	RequestType_REQUEST_TYPE_NAMESPACE   RequestType = 3 // namespace querying for existing namespaces
 )
@@ -78,7 +78,7 @@ func (RequestType) EnumDescriptor() ([]byte, []int) {
 type CartographerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tags          []*Tag                 `protobuf:"bytes,1,rep,name=tags,proto3" json:"tags,omitempty"`
-	Links         []*Link                `protobuf:"bytes,2,rep,name=links,proto3" json:"links,omitempty"`
+	Notes         []*Note                `protobuf:"bytes,2,rep,name=notes,proto3" json:"notes,omitempty"`
 	Terms         []string               `protobuf:"bytes,3,rep,name=terms,proto3" json:"terms,omitempty"`
 	Namespace     string                 `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -122,9 +122,9 @@ func (x *CartographerRequest) GetTags() []*Tag {
 	return nil
 }
 
-func (x *CartographerRequest) GetLinks() []*Link {
+func (x *CartographerRequest) GetNotes() []*Note {
 	if x != nil {
-		return x.Links
+		return x.Notes
 	}
 	return nil
 }
@@ -148,7 +148,7 @@ type CartographerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Msg           []string               `protobuf:"bytes,1,rep,name=msg,proto3" json:"msg,omitempty"`
 	Tags          []string               `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty"`
-	Links         []*Link                `protobuf:"bytes,3,rep,name=links,proto3" json:"links,omitempty"`
+	Notes         []*Note                `protobuf:"bytes,3,rep,name=notes,proto3" json:"notes,omitempty"`
 	Namespace     string                 `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -198,9 +198,9 @@ func (x *CartographerResponse) GetTags() []string {
 	return nil
 }
 
-func (x *CartographerResponse) GetLinks() []*Link {
+func (x *CartographerResponse) GetNotes() []*Note {
 	if x != nil {
-		return x.Links
+		return x.Notes
 	}
 	return nil
 }
@@ -701,13 +701,13 @@ const file_cartographer_v1_requests_proto_rawDesc = "" +
 	"\x1ecartographer/v1/requests.proto\x12\x0fcartographer.v1\x1a\x1ccartographer/v1/models.proto\"\xa0\x01\n" +
 	"\x13CartographerRequest\x12(\n" +
 	"\x04tags\x18\x01 \x03(\v2\x14.cartographer.v1.TagR\x04tags\x12+\n" +
-	"\x05links\x18\x02 \x03(\v2\x15.cartographer.v1.LinkR\x05links\x12\x14\n" +
+	"\x05notes\x18\x02 \x03(\v2\x15.cartographer.v1.NoteR\x05notes\x12\x14\n" +
 	"\x05terms\x18\x03 \x03(\tR\x05terms\x12\x1c\n" +
 	"\tnamespace\x18\x04 \x01(\tR\tnamespace\"\x87\x01\n" +
 	"\x14CartographerResponse\x12\x10\n" +
 	"\x03msg\x18\x01 \x03(\tR\x03msg\x12\x12\n" +
 	"\x04tags\x18\x02 \x03(\tR\x04tags\x12+\n" +
-	"\x05links\x18\x03 \x03(\v2\x15.cartographer.v1.LinkR\x05links\x12\x1c\n" +
+	"\x05notes\x18\x03 \x03(\v2\x15.cartographer.v1.NoteR\x05notes\x12\x1c\n" +
 	"\tnamespace\x18\x04 \x01(\tR\tnamespace\"!\n" +
 	"\vPingRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"(\n" +
@@ -769,12 +769,12 @@ var file_cartographer_v1_requests_proto_goTypes = []any{
 	(*CartographerDeleteRequest)(nil),     // 11: cartographer.v1.CartographerDeleteRequest
 	(*CartographerDeleteResponse)(nil),    // 12: cartographer.v1.CartographerDeleteResponse
 	(*Tag)(nil),                           // 13: cartographer.v1.Tag
-	(*Link)(nil),                          // 14: cartographer.v1.Link
+	(*Note)(nil),                          // 14: cartographer.v1.Note
 }
 var file_cartographer_v1_requests_proto_depIdxs = []int32{
 	13, // 0: cartographer.v1.CartographerRequest.tags:type_name -> cartographer.v1.Tag
-	14, // 1: cartographer.v1.CartographerRequest.links:type_name -> cartographer.v1.Link
-	14, // 2: cartographer.v1.CartographerResponse.links:type_name -> cartographer.v1.Link
+	14, // 1: cartographer.v1.CartographerRequest.notes:type_name -> cartographer.v1.Note
+	14, // 2: cartographer.v1.CartographerResponse.notes:type_name -> cartographer.v1.Note
 	1,  // 3: cartographer.v1.CartographerGetRequest.request:type_name -> cartographer.v1.CartographerRequest
 	0,  // 4: cartographer.v1.CartographerGetRequest.type:type_name -> cartographer.v1.RequestType
 	2,  // 5: cartographer.v1.CartographerGetResponse.response:type_name -> cartographer.v1.CartographerResponse

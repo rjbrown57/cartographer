@@ -11,12 +11,12 @@ namespace: default
 cartographer:
   address: 0.0.0.0
   port: 8080
-links:
+notes:
   - url: https://github.com/kubernetes/kubernetes
     tags: ["k8s"]
-    description: |-
+    body: |-
       kubernetes core github repository
-    displayname: github kube
+    title: github kube
   - url: https://github.com/goharbor/harbor
     tags: ["oci", "k8s"]
 ```

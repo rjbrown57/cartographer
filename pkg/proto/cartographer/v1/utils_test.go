@@ -28,20 +28,21 @@ func TestNewProtoTag(t *testing.T) {
 
 func TestNewCartographerRequest(t *testing.T) {
 	tests := []struct {
-		links    []string
+		notes    []string
 		tags     []string
 		expected *CartographerRequest
 	}{
 		{
-			links: []string{"http://example.com"},
+			notes: []string{"http://example.com"},
 			tags:  []string{"tag1"},
 			expected: &CartographerRequest{
-				Links: []*Link{
+				Notes: []*Note{
 					{
-						Url:         "http://example.com",
-						Id:          "http://example.com",
-						Displayname: "example.com",
-						Tags:        []string{"tag1"},
+						Url:   "http://example.com",
+						Id:    "http://example.com",
+						Title: "example.com",
+						Body:  "http://example.com",
+						Tags:  []string{"tag1"},
 					},
 				},
 				Namespace: "default",
@@ -50,9 +51,9 @@ func TestNewCartographerRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result, err := NewCartographerRequest(test.links, test.tags, "default")
+		result, err := NewCartographerRequest(test.notes, test.tags, "default")
 		if err != nil {
-			t.Errorf("Error building link: %s", err)
+			t.Errorf("Error building note: %s", err)
 		}
 		if !reflect.DeepEqual(result, test.expected) {
 			t.Errorf("\nGot %v\nwant %v", result, test.expected)

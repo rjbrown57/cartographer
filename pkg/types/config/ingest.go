@@ -12,30 +12,58 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/utils"
 )
 
-// IngestConfig is used to ingest data from a yaml file. This is mainly for the map[string]any{} data in links.
+// IngestConfig is used to ingest data from a yaml file.
 type IngestConfig struct {
 	ApiVersion   string          `yaml:"apiVersion,omitempty"`
 	Namespace    string          `yaml:"namespace,omitempty"`
 	AutoTags     []*auto.AutoTag `yaml:"autotags,omitempty"`
 	ServerConfig ServerConfig    `yaml:"cartographer,omitempty"`
+	Notes        []*YamlNote     `yaml:"notes,omitempty"`
 	Links        []*YamlLink     `yaml:"links,omitempty"`
 }
 
-// GetProtoLinks converts the YamlLink struct to a proto.Link struct
+// Convert converts YAML note and legacy link entries into canonical notes.
 func (i *IngestConfig) Convert() *CartographerConfig {
 
-	pl := []*proto.Link{}
-	namespacedLinks := make(map[string][]*proto.Link)
+	notes := []*proto.Note{}
+	namespacedNotes := make(map[string][]*proto.Note)
 	ns, err := proto.GetNamespace(i.Namespace)
 	if err != nil {
 		log.Fatalf("Error validating namespace %q: %s", i.Namespace, err)
 	}
 
-	for _, l := range i.Links {
+	for _, n := range i.Notes {
+		title := n.Title
+		if title == "" {
+			title = n.Displayname
+		}
+		body := n.Body
+		if body == "" {
+			body = n.Description
+		}
 
-		protoLink, err := proto.NewLinkBuilder().
+		protoNote, err := proto.NewNoteBuilder().
+			WithURL(n.URL).
+			WithTitle(title).
+			WithBody(body).
+			WithTags(n.Tags).
+			WithData(n.Data).
+			WithId(n.Id).
+			WithAnnotations(n.Annotations).
+			Build()
+		if err != nil {
+			log.Fatalf("Error building note: %s", err)
+		}
+
+		notes = append(notes, protoNote)
+		namespacedNotes[ns] = append(namespacedNotes[ns], protoNote)
+	}
+
+	for _, l := range i.Links {
+		protoNote, err := proto.NewNoteBuilder().
 			WithURL(l.URL).
-			WithDisplayName(l.Displayname).
+			WithTitle(l.Displayname).
+			WithBody(l.URL).
 			WithDescription(l.Description).
 			WithTags(l.Tags).
 			WithData(l.Data).
@@ -43,17 +71,17 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 			WithAnnotations(l.Annotations).
 			Build()
 		if err != nil {
-			log.Fatalf("Error building link: %s", err)
+			log.Fatalf("Error building legacy link note: %s", err)
 		}
 
-		pl = append(pl, protoLink)
-		namespacedLinks[ns] = append(namespacedLinks[ns], protoLink)
+		notes = append(notes, protoNote)
+		namespacedNotes[ns] = append(namespacedNotes[ns], protoNote)
 	}
 
 	c := &CartographerConfig{
 		Namespace:        ns,
-		Links:            pl,
-		LinksByNamespace: namespacedLinks,
+		Notes:            notes,
+		NotesByNamespace: namespacedNotes,
 		AutoTags:         i.AutoTags,
 		ServerConfig:     i.ServerConfig,
 		ApiVersion:       i.ApiVersion,
@@ -64,8 +92,21 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 	return c
 }
 
+// YamlNote is a struct that is used to ingest note data from a yaml file.
+type YamlNote struct {
+	URL         string            `yaml:"url"`
+	Title       string            `yaml:"title"`
+	Body        string            `yaml:"body"`
+	Displayname string            `yaml:"displayname"`
+	Description string            `yaml:"description"`
+	Tags        []string          `yaml:"tags"`
+	Data        map[string]any    `yaml:"data"`
+	Id          string            `yaml:"id"`
+	Annotations map[string]string `yaml:"annotations,omitempty"`
+}
+
 // YamlLink is a struct that is used to ingest data from a yaml file.
-// This is mainly for the map[string]any data in links.
+// This legacy shape is normalized into notes during ingest.
 type YamlLink struct {
 	URL         string            `yaml:"url"`
 	Displayname string            `yaml:"displayname"`
@@ -120,7 +161,7 @@ func (c *CartographerConfig) MergeConfigDir(dirpath string) {
 		case !strings.HasSuffix(file.Name(), ".yaml") || strings.HasPrefix(file.Name(), "."):
 			continue
 		default:
-			// Read the config file and merge links/autotags.
+			// Read the config file and merge notes/autotags.
 			mc := NewCartographerConfig(filepath.Join(dirpath, file.Name()))
 			c.MergeConfig(mc)
 		}
@@ -140,11 +181,11 @@ func (c *CartographerConfig) MergeConfig(mc *CartographerConfig) {
 	}
 
 	c.AutoTags = append(c.AutoTags, mc.AutoTags...)
-	c.Links = append(c.Links, mc.Links...)
-	if c.LinksByNamespace == nil {
-		c.LinksByNamespace = make(map[string][]*proto.Link)
+	c.Notes = append(c.Notes, mc.Notes...)
+	if c.NotesByNamespace == nil {
+		c.NotesByNamespace = make(map[string][]*proto.Note)
 	}
-	for ns, links := range mc.LinksByNamespace {
-		c.LinksByNamespace[ns] = append(c.LinksByNamespace[ns], links...)
+	for ns, notes := range mc.NotesByNamespace {
+		c.NotesByNamespace[ns] = append(c.NotesByNamespace[ns], notes...)
 	}
 }

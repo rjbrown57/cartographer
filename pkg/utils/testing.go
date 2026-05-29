@@ -23,7 +23,7 @@ cartographer:
   backend:
     type: boltdb
     path: /tmp/debugcartographer.db
-links: 
+notes: 
   - url: https://github.com/kubernetes/kubernetes
     tags: ["k8s"]
     description: |-
@@ -103,7 +103,7 @@ func WriteTestDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = subFile1.Write(fmt.Appendf(nil, "links:\n%s", LinkOnly1Config))
+	_, err = subFile1.Write(fmt.Appendf(nil, "notes:\n%s", LinkOnly1Config))
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +117,7 @@ func WriteTestDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = subFile2.Write(fmt.Appendf(nil, "links:\n%s", LinkOnly2Config))
+	_, err = subFile2.Write(fmt.Appendf(nil, "notes:\n%s", LinkOnly2Config))
 	if err != nil {
 		return "", err
 	}

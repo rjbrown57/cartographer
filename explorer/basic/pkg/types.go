@@ -63,7 +63,7 @@ func (e *BasicExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 		return nil, err
 	}
 
-	protoLink, err := proto.NewLinkBuilder().
+	protoNote, err := proto.NewNoteBuilder().
 		WithTags([]string{"explorer"}).
 		WithData(map[string]any{"data": parsedData}).
 		WithId(e.options.TargetUrl).
@@ -72,7 +72,7 @@ func (e *BasicExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
 		return nil, err
 	}
 
-	r.Request.Links = append(r.Request.Links, protoLink)
+	r.Request.Notes = append(r.Request.Notes, protoNote)
 
 	return r, nil
 }

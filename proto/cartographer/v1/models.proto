@@ -6,18 +6,18 @@ package cartographer.v1;
 
 import "google/protobuf/struct.proto";
 
-// Link represents a bookmark or link with metadata
-message Link {
+// Note represents searchable markdown content with optional URL metadata.
+message Note {
   string url = 1;
-  string displayname = 2;
-  string description = 3;
+  string title = 2;
+  string body = 3;
   repeated string tags = 4; // need to fix this to use repeated Tag tags
   google.protobuf.Struct data = 6;
-  string id = 7; 
+  string id = 7;
   map<string, string> annotations = 8;
 }
 
-// Tag represents a label or category for organizing links
+// Tag represents a label or category for organizing notes.
 message Tag {
   string name = 1;
   string description = 2;

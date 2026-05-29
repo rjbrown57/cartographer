@@ -8,15 +8,15 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
-// getStreamLinks returns a namespace-scoped snapshot of links for stream responses.
-func (c *CartographerServer) getStreamLinks(ns string) []*proto.Link {
+// getStreamNotes returns a namespace-scoped snapshot of notes for stream responses.
+func (c *CartographerServer) getStreamNotes(ns string) []*proto.Note {
 	c.mu.RLock()
-	links := c.nsCache.GetLinks(ns)
+	notes := c.nsCache.GetNotes(ns)
 	c.mu.RUnlock()
-	return links
+	return notes
 }
 
-// StreamGet streams namespace-scoped link snapshots to the client when cache updates are published.
+// StreamGet streams namespace-scoped note snapshots to the client when cache updates are published.
 func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, stream grpc.ServerStreamingServer[proto.CartographerStreamGetResponse]) error {
 
 	// https://grpc.io/docs/languages/go/basics/#server-side-streaming-rpc
@@ -31,7 +31,7 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	}
 
 	s.Response.Namespace = ns
-	s.Response.Links = c.getStreamLinks(ns)
+	s.Response.Notes = c.getStreamNotes(ns)
 
 	if err := stream.Send(&s); err != nil {
 		return err
@@ -45,8 +45,8 @@ func (c *CartographerServer) StreamGet(in *proto.CartographerStreamGetRequest, s
 	for {
 		<-notifier.Channel
 
-		// Rebuild the response snapshot each tick to avoid duplicating links.
-		s.Response.Links = c.getStreamLinks(ns)
+		// Rebuild the response snapshot each tick to avoid duplicating notes.
+		s.Response.Notes = c.getStreamNotes(ns)
 
 		if err := stream.Send(&s); err != nil {
 			return err
