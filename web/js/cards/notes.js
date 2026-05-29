@@ -45,7 +45,6 @@ export class Note {
     render() {
         const card = this.self;
         this.setupCardBase(card);
-        this.addMaximizeIcon(card);
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createCardView(dataText));
         card.appendChild(this.createListRow());
@@ -54,20 +53,19 @@ export class Note {
     setupCardBase(card) {
         card.id = this.id || this.title;
         card.className = 'link-card note-card';
-    }
-    addMaximizeIcon(card) {
-        const iconContainer = document.createElement('div');
-        iconContainer.className = 'position-absolute top-0 end-0 mt-3 me-3';
-        const icon = document.createElement('i');
-        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
-        icon.title = 'Expand note';
-        icon.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleMaximize();
+        card.onclick = (event) => {
+            this.handleCardClick(event);
         };
-        iconContainer.appendChild(icon);
-        card.appendChild(iconContainer);
+    }
+    handleCardClick(event) {
+        if (this.isMaximized) {
+            return;
+        }
+        const target = event.target;
+        if (target?.closest('a, button, input, textarea, select, label, [role="button"]')) {
+            return;
+        }
+        this.maximize();
     }
     createCardView(dataText) {
         const cardView = document.createElement('div');
@@ -104,14 +102,9 @@ export class Note {
             link.title = this.url;
             return link;
         }
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = className;
-        button.onclick = (event) => {
-            event.preventDefault();
-            this.toggleMaximize();
-        };
-        return button;
+        const title = document.createElement('span');
+        title.className = className;
+        return title;
     }
     createNoteActions() {
         const actions = document.createElement('div');
@@ -328,7 +321,6 @@ export class Note {
     }
     maximize() {
         const card = this.self;
-        const icon = card.querySelector('.link-card__toggle');
         const dataContainer = card.querySelector('.data-container');
         const listRow = card.querySelector('.list-view-row');
         const markdown = card.querySelector('.note-markdown');
@@ -362,8 +354,6 @@ export class Note {
         if (dataContainer) {
             dataContainer.classList.remove('is-hidden');
         }
-        icon.className = 'bi bi-fullscreen-exit link-card__toggle';
-        icon.title = 'Collapse note';
         overlay.style.display = 'flex';
         if (listRow) {
             listRow.style.display = 'none';
@@ -373,7 +363,6 @@ export class Note {
     }
     minimize() {
         const card = this.self;
-        const icon = card.querySelector('.link-card__toggle');
         const dataContainer = card.querySelector('.data-container');
         const listRow = card.querySelector('.list-view-row');
         const markdown = card.querySelector('.note-markdown');
@@ -391,8 +380,6 @@ export class Note {
         if (listRow) {
             listRow.style.display = '';
         }
-        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
-        icon.title = 'Expand note';
         this.tagsExpanded = false;
         this.renderTags(false);
         const gridContainer = document.getElementById("linkgrid");

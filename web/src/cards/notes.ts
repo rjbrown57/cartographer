@@ -68,7 +68,6 @@ export class Note implements cards.Card {
     render(): Node {
         const card = this.self;
         this.setupCardBase(card);
-        this.addMaximizeIcon(card);
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createCardView(dataText));
         card.appendChild(this.createListRow());
@@ -79,24 +78,23 @@ export class Note implements cards.Card {
     private setupCardBase(card: HTMLElement): void {
         card.id = this.id || this.title;
         card.className = 'link-card note-card';
+        card.onclick = (event) => {
+            this.handleCardClick(event);
+        };
     }
 
-    // addMaximizeIcon adds the expand control to the card.
-    private addMaximizeIcon(card: HTMLElement): void {
-        const iconContainer = document.createElement('div');
-        iconContainer.className = 'position-absolute top-0 end-0 mt-3 me-3';
+    // handleCardClick expands the card unless an inner control handled the click.
+    private handleCardClick(event: MouseEvent): void {
+        if (this.isMaximized) {
+            return;
+        }
 
-        const icon = document.createElement('i');
-        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
-        icon.title = 'Expand note';
-        icon.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleMaximize();
-        };
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('a, button, input, textarea, select, label, [role="button"]')) {
+            return;
+        }
 
-        iconContainer.appendChild(icon);
-        card.appendChild(iconContainer);
+        this.maximize();
     }
 
     // createCardView creates the card view wrapper including body and footer.
@@ -135,7 +133,7 @@ export class Note implements cards.Card {
         return body;
     }
 
-    // createTitleElement builds a URL link when present, otherwise an expand button.
+    // createTitleElement builds a URL link when present, otherwise plain title text.
     private createTitleElement(className: string): HTMLElement {
         if (this.url) {
             const link = document.createElement('a');
@@ -147,14 +145,9 @@ export class Note implements cards.Card {
             return link;
         }
 
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = className;
-        button.onclick = (event) => {
-            event.preventDefault();
-            this.toggleMaximize();
-        };
-        return button;
+        const title = document.createElement('span');
+        title.className = className;
+        return title;
     }
 
     // createNoteActions builds note-level actions for editing the current note.
@@ -430,7 +423,6 @@ export class Note implements cards.Card {
     // maximize expands the card into a fullscreen overlay.
     maximize(): void {
         const card = this.self;
-        const icon = card.querySelector('.link-card__toggle') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
         const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const markdown = card.querySelector('.note-markdown') as HTMLElement | null;
@@ -471,8 +463,6 @@ export class Note implements cards.Card {
             dataContainer.classList.remove('is-hidden');
         }
 
-        icon.className = 'bi bi-fullscreen-exit link-card__toggle';
-        icon.title = 'Collapse note';
         overlay.style.display = 'flex';
 
         if (listRow) {
@@ -486,7 +476,6 @@ export class Note implements cards.Card {
     // minimize restores the card back into the grid.
     minimize(): void {
         const card = this.self;
-        const icon = card.querySelector('.link-card__toggle') as HTMLElement;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
         const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const markdown = card.querySelector('.note-markdown') as HTMLElement | null;
@@ -507,9 +496,6 @@ export class Note implements cards.Card {
         if (listRow) {
             listRow.style.display = '';
         }
-
-        icon.className = 'bi bi-arrows-fullscreen link-card__toggle';
-        icon.title = 'Expand note';
 
         this.tagsExpanded = false;
         this.renderTags(false);
