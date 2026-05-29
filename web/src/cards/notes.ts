@@ -10,7 +10,7 @@ declare const DOMPurify: {
 };
 
 // RenderMarkdown renders markdown text through the configured sanitizer.
-function RenderMarkdown(markdown: string): string {
+export function RenderMarkdown(markdown: string): string {
     if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
         return EscapeHTML(markdown).replace(/\n/g, '<br>');
     }
@@ -165,15 +165,54 @@ export class Note implements cards.Card {
         const editButton = document.createElement('button');
         editButton.type = 'button';
         editButton.className = 'note-action-button';
-        editButton.innerHTML = '<i class="bi bi-pencil-square"></i><span>Edit note</span>';
+        editButton.innerHTML = '<i class="bi bi-pencil-square"></i><span>Edit</span>';
         editButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
             this.dispatchEditEvent();
         };
 
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.className = 'note-action-button';
+        copyButton.innerHTML = '<i class="bi bi-clipboard"></i><span>Copy</span>';
+        copyButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.copyTextToClipboard(this.body, () => {
+                this.setInlineActionState(copyButton, '<i class="bi bi-check2"></i><span>Copied</span>');
+            });
+        };
+
         actions.appendChild(editButton);
+        actions.appendChild(copyButton);
         return actions;
+    }
+
+    // copyTextToClipboard writes text to the Clipboard API with a textarea fallback.
+    private copyTextToClipboard(text: string, onSuccess: () => void): void {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(err => {
+            console.error('Failed to copy: ', err);
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            onSuccess();
+        });
+    }
+
+    // setInlineActionState temporarily updates inline note action button content.
+    private setInlineActionState(button: HTMLButtonElement, copiedHTML: string): void {
+        const originalHTML = button.innerHTML;
+        button.innerHTML = copiedHTML;
+        button.classList.add('note-action-button--success');
+
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('note-action-button--success');
+        }, 1600);
     }
 
     // dispatchEditEvent sends the current note data to the shared composer.
@@ -221,16 +260,7 @@ export class Note implements cards.Card {
         copyButton.className = 'btn btn-primary btn-sm d-inline-flex align-items-center gap-2';
         copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
         copyButton.onclick = () => {
-            navigator.clipboard.writeText(dataText).then(() => {
-                this.setCopyButtonState(copyButton, true);
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                const textArea = document.createElement('textarea');
-                textArea.value = dataText;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
+            this.copyTextToClipboard(dataText, () => {
                 this.setCopyButtonState(copyButton, true);
             });
         };
