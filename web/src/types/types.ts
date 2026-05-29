@@ -1,6 +1,6 @@
 import * as dropdown from   '../components/dropDown.js';
 import * as cards from '../cards/cards.js';
-import { Note } from '../cards/notes.js';
+import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
@@ -196,11 +196,77 @@ function SetupNoteSubmission(): void {
     const urlInput = document.getElementById('noteURL') as HTMLInputElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
     const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
+    const tagsPreview = document.getElementById('noteTagPreview') as HTMLElement | null;
+    const writeTab = document.getElementById('noteWriteTab') as HTMLButtonElement | null;
+    const previewTab = document.getElementById('notePreviewTab') as HTMLButtonElement | null;
+    const previewPane = document.getElementById('notePreview') as HTMLElement | null;
     const modeLabel = document.getElementById('noteComposerModeLabel') as HTMLElement | null;
     const submitLabel = document.getElementById('noteSubmitLabel') as HTMLElement | null;
     if (!form) {
         return;
     }
+
+    // parseTags converts the composer tag input into normalized tag values.
+    const parseTags = (): string[] => {
+        const tagsValue = tagsInput?.value.trim() || '';
+        return tagsValue.split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '');
+    };
+
+    // syncTagPreview renders live chips from the current tag input.
+    const syncTagPreview = () => {
+        if (!tagsPreview) {
+            return;
+        }
+
+        tagsPreview.innerHTML = '';
+        parseTags().forEach((tag) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'note-tag-chip';
+            const label = document.createElement('span');
+            label.textContent = tag;
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-x';
+            chip.appendChild(label);
+            chip.appendChild(icon);
+            chip.addEventListener('click', () => {
+                const remainingTags = parseTags().filter(candidate => candidate !== tag);
+                if (tagsInput) {
+                    tagsInput.value = remainingTags.join(', ');
+                }
+                syncTagPreview();
+            });
+            tagsPreview.appendChild(chip);
+        });
+    };
+
+    // updatePreview refreshes the rendered markdown preview pane.
+    const updatePreview = () => {
+        if (!previewPane || !bodyInput) {
+            return;
+        }
+
+        const markdown = bodyInput.value.trim();
+        previewPane.innerHTML = markdown
+            ? RenderMarkdown(markdown)
+            : '<p class="text-secondary mb-0">Markdown preview will appear here.</p>';
+    };
+
+    // setEditorMode switches the composer between writing and previewing markdown.
+    const setEditorMode = (mode: 'write' | 'preview') => {
+        const isPreview = mode === 'preview';
+        bodyInput?.classList.toggle('is-hidden', isPreview);
+        previewPane?.classList.toggle('is-hidden', !isPreview);
+        writeTab?.classList.toggle('note-editor-tab--active', !isPreview);
+        previewTab?.classList.toggle('note-editor-tab--active', isPreview);
+        writeTab?.setAttribute('aria-pressed', String(!isPreview));
+        previewTab?.setAttribute('aria-pressed', String(isPreview));
+        if (isPreview) {
+            updatePreview();
+        }
+    };
 
     const setComposerOpen = (open: boolean) => {
         if (!composer || !toggle) {
@@ -231,7 +297,15 @@ function SetupNoteSubmission(): void {
             status.textContent = '';
             status.className = 'note-form-status';
         }
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
     };
+
+    bodyInput?.addEventListener('input', updatePreview);
+    tagsInput?.addEventListener('input', syncTagPreview);
+    writeTab?.addEventListener('click', () => setEditorMode('write'));
+    previewTab?.addEventListener('click', () => setEditorMode('preview'));
 
     toggle?.addEventListener('click', () => {
         const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
@@ -293,6 +367,9 @@ function SetupNoteSubmission(): void {
             status.className = 'note-form-status text-secondary';
         }
 
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
         setComposerOpen(true);
     }) as EventListener);
 
@@ -303,10 +380,7 @@ function SetupNoteSubmission(): void {
         const title = titleInput?.value.trim() || '';
         const url = urlInput?.value.trim() || '';
         const body = bodyInput?.value.trim() || '';
-        const tagsValue = tagsInput?.value.trim() || '';
-        const tags = tagsValue.split(',')
-            .map(tag => tag.trim())
-            .filter(tag => tag !== '');
+        const tags = parseTags();
 
         if (!title || !body) {
             if (status) {

@@ -1,5 +1,5 @@
 import * as dropdown from '../components/dropDown.js';
-import { Note } from '../cards/notes.js';
+import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
@@ -119,11 +119,67 @@ function SetupNoteSubmission() {
     const urlInput = document.getElementById('noteURL');
     const bodyInput = document.getElementById('noteBody');
     const tagsInput = document.getElementById('noteTags');
+    const tagsPreview = document.getElementById('noteTagPreview');
+    const writeTab = document.getElementById('noteWriteTab');
+    const previewTab = document.getElementById('notePreviewTab');
+    const previewPane = document.getElementById('notePreview');
     const modeLabel = document.getElementById('noteComposerModeLabel');
     const submitLabel = document.getElementById('noteSubmitLabel');
     if (!form) {
         return;
     }
+    const parseTags = () => {
+        const tagsValue = tagsInput?.value.trim() || '';
+        return tagsValue.split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '');
+    };
+    const syncTagPreview = () => {
+        if (!tagsPreview) {
+            return;
+        }
+        tagsPreview.innerHTML = '';
+        parseTags().forEach((tag) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'note-tag-chip';
+            const label = document.createElement('span');
+            label.textContent = tag;
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-x';
+            chip.appendChild(label);
+            chip.appendChild(icon);
+            chip.addEventListener('click', () => {
+                const remainingTags = parseTags().filter(candidate => candidate !== tag);
+                if (tagsInput) {
+                    tagsInput.value = remainingTags.join(', ');
+                }
+                syncTagPreview();
+            });
+            tagsPreview.appendChild(chip);
+        });
+    };
+    const updatePreview = () => {
+        if (!previewPane || !bodyInput) {
+            return;
+        }
+        const markdown = bodyInput.value.trim();
+        previewPane.innerHTML = markdown
+            ? RenderMarkdown(markdown)
+            : '<p class="text-secondary mb-0">Markdown preview will appear here.</p>';
+    };
+    const setEditorMode = (mode) => {
+        const isPreview = mode === 'preview';
+        bodyInput?.classList.toggle('is-hidden', isPreview);
+        previewPane?.classList.toggle('is-hidden', !isPreview);
+        writeTab?.classList.toggle('note-editor-tab--active', !isPreview);
+        previewTab?.classList.toggle('note-editor-tab--active', isPreview);
+        writeTab?.setAttribute('aria-pressed', String(!isPreview));
+        previewTab?.setAttribute('aria-pressed', String(isPreview));
+        if (isPreview) {
+            updatePreview();
+        }
+    };
     const setComposerOpen = (open) => {
         if (!composer || !toggle) {
             return;
@@ -150,7 +206,14 @@ function SetupNoteSubmission() {
             status.textContent = '';
             status.className = 'note-form-status';
         }
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
     };
+    bodyInput?.addEventListener('input', updatePreview);
+    tagsInput?.addEventListener('input', syncTagPreview);
+    writeTab?.addEventListener('click', () => setEditorMode('write'));
+    previewTab?.addEventListener('click', () => setEditorMode('preview'));
     toggle?.addEventListener('click', () => {
         const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
         if (!isOpen) {
@@ -205,6 +268,9 @@ function SetupNoteSubmission() {
             status.textContent = 'Editing existing note.';
             status.className = 'note-form-status text-secondary';
         }
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
         setComposerOpen(true);
     }));
     form.addEventListener('submit', async (event) => {
@@ -213,10 +279,7 @@ function SetupNoteSubmission() {
         const title = titleInput?.value.trim() || '';
         const url = urlInput?.value.trim() || '';
         const body = bodyInput?.value.trim() || '';
-        const tagsValue = tagsInput?.value.trim() || '';
-        const tags = tagsValue.split(',')
-            .map(tag => tag.trim())
-            .filter(tag => tag !== '');
+        const tags = parseTags();
         if (!title || !body) {
             if (status) {
                 status.textContent = 'Title and markdown body are required.';

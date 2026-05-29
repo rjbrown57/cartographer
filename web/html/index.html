@@ -418,20 +418,30 @@
 		}
 
 		.note-action-button {
-			border: 0;
-			background: transparent;
-			color: var(--accent);
+			border: 1px solid #dbe4f0;
+			border-radius: 999px;
+			background: #f8fafc;
+			color: #475569;
 			display: inline-flex;
 			align-items: center;
 			gap: 0.35rem;
 			font-size: 0.82rem;
 			font-weight: 600;
-			padding: 0;
+			padding: 0.28rem 0.58rem;
+			transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 		}
 
 		.note-action-button:hover {
+			background: #eef2ff;
+			border-color: #c7d2fe;
 			color: var(--accent-dark);
-			text-decoration: underline;
+		}
+
+		.note-action-button--success,
+		.note-action-button--success:hover {
+			background: #ecfdf5;
+			border-color: #86efac;
+			color: #15803d;
 		}
 
 		.note-markdown {
@@ -503,6 +513,70 @@
 			display: grid;
 			gap: 0.75rem;
 			margin-top: 0.85rem;
+		}
+
+		.note-editor-tabs {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.2rem;
+			padding: 0.18rem;
+			background: #e2e8f0;
+			border-radius: 999px;
+		}
+
+		.note-editor-tab {
+			border: 0;
+			border-radius: 999px;
+			background: transparent;
+			color: #475569;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+			font-size: 0.82rem;
+			font-weight: 700;
+			padding: 0.3rem 0.65rem;
+		}
+
+		.note-editor-tab--active {
+			background: #ffffff;
+			color: #0f172a;
+			box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+		}
+
+		.note-preview-pane {
+			background: #ffffff;
+			border: 1px solid #cbd5e1;
+			border-radius: 8px;
+			color: var(--text-primary);
+			min-height: 222px;
+			padding: 0.75rem;
+		}
+
+		.note-tag-preview {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.35rem;
+			margin-top: 0.45rem;
+			min-height: 1.9rem;
+		}
+
+		.note-tag-chip {
+			border: 1px solid #cbd5e1;
+			border-radius: 999px;
+			background: #f8fafc;
+			color: #334155;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.2rem;
+			font-size: 0.78rem;
+			font-weight: 700;
+			padding: 0.24rem 0.5rem;
+		}
+
+		.note-tag-chip:hover {
+			background: #fee2e2;
+			border-color: #fecaca;
+			color: #991b1b;
 		}
 
 		.note-form-status {
@@ -816,12 +890,26 @@
 							<input id="noteURL" class="form-control" type="url" autocomplete="off">
 						</div>
 						<div class="col-12">
-							<label for="noteBody" class="form-label">Markdown</label>
+							<div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+								<label for="noteBody" class="form-label mb-0">Markdown</label>
+								<div class="note-editor-tabs" role="group" aria-label="Markdown editor mode">
+									<button id="noteWriteTab" class="note-editor-tab note-editor-tab--active" type="button" aria-pressed="true">
+										<i class="bi bi-pencil"></i>
+										<span>Write</span>
+									</button>
+									<button id="notePreviewTab" class="note-editor-tab" type="button" aria-pressed="false">
+										<i class="bi bi-eye"></i>
+										<span>Preview</span>
+									</button>
+								</div>
+							</div>
 							<textarea id="noteBody" class="form-control" rows="8" required></textarea>
+							<div id="notePreview" class="note-preview-pane note-markdown is-hidden"></div>
 						</div>
 						<div class="col-12 col-lg-8">
 							<label for="noteTags" class="form-label">Tags</label>
 							<input id="noteTags" class="form-control" type="text" autocomplete="off" placeholder="ops, runbook, incident">
+							<div id="noteTagPreview" class="note-tag-preview" aria-live="polite"></div>
 						</div>
 						<div class="col-12 col-lg-4 d-flex align-items-end gap-3">
 							<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
