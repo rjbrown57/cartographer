@@ -448,15 +448,64 @@
 			line-height: 1.5;
 		}
 
+		.note-markdown h1,
+		.note-markdown h2,
+		.note-markdown h3,
+		.note-markdown h4,
+		.note-markdown h5,
+		.note-markdown h6 {
+			color: var(--text-primary);
+			font-family: 'Inter', system-ui, -apple-system, sans-serif;
+			font-weight: 700;
+			line-height: 1.25;
+			margin: 0.95rem 0 0.45rem;
+		}
+
+		.note-markdown h1 {
+			font-size: 1.45rem;
+		}
+
+		.note-markdown h2 {
+			font-size: 1.25rem;
+		}
+
+		.note-markdown h3,
+		.note-markdown h4,
+		.note-markdown h5,
+		.note-markdown h6 {
+			font-size: 1.08rem;
+		}
+
+		.note-markdown > :first-child {
+			margin-top: 0;
+		}
+
 		.note-markdown > :last-child {
 			margin-bottom: 0;
 		}
 
 		.note-markdown--preview {
-			display: -webkit-box;
-			-webkit-line-clamp: 4;
-			-webkit-box-orient: vertical;
+			max-height: 7.5rem;
 			overflow: hidden;
+		}
+
+		.note-markdown--preview h1,
+		.note-markdown--preview h2,
+		.note-markdown--preview h3,
+		.note-markdown--preview h4,
+		.note-markdown--preview h5,
+		.note-markdown--preview h6 {
+			font-size: 0.98rem;
+			line-height: 1.35;
+			margin: 0 0 0.35rem;
+		}
+
+		.note-markdown--preview p,
+		.note-markdown--preview ul,
+		.note-markdown--preview ol,
+		.note-markdown--preview pre,
+		.note-markdown--preview blockquote {
+			margin-bottom: 0.45rem;
 		}
 
 		.note-composer {
