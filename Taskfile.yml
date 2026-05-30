@@ -38,10 +38,10 @@ tasks:
       num: 2500
       profile: mixed
       bodySize: 700
-      namespace: default
-      dataPath: /tmp/data.yaml
+      namespaces: default,platform,security,operations
+      dataPath: /tmp/cartographer-generated-data
     cmds:
-    - cartographer test generate -n {{.num}} --profile {{.profile}} --body-size {{.bodySize}} --namespace {{.namespace}} > {{.dataPath}}
+    - cartographer test generate -n {{.num}} --profile {{.profile}} --body-size {{.bodySize}} --namespaces {{.namespaces}} --output-dir {{.dataPath}}
     - cartographer client add -f {{.dataPath}}
   serve:
     desc: "start cartographer"
