@@ -2,7 +2,6 @@ import * as cards from '../cards/cards.js';
 import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
-import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
 import * as query from '../query/query.js';
 
 const EncodingHeader = {
@@ -62,7 +61,6 @@ export class Cartographer {
     // Initialize data, build cards, and wire up UI controls.
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
-        SetupViewToggle();
         SetupNoteSubmission();
         this.Initialize();
     }
@@ -1078,40 +1076,6 @@ function RenderNavMetadata(cardsList: cards.Card[]) {
     metaRow.classList.add(ENTER_CLASS);
     requestAnimationFrame(() => {
         metaRow.classList.remove(ENTER_CLASS);
-    });
-}
-
-// Wire up the list/grid view toggle and persist user preference.
-function SetupViewToggle(): void {
-    // Find the toggle button and elements that change layout visibility.
-    const toggle = document.getElementById('viewToggle') as HTMLButtonElement | null;
-    const grid = document.getElementById('linkgrid');
-    const header = document.getElementById('listHeader');
-
-    // Exit early if required DOM elements are missing.
-    if (!toggle || !grid) {
-        return;
-    }
-
-    // Apply list/grid classes, header visibility, and button state.
-    const updateToggle = (isListView: boolean) => {
-        grid.classList.toggle('list-view', isListView);
-        header?.classList.toggle('is-hidden', !isListView);
-        toggle.setAttribute('aria-pressed', String(isListView));
-        toggle.setAttribute('aria-label', isListView ? 'Switch to grid view' : 'Switch to list view');
-        toggle.innerHTML = isListView
-            ? '<i class="bi bi-grid-3x3-gap"></i><span class="visually-hidden">Grid view</span>'
-            : '<i class="bi bi-list"></i><span class="visually-hidden">List view</span>';
-    };
-
-    // Default to grid view unless cached preference exists.
-    updateToggle(getListViewPreference());
-
-    // Flip the view on button click.
-    toggle.addEventListener('click', () => {
-        const isListView = !grid.classList.contains('list-view');
-        updateToggle(isListView);
-        setListViewPreference(isListView);
     });
 }
 

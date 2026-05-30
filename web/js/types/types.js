@@ -1,7 +1,6 @@
 import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
-import { getListViewPreference, setListViewPreference } from '../components/uiOptions.js';
 import * as query from '../query/query.js';
 const EncodingHeader = {
     headers: {
@@ -22,7 +21,6 @@ export class Cartographer {
     renderVersion = 0;
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
-        SetupViewToggle();
         SetupNoteSubmission();
         this.Initialize();
     }
@@ -841,29 +839,6 @@ function RenderNavMetadata(cardsList) {
     metaRow.classList.add(ENTER_CLASS);
     requestAnimationFrame(() => {
         metaRow.classList.remove(ENTER_CLASS);
-    });
-}
-function SetupViewToggle() {
-    const toggle = document.getElementById('viewToggle');
-    const grid = document.getElementById('linkgrid');
-    const header = document.getElementById('listHeader');
-    if (!toggle || !grid) {
-        return;
-    }
-    const updateToggle = (isListView) => {
-        grid.classList.toggle('list-view', isListView);
-        header?.classList.toggle('is-hidden', !isListView);
-        toggle.setAttribute('aria-pressed', String(isListView));
-        toggle.setAttribute('aria-label', isListView ? 'Switch to grid view' : 'Switch to list view');
-        toggle.innerHTML = isListView
-            ? '<i class="bi bi-grid-3x3-gap"></i><span class="visually-hidden">Grid view</span>'
-            : '<i class="bi bi-list"></i><span class="visually-hidden">List view</span>';
-    };
-    updateToggle(getListViewPreference());
-    toggle.addEventListener('click', () => {
-        const isListView = !grid.classList.contains('list-view');
-        updateToggle(isListView);
-        setListViewPreference(isListView);
     });
 }
 async function GetNamespaces() {

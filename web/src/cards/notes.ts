@@ -73,7 +73,6 @@ export class Note implements cards.Card {
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createNoteActions());
         card.appendChild(this.createCardView(dataText));
-        card.appendChild(this.createListRow());
         return card;
     }
 
@@ -322,33 +321,6 @@ export class Note implements cards.Card {
         return footer;
     }
 
-    // createListRow builds the compact list row view for list layouts.
-    private createListRow(): HTMLElement {
-        const listRow = document.createElement('div');
-        listRow.className = 'list-view-row list-grid';
-
-        const titleColumn = document.createElement('div');
-        titleColumn.className = 'd-flex align-items-center';
-        const titleElement = this.createTitleElement('list-title note-list-title');
-        titleElement.title = this.url || this.title;
-        titleElement.textContent = this.title;
-        titleColumn.appendChild(titleElement);
-
-        const descriptionColumn = document.createElement('div');
-        descriptionColumn.className = 'list-description';
-        descriptionColumn.textContent = this.body;
-
-        const tagsColumn = document.createElement('div');
-        tagsColumn.className = 'list-tags';
-        tagsColumn.appendChild(this.createTagListElement(4));
-
-        listRow.appendChild(titleColumn);
-        listRow.appendChild(descriptionColumn);
-        listRow.appendChild(tagsColumn);
-
-        return listRow;
-    }
-
     // renderTags renders the tag list with expand/collapse behavior.
     private renderTags(showAllOverride: boolean = false): void {
         if (!this.tagList) {
@@ -410,38 +382,6 @@ export class Note implements cards.Card {
         this.tagList.appendChild(li);
     }
 
-    // createTagListElement creates a compact tag list element with a max visible count.
-    private createTagListElement(maxVisible: number): HTMLUListElement {
-        const list = document.createElement('ul');
-        list.className = 'list-unstyled d-flex flex-wrap gap-2 m-0';
-
-        const visibleTags = this.tags.slice(0, maxVisible);
-        visibleTags.forEach(tag => {
-            const li = document.createElement('li');
-            li.className = 'tag-pill tag-pill--compact';
-
-            const tagLink = document.createElement('a');
-            tagLink.href = "#";
-            tagLink.className = 'tag-link';
-            tagLink.textContent = tag;
-            tagLink.onclick = () => {
-                TagFilter(tag);
-            };
-
-            li.appendChild(tagLink);
-            list.appendChild(li);
-        });
-
-        if (this.tags.length > maxVisible) {
-            const more = document.createElement('span');
-            more.className = 'tag-overflow';
-            more.textContent = `+${this.tags.length - maxVisible} more`;
-            list.appendChild(more);
-        }
-
-        return list;
-    }
-
     // toggleMaximize toggles between maximized and minimized states.
     toggleMaximize(): void {
         if (this.isMaximized) {
@@ -455,7 +395,6 @@ export class Note implements cards.Card {
     maximize(): void {
         const card = this.self;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
-        const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const markdown = card.querySelector('.note-markdown') as HTMLElement | null;
 
         this.originalParent = card.parentElement;
@@ -496,10 +435,6 @@ export class Note implements cards.Card {
 
         overlay.style.display = 'flex';
 
-        if (listRow) {
-            listRow.style.display = 'none';
-        }
-
         this.renderTags(true);
         this.isMaximized = true;
     }
@@ -508,7 +443,6 @@ export class Note implements cards.Card {
     minimize(): void {
         const card = this.self;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
-        const listRow = card.querySelector('.list-view-row') as HTMLElement | null;
         const markdown = card.querySelector('.note-markdown') as HTMLElement | null;
         const overlay = document.getElementById('maximized-card-overlay');
 
@@ -524,10 +458,6 @@ export class Note implements cards.Card {
         if (dataContainer) {
             dataContainer.classList.add('is-hidden');
         }
-        if (listRow) {
-            listRow.style.display = '';
-        }
-
         this.tagsExpanded = false;
         this.renderTags(false);
 
