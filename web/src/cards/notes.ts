@@ -10,6 +10,20 @@ declare const DOMPurify: {
     sanitize(html: string): string;
 };
 
+type CardOverlay = HTMLElement & {
+    activeCard?: Note;
+    keyHandler?: (event: KeyboardEvent) => void;
+};
+
+type NoteEditDetail = {
+    id: string;
+    title: string;
+    body: string;
+    url: string;
+    tags: string[];
+    data?: Record<string, any>;
+};
+
 // RenderMarkdown renders markdown text through the configured sanitizer.
 export function RenderMarkdown(markdown: string): string {
     if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
@@ -222,8 +236,9 @@ export class Note implements cards.Card {
                 body: this.body,
                 url: this.url,
                 tags: this.tags,
+                data: this.data,
             },
-        }));
+        } satisfies CustomEventInit<NoteEditDetail>));
     }
 
     // createDataContainer creates the data container with copy action.
@@ -400,30 +415,32 @@ export class Note implements cards.Card {
         this.originalParent = card.parentElement;
         this.originalNextSibling = card.nextSibling;
 
-        let overlay = document.getElementById('maximized-card-overlay');
+        let overlay = document.getElementById('maximized-card-overlay') as CardOverlay | null;
         if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'maximized-card-overlay';
-            overlay.className = 'maximized-overlay';
-            document.body.appendChild(overlay);
+            const createdOverlay = document.createElement('div') as CardOverlay;
+            createdOverlay.id = 'maximized-card-overlay';
+            createdOverlay.className = 'maximized-overlay';
+            document.body.appendChild(createdOverlay);
 
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    this.minimize();
+            createdOverlay.addEventListener('click', (e) => {
+                if (e.target === createdOverlay) {
+                    createdOverlay.activeCard?.minimize();
                 }
             });
 
             const handleKeyDown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape' && overlay && overlay.style.display !== 'none') {
-                    this.minimize();
+                if (e.key === 'Escape' && createdOverlay.style.display !== 'none') {
+                    createdOverlay.activeCard?.minimize();
                 }
             };
             document.addEventListener('keydown', handleKeyDown);
-            (overlay as any).keyHandler = handleKeyDown;
+            createdOverlay.keyHandler = handleKeyDown;
+            overlay = createdOverlay;
         }
 
         card.remove();
-        overlay.appendChild(card);
+        overlay.replaceChildren(card);
+        overlay.activeCard = this;
         card.className = 'link-card note-card';
 
         if (markdown) {
@@ -444,10 +461,13 @@ export class Note implements cards.Card {
         const card = this.self;
         const dataContainer = card.querySelector('.data-container') as HTMLElement;
         const markdown = card.querySelector('.note-markdown') as HTMLElement | null;
-        const overlay = document.getElementById('maximized-card-overlay');
+        const overlay = document.getElementById('maximized-card-overlay') as CardOverlay | null;
 
         if (overlay) {
             overlay.style.display = 'none';
+            if (overlay.activeCard === this) {
+                overlay.activeCard = undefined;
+            }
         }
 
         card.className = 'link-card note-card';

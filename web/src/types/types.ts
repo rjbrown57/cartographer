@@ -43,6 +43,7 @@ type NoteEditEvent = CustomEvent<{
     body: string;
     url: string;
     tags: string[];
+    data?: Record<string, any>;
 }>;
 
 type NoteComposeEvent = CustomEvent<{
@@ -245,6 +246,8 @@ function SetupNoteSubmission(): void {
     const namespaceInput = document.getElementById('noteNamespace') as HTMLInputElement | null;
     const namespaceOptions = document.getElementById('noteNamespaceOptions') as HTMLDataListElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
+    const dataDetails = document.getElementById('noteDataDetails') as HTMLDetailsElement | null;
+    const dataInput = document.getElementById('noteData') as HTMLTextAreaElement | null;
     const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
     const tagsPreview = document.getElementById('noteTagPreview') as HTMLElement | null;
     const writeTab = document.getElementById('noteWriteTab') as HTMLButtonElement | null;
@@ -262,6 +265,42 @@ function SetupNoteSubmission(): void {
         return tagsValue.split(',')
             .map(tag => tag.trim())
             .filter(tag => tag !== '');
+    };
+
+    // parseDataInput validates and parses the optional structured data payload.
+    const parseDataInput = (): Record<string, any> | null => {
+        const dataValue = dataInput?.value.trim() || '';
+        if (!dataValue) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(dataValue);
+            if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+                throw new Error('Data must be a JSON object.');
+            }
+            return parsed as Record<string, any>;
+        } catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Data must be valid JSON object syntax.';
+                status.className = 'note-form-status text-danger';
+            }
+            dataDetails?.setAttribute('open', '');
+            dataInput?.focus();
+            return null;
+        }
+    };
+
+    // setDataValue writes optional structured data into the composer.
+    const setDataValue = (data?: Record<string, any>) => {
+        if (!dataInput) {
+            return;
+        }
+
+        const hasData = data && Object.keys(data).length > 0;
+        dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
+        dataDetails?.toggleAttribute('open', Boolean(hasData));
     };
 
     // syncTagPreview renders live chips from the current tag input.
@@ -377,6 +416,7 @@ function SetupNoteSubmission(): void {
             namespaceInput.disabled = false;
         }
         setNamespaceValue(namespace);
+        setDataValue();
         if (submitLabel) {
             submitLabel.textContent = 'Save note';
         }
@@ -447,6 +487,7 @@ function SetupNoteSubmission(): void {
         if (bodyInput) {
             bodyInput.value = detail.body;
         }
+        setDataValue(detail.data);
         if (tagsInput) {
             tagsInput.value = detail.tags.join(', ');
         }
@@ -483,6 +524,12 @@ function SetupNoteSubmission(): void {
         const body = bodyInput?.value.trim() || '';
         const tags = parseTags();
         const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
+        const data = parseDataInput();
+        const hasDataInput = Boolean(dataInput?.value.trim());
+
+        if (hasDataInput && !data) {
+            return;
+        }
 
         if (!title || !body) {
             if (status) {
@@ -511,6 +558,7 @@ function SetupNoteSubmission(): void {
             body,
             url,
             tags,
+            data: data || undefined,
             namespace,
         };
         const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';

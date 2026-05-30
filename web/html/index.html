@@ -864,6 +864,32 @@
 			color: #991b1b;
 		}
 
+		.note-data-details {
+			border: 1px dashed #cbd5e1;
+			border-radius: 8px;
+			background: #f8fafc;
+			padding: 0.55rem 0.75rem;
+		}
+
+		.note-data-details[open] {
+			background: #ffffff;
+			border-style: solid;
+		}
+
+		.note-data-summary {
+			cursor: pointer;
+			color: #334155;
+			font-size: 0.85rem;
+			font-weight: 700;
+			list-style-position: inside;
+		}
+
+		.note-data-textarea {
+			margin-top: 0.55rem;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+			font-size: 0.8rem;
+		}
+
 		.note-form-status {
 			min-height: 1.25rem;
 			font-size: 0.85rem;
@@ -1095,6 +1121,12 @@
 							<label for="noteTags" class="form-label">Tags</label>
 							<input id="noteTags" class="form-control" type="text" autocomplete="off" placeholder="ops, runbook, incident">
 							<div id="noteTagPreview" class="note-tag-preview" aria-live="polite"></div>
+						</div>
+						<div class="col-12">
+							<details id="noteDataDetails" class="note-data-details">
+								<summary class="note-data-summary">Structured data</summary>
+								<textarea id="noteData" class="form-control note-data-textarea" rows="6" autocomplete="off" spellcheck="false" placeholder='{"key": "value"}'></textarea>
+							</details>
 						</div>
 						<div class="col-12 col-lg-4 d-flex align-items-end gap-3">
 							<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
