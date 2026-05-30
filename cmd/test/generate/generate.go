@@ -2,6 +2,8 @@ package generatecmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
@@ -16,6 +18,8 @@ var (
 	num        int
 	bodySize   int
 	namespace  string
+	namespaces string
+	outputDir  string
 	profile    string
 	urlPercent int
 )
@@ -51,17 +55,17 @@ var GenerateCmd = &cobra.Command{
 		// This is to avoid the log messages from the generate command from being printed to the console
 		log.ConfigureLog(false, 0)
 
-		genNotes := make([]*config.YamlNote, 0, num)
-		for i := 0; i < num; i++ {
-
-			genNotes = append(genNotes, buildGeneratedNote(i))
+		selectedNamespaces := getSelectedNamespaces()
+		if outputDir != "" {
+			writeGeneratedNamespaceFiles(selectedNamespaces)
+			return
 		}
 
-		c := config.IngestConfig{
-			Namespace: namespace,
-			Notes:     genNotes,
+		if len(selectedNamespaces) > 1 {
+			log.Fatalf("--output-dir is required when generating more than one namespace")
 		}
-		o, err := yaml.Marshal(c)
+
+		o, err := yaml.Marshal(buildGeneratedConfig(selectedNamespaces[0]))
 		if err != nil {
 			log.Fatalf("Unable to marshal generated notes %s", err)
 		}
@@ -70,15 +74,80 @@ var GenerateCmd = &cobra.Command{
 	},
 }
 
+// getSelectedNamespaces returns the namespaces requested for generation.
+func getSelectedNamespaces() []string {
+	rawNamespaces := namespace
+	if namespaces != "" {
+		rawNamespaces = namespaces
+	}
+
+	selectedNamespaces := make([]string, 0)
+	seen := make(map[string]bool)
+	for ns := range strings.SplitSeq(rawNamespaces, ",") {
+		trimmed := strings.TrimSpace(ns)
+		if trimmed == "" || seen[trimmed] {
+			continue
+		}
+		selectedNamespaces = append(selectedNamespaces, trimmed)
+		seen[trimmed] = true
+	}
+
+	if len(selectedNamespaces) == 0 {
+		return []string{"default"}
+	}
+	return selectedNamespaces
+}
+
+// writeGeneratedNamespaceFiles writes one generated YAML file per namespace.
+func writeGeneratedNamespaceFiles(selectedNamespaces []string) {
+	cleanOutputDir := filepath.Clean(outputDir)
+	if cleanOutputDir == "." || cleanOutputDir == string(os.PathSeparator) {
+		log.Fatalf("refusing to write generated namespace data to %q", outputDir)
+	}
+
+	if err := os.RemoveAll(cleanOutputDir); err != nil {
+		log.Fatalf("Unable to clean output directory %s: %s", cleanOutputDir, err)
+	}
+	if err := os.MkdirAll(cleanOutputDir, 0o755); err != nil {
+		log.Fatalf("Unable to create output directory %s: %s", cleanOutputDir, err)
+	}
+
+	for _, ns := range selectedNamespaces {
+		out, err := yaml.Marshal(buildGeneratedConfig(ns))
+		if err != nil {
+			log.Fatalf("Unable to marshal generated notes for namespace %s: %s", ns, err)
+		}
+
+		path := filepath.Join(cleanOutputDir, fmt.Sprintf("%s.yaml", namespaceSlug(ns)))
+		if err := os.WriteFile(path, out, 0o644); err != nil {
+			log.Fatalf("Unable to write generated notes to %s: %s", path, err)
+		}
+	}
+}
+
+// buildGeneratedConfig builds an ingest config for a single namespace.
+func buildGeneratedConfig(ns string) config.IngestConfig {
+	genNotes := make([]*config.YamlNote, 0, num)
+	for i := 0; i < num; i++ {
+		genNotes = append(genNotes, buildGeneratedNote(i, ns))
+	}
+
+	return config.IngestConfig{
+		Namespace: ns,
+		Notes:     genNotes,
+	}
+}
+
 // buildGeneratedNote creates a note-shaped test record with markdown-heavy content.
-func buildGeneratedNote(index int) *config.YamlNote {
+func buildGeneratedNote(index int, ns string) *config.YamlNote {
 	scenario := scenarios[index%len(scenarios)]
 	title := fmt.Sprintf("%s %04d: %s", scenario.kind, index+1, scenario.resource)
-	id := fmt.Sprintf("generated-note-%06d", index+1)
+	nsSlug := namespaceSlug(ns)
+	id := fmt.Sprintf("generated-%s-note-%06d", nsSlug, index+1)
 	targetSize := targetBodySize(index)
 	url := ""
 	if urlPercent > 0 && index%100 < urlPercent {
-		url = generatedURL(index, scenario)
+		url = generatedURL(index, nsSlug, scenario)
 	}
 
 	return &config.YamlNote{
@@ -86,8 +155,8 @@ func buildGeneratedNote(index int) *config.YamlNote {
 		Title: title,
 		Body:  generateMarkdownBody(index, scenario, targetSize),
 		URL:   url,
-		Tags:  generatedTags(index, scenario),
-		Data:  generatedData(index, scenario, targetSize),
+		Tags:  generatedTags(index, ns, scenario),
+		Data:  generatedData(index, ns, scenario, targetSize),
 	}
 }
 
@@ -161,9 +230,10 @@ func generateMarkdownBody(index int, scenario noteScenario, targetSize int) stri
 }
 
 // generatedTags returns scenario tags plus generated dimensions for filtering.
-func generatedTags(index int, scenario noteScenario) []string {
+func generatedTags(index int, ns string, scenario noteScenario) []string {
 	tags := append([]string{}, scenario.tags...)
 	tags = append(tags,
+		fmt.Sprintf("namespace:%s", ns),
 		fmt.Sprintf("owner:%s", scenario.owner),
 		fmt.Sprintf("status:%s", scenario.status),
 		fmt.Sprintf("bucket:%02d", index%20),
@@ -178,8 +248,9 @@ func generatedTags(index int, scenario noteScenario) []string {
 }
 
 // generatedData returns structured metadata to exercise data rendering and indexing.
-func generatedData(index int, scenario noteScenario, targetSize int) map[string]any {
+func generatedData(index int, ns string, scenario noteScenario, targetSize int) map[string]any {
 	data := utils.GenerateFakeData()
+	data["namespace"] = ns
 	data["owner"] = scenario.owner
 	data["status"] = scenario.status
 	data["profile"] = profile
@@ -189,9 +260,21 @@ func generatedData(index int, scenario noteScenario, targetSize int) map[string]
 }
 
 // generatedURL returns a deterministic URL for URL-bearing generated notes.
-func generatedURL(index int, scenario noteScenario) string {
+func generatedURL(index int, nsSlug string, scenario noteScenario) string {
 	slug := strings.ReplaceAll(strings.ToLower(scenario.resource), " ", "-")
-	return fmt.Sprintf("https://notes.example.internal/%s/%s/%06d", scenario.owner, slug, index+1)
+	return fmt.Sprintf("https://notes.example.internal/%s/%s/%s/%06d", nsSlug, scenario.owner, slug, index+1)
+}
+
+// namespaceSlug normalizes a namespace for generated ids and filenames.
+func namespaceSlug(ns string) string {
+	slug := strings.ToLower(strings.TrimSpace(ns))
+	replacer := strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-", ".", "-")
+	slug = replacer.Replace(slug)
+	slug = strings.Trim(slug, "-")
+	if slug == "" {
+		return "default"
+	}
+	return slug
 }
 
 // maxPositive returns the larger positive value, falling back when value is unset.
@@ -209,6 +292,8 @@ func init() {
 	GenerateCmd.Flags().IntVarP(&num, "num", "n", 1, "number of notes to generate")
 	GenerateCmd.Flags().IntVar(&bodySize, "body-size", 0, "target markdown body size per generated note")
 	GenerateCmd.Flags().StringVar(&namespace, "namespace", "default", "namespace to write into the generated config")
+	GenerateCmd.Flags().StringVar(&namespaces, "namespaces", "", "comma-separated namespaces to generate")
+	GenerateCmd.Flags().StringVar(&outputDir, "output-dir", "", "directory to write one generated config per namespace")
 	GenerateCmd.Flags().StringVar(&profile, "profile", "mixed", "content profile: brief, mixed, long, or stress")
 	GenerateCmd.Flags().IntVar(&urlPercent, "url-percent", 55, "percentage of generated notes that include a URL")
 	err := GenerateCmd.MarkFlagRequired("num")

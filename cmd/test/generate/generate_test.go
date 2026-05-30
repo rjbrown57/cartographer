@@ -1,6 +1,8 @@
 package generatecmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -23,7 +25,7 @@ func TestBuildGeneratedNoteProducesNoteShape(t *testing.T) {
 	bodySize = 700
 	urlPercent = 100
 
-	note := buildGeneratedNote(0)
+	note := buildGeneratedNote(0, "generated")
 	if note.Id == "" {
 		t.Fatal("expected generated note id")
 	}
@@ -39,6 +41,9 @@ func TestBuildGeneratedNoteProducesNoteShape(t *testing.T) {
 	if note.URL == "" {
 		t.Fatal("expected generated URL when url percent is 100")
 	}
+	if !strings.Contains(note.Id, "generated") {
+		t.Fatalf("expected namespace in generated id, got %q", note.Id)
+	}
 
 	out, err := yaml.Marshal(config.IngestConfig{
 		Namespace: "generated",
@@ -49,5 +54,52 @@ func TestBuildGeneratedNoteProducesNoteShape(t *testing.T) {
 	}
 	if strings.Contains(string(out), "displayname:") || strings.Contains(string(out), "description:") {
 		t.Fatalf("expected empty legacy fields to be omitted, got:\n%s", out)
+	}
+}
+
+// TestGetSelectedNamespaces verifies comma-separated namespace normalization.
+func TestGetSelectedNamespaces(t *testing.T) {
+	previousNamespace := namespace
+	previousNamespaces := namespaces
+	defer func() {
+		namespace = previousNamespace
+		namespaces = previousNamespaces
+	}()
+
+	namespace = "default"
+	namespaces = "default, platform,security, platform"
+
+	got := getSelectedNamespaces()
+	want := []string{"default", "platform", "security"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("expected namespaces %v, got %v", want, got)
+	}
+}
+
+// TestWriteGeneratedNamespaceFiles verifies directory output writes one file per namespace.
+func TestWriteGeneratedNamespaceFiles(t *testing.T) {
+	previousNum := num
+	previousOutputDir := outputDir
+	previousURLPercent := urlPercent
+	defer func() {
+		num = previousNum
+		outputDir = previousOutputDir
+		urlPercent = previousURLPercent
+	}()
+
+	num = 1
+	urlPercent = 0
+	outputDir = t.TempDir()
+
+	writeGeneratedNamespaceFiles([]string{"default", "platform"})
+
+	for _, filename := range []string{"default.yaml", "platform.yaml"} {
+		out, err := os.ReadFile(filepath.Join(outputDir, filename))
+		if err != nil {
+			t.Fatalf("expected generated namespace file %s: %s", filename, err)
+		}
+		if !strings.Contains(string(out), "notes:") {
+			t.Fatalf("expected generated notes in %s, got:\n%s", filename, out)
+		}
 	}
 }
