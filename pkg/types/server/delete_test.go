@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
@@ -191,10 +192,5 @@ func TestDelete(t *testing.T) {
 
 // containsString reports whether the target value exists in the provided list.
 func containsString(list []string, target string) bool {
-	for _, item := range list {
-		if item == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, target)
 }
