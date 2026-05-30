@@ -8,15 +8,18 @@ import (
 	"io"
 	"strings"
 
+	"github.com/google/uuid"
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"google.golang.org/grpc"
 )
 
 const protocolVersion = "2024-11-05"
+const reservedAdminNamespace = "cartographer-admin"
 
 // CartographerClient is the subset of the Cartographer gRPC client used by MCP tools.
 type CartographerClient interface {
 	Get(ctx context.Context, in *proto.CartographerGetRequest, opts ...grpc.CallOption) (*proto.CartographerGetResponse, error)
+	Add(ctx context.Context, in *proto.CartographerAddRequest, opts ...grpc.CallOption) (*proto.CartographerAddResponse, error)
 }
 
 // Server handles MCP JSON-RPC requests over stdio-compatible streams.
@@ -77,6 +80,16 @@ type searchArgs struct {
 type getNoteArgs struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`
+}
+
+type addNoteArgs struct {
+	Namespace string         `json:"namespace"`
+	ID        string         `json:"id"`
+	Title     string         `json:"title"`
+	Body      string         `json:"body"`
+	URL       string         `json:"url"`
+	Tags      []string       `json:"tags"`
+	Data      map[string]any `json:"data"`
 }
 
 type namespaceArgs struct{}
@@ -205,6 +218,12 @@ func (s *Server) callTool(params json.RawMessage) (toolResult, error) {
 			return toolResult{}, err
 		}
 		return s.getNote(args)
+	case "cartographer_add_note":
+		var args addNoteArgs
+		if err := decodeArgs(call.Arguments, &args); err != nil {
+			return toolResult{}, err
+		}
+		return s.addNote(args)
 	case "cartographer_list_namespaces":
 		var args namespaceArgs
 		if err := decodeArgs(call.Arguments, &args); err != nil {
@@ -273,6 +292,41 @@ func (s *Server) getNote(args getNoteArgs) (toolResult, error) {
 	return notesResult(namespace, resp.GetResponse().GetNotes(), 1)
 }
 
+// addNote creates a new note through the live Cartographer add path.
+func (s *Server) addNote(args addNoteArgs) (toolResult, error) {
+	namespace, err := proto.GetNamespace(args.Namespace)
+	if err != nil {
+		return toolResult{}, err
+	}
+	if namespace == reservedAdminNamespace {
+		return toolResult{}, errors.New("reserved namespace")
+	}
+
+	note, err := proto.NewNoteBuilder().
+		WithId(resolveNoteID(args.ID, args.URL)).
+		WithTitle(strings.TrimSpace(args.Title)).
+		WithBody(strings.TrimSpace(args.Body)).
+		WithURL(strings.TrimSpace(args.URL)).
+		WithTags(cleanStrings(args.Tags)).
+		WithData(args.Data).
+		Build()
+	if err != nil {
+		return toolResult{}, err
+	}
+
+	resp, err := s.client.Add(s.ctx, &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{note},
+		},
+	})
+	if err != nil {
+		return toolResult{}, err
+	}
+
+	return notesResult(namespace, resp.GetResponse().GetNotes(), 1)
+}
+
 // listNamespaces returns the namespaces currently known to Cartographer.
 func (s *Server) listNamespaces() (toolResult, error) {
 	req := &proto.CartographerGetRequest{
@@ -311,11 +365,35 @@ func tools() []tool {
 			}, []string{"id"}),
 		},
 		{
+			Name:        "cartographer_add_note",
+			Description: "Create a note in a live Cartographer namespace. This writes to the backing Cartographer instance.",
+			InputSchema: objectSchema(map[string]any{
+				"namespace": stringSchema("Namespace to write into. Defaults to default."),
+				"id":        stringSchema("Optional exact note ID. If omitted, URL-backed notes use the URL as ID."),
+				"title":     stringSchema("Note title."),
+				"body":      stringSchema("Markdown note body."),
+				"url":       stringSchema("Optional URL associated with the note."),
+				"tags":      arraySchema("Tags to attach to the note."),
+				"data":      flexibleObjectSchema("Optional structured JSON object to attach to the note."),
+			}, []string{}),
+		},
+		{
 			Name:        "cartographer_list_namespaces",
 			Description: "List namespaces available in the live Cartographer instance.",
 			InputSchema: objectSchema(map[string]any{}, []string{}),
 		},
 	}
+}
+
+// resolveNoteID returns an explicit ID, URL-backed ID, or generated ID for note creation.
+func resolveNoteID(id, noteURL string) string {
+	if cleanedID := strings.TrimSpace(id); cleanedID != "" {
+		return cleanedID
+	}
+	if cleanedURL := strings.TrimSpace(noteURL); cleanedURL != "" {
+		return cleanedURL
+	}
+	return uuid.NewString()
 }
 
 // notesResult converts proto notes into a compact JSON MCP text result.
@@ -413,6 +491,14 @@ func objectSchema(properties map[string]any, required []string) map[string]any {
 		"properties":           properties,
 		"required":             required,
 		"additionalProperties": false,
+	}
+}
+
+// flexibleObjectSchema creates a JSON schema object that accepts arbitrary fields.
+func flexibleObjectSchema(description string) map[string]any {
+	return map[string]any{
+		"type":        "object",
+		"description": description,
 	}
 }
 

@@ -13,13 +13,24 @@ import (
 
 type fakeCartographerClient struct {
 	lastRequest *proto.CartographerGetRequest
+	lastAdd     *proto.CartographerAddRequest
 	response    *proto.CartographerGetResponse
+	addResponse *proto.CartographerAddResponse
 }
 
 // Get records a request and returns a canned Cartographer response.
 func (f *fakeCartographerClient) Get(_ context.Context, in *proto.CartographerGetRequest, _ ...grpc.CallOption) (*proto.CartographerGetResponse, error) {
 	f.lastRequest = in
 	return f.response, nil
+}
+
+// Add records a request and returns a canned Cartographer add response.
+func (f *fakeCartographerClient) Add(_ context.Context, in *proto.CartographerAddRequest, _ ...grpc.CallOption) (*proto.CartographerAddResponse, error) {
+	f.lastAdd = in
+	if f.addResponse != nil {
+		return f.addResponse, nil
+	}
+	return &proto.CartographerAddResponse{Response: &proto.CartographerResponse{Notes: in.GetRequest().GetNotes()}}, nil
 }
 
 // TestServerInitializeAndListTools verifies the MCP handshake and tool catalog.
@@ -51,7 +62,7 @@ func TestServerInitializeAndListTools(t *testing.T) {
 	}
 	result := toolsResp["result"].(map[string]any)
 	tools := result["tools"].([]any)
-	if got := len(tools); got != 3 {
+	if got := len(tools); got != 4 {
 		t.Fatalf("expected 3 tools, got %d", got)
 	}
 }
@@ -102,5 +113,82 @@ func TestServerSearchNotes(t *testing.T) {
 	}
 	if len(response.Result.Content) != 1 || !strings.Contains(response.Result.Content[0].Text, "note-1") {
 		t.Fatalf("expected note payload in tool content, got %+v", response.Result)
+	}
+}
+
+// TestServerAddNote verifies an add tool call maps arguments to a Cartographer add request.
+func TestServerAddNote(t *testing.T) {
+	client := &fakeCartographerClient{}
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-1","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"research","id":"note-2","title":"Second note","body":"markdown body","url":"https://example.com","tags":["thought","mcp"],"data":{"source":"test"}}}}` + "\n")
+	var output strings.Builder
+
+	server := NewServer(context.Background(), client, input, &output)
+	if err := server.Serve(); err != nil {
+		t.Fatalf("Serve() error = %v", err)
+	}
+
+	if client.lastAdd == nil {
+		t.Fatal("expected add request")
+	}
+	if got := client.lastAdd.GetRequest().GetNamespace(); got != "research" {
+		t.Fatalf("expected namespace research, got %q", got)
+	}
+
+	notes := client.lastAdd.GetRequest().GetNotes()
+	if got := len(notes); got != 1 {
+		t.Fatalf("expected one note, got %d", got)
+	}
+
+	note := notes[0]
+	if got := note.GetId(); got != "note-2" {
+		t.Fatalf("expected id note-2, got %q", got)
+	}
+	if got := note.GetTitle(); got != "Second note" {
+		t.Fatalf("expected title Second note, got %q", got)
+	}
+	if got := note.GetBody(); got != "markdown body" {
+		t.Fatalf("expected body markdown body, got %q", got)
+	}
+	if got := note.GetTags(); len(got) != 2 || got[0] != "thought" || got[1] != "mcp" {
+		t.Fatalf("expected tags thought,mcp, got %v", got)
+	}
+	if got := note.GetData().AsMap()["source"]; got != "test" {
+		t.Fatalf("expected data source test, got %v", got)
+	}
+
+	var response struct {
+		Result toolResult `json:"result"`
+	}
+	if err := json.NewDecoder(strings.NewReader(output.String())).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.Result.Content) != 1 || !strings.Contains(response.Result.Content[0].Text, "note-2") {
+		t.Fatalf("expected added note payload in tool content, got %+v", response.Result)
+	}
+}
+
+// TestServerAddNoteRejectsReservedNamespace verifies MCP writes cannot mutate admin storage.
+func TestServerAddNoteRejectsReservedNamespace(t *testing.T) {
+	client := &fakeCartographerClient{}
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-reserved","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"cartographer-admin","id":"template/bad","title":"Bad","body":"bad"}}}` + "\n")
+	var output strings.Builder
+
+	server := NewServer(context.Background(), client, input, &output)
+	if err := server.Serve(); err != nil {
+		t.Fatalf("Serve() error = %v", err)
+	}
+
+	if client.lastAdd != nil {
+		t.Fatal("expected reserved namespace request to skip add")
+	}
+
+	var response struct {
+		Result toolResult `json:"result"`
+	}
+	if err := json.NewDecoder(strings.NewReader(output.String())).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !response.Result.IsError || !strings.Contains(response.Result.Content[0].Text, "reserved namespace") {
+		t.Fatalf("expected reserved namespace error, got %+v", response.Result)
 	}
 }
