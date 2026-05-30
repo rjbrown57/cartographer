@@ -13,7 +13,7 @@ import (
 func serveSwaggerDoc(ctx *gin.Context) {
 	rawDoc := docs.SwaggerInfo.ReadDoc()
 
-	swaggerDoc := map[string]interface{}{}
+	swaggerDoc := map[string]any{}
 	if err := json.Unmarshal([]byte(rawDoc), &swaggerDoc); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "unable to render swagger document"})
 		return
@@ -83,7 +83,7 @@ func forwardedHeaderValue(header, key string) string {
 	}
 
 	firstForwardedEntry := firstCommaToken(header)
-	for _, segment := range strings.Split(firstForwardedEntry, ";") {
+	for segment := range strings.SplitSeq(firstForwardedEntry, ";") {
 		part := strings.SplitN(strings.TrimSpace(segment), "=", 2)
 		if len(part) != 2 {
 			continue
@@ -100,7 +100,7 @@ func forwardedHeaderValue(header, key string) string {
 
 // firstCommaToken returns the first value from comma-separated headers.
 func firstCommaToken(value string) string {
-	for _, part := range strings.Split(value, ",") {
+	for part := range strings.SplitSeq(value, ",") {
 		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
 			return trimmed
