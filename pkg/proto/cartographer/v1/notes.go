@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // NoteBuilder is a builder for proto.Note.
@@ -71,6 +73,40 @@ func (b *NoteBuilder) WithTags(tags []string) *NoteBuilder {
 // WithId sets the id for the note.
 func (b *NoteBuilder) WithId(id string) *NoteBuilder {
 	b.note.Id = id
+	return b
+}
+
+// WithCreatedAt sets the note creation timestamp.
+func (b *NoteBuilder) WithCreatedAt(createdAt time.Time) *NoteBuilder {
+	if !createdAt.IsZero() {
+		b.note.CreatedAt = timestamppb.New(createdAt)
+	}
+	return b
+}
+
+// WithUpdatedAt sets the note update timestamp.
+func (b *NoteBuilder) WithUpdatedAt(updatedAt time.Time) *NoteBuilder {
+	if !updatedAt.IsZero() {
+		b.note.UpdatedAt = timestamppb.New(updatedAt)
+	}
+	return b
+}
+
+// WithSource sets the origin label for the note.
+func (b *NoteBuilder) WithSource(source string) *NoteBuilder {
+	b.note.Source = source
+	return b
+}
+
+// WithAuthor sets the actor or person associated with the note.
+func (b *NoteBuilder) WithAuthor(author string) *NoteBuilder {
+	b.note.Author = author
+	return b
+}
+
+// WithVersion sets the note version.
+func (b *NoteBuilder) WithVersion(version int64) *NoteBuilder {
+	b.note.Version = version
 	return b
 }
 

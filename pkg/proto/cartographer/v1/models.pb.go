@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -32,6 +33,11 @@ type Note struct {
 	Data          *structpb.Struct       `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
 	Id            string                 `protobuf:"bytes,7,opt,name=id,proto3" json:"id,omitempty"`
 	Annotations   map[string]string      `protobuf:"bytes,8,rep,name=annotations,proto3" json:"annotations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Source        string                 `protobuf:"bytes,11,opt,name=source,proto3" json:"source,omitempty"`
+	Author        string                 `protobuf:"bytes,12,opt,name=author,proto3" json:"author,omitempty"`
+	Version       int64                  `protobuf:"varint,13,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,6 +121,41 @@ func (x *Note) GetAnnotations() map[string]string {
 	return nil
 }
 
+func (x *Note) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Note) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *Note) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *Note) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *Note) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
 // Tag represents a label or category for organizing notes.
 type Tag struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -180,7 +221,7 @@ var File_cartographer_v1_models_proto protoreflect.FileDescriptor
 
 const file_cartographer_v1_models_proto_rawDesc = "" +
 	"\n" +
-	"\x1ccartographer/v1/models.proto\x12\x0fcartographer.v1\x1a\x1cgoogle/protobuf/struct.proto\"\x9d\x02\n" +
+	"\x1ccartographer/v1/models.proto\x12\x0fcartographer.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x03\n" +
 	"\x04Note\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -188,7 +229,15 @@ const file_cartographer_v1_models_proto_rawDesc = "" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12+\n" +
 	"\x04data\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x04data\x12\x0e\n" +
 	"\x02id\x18\a \x01(\tR\x02id\x12H\n" +
-	"\vannotations\x18\b \x03(\v2&.cartographer.v1.Note.AnnotationsEntryR\vannotations\x1a>\n" +
+	"\vannotations\x18\b \x03(\v2&.cartographer.v1.Note.AnnotationsEntryR\vannotations\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x16\n" +
+	"\x06source\x18\v \x01(\tR\x06source\x12\x16\n" +
+	"\x06author\x18\f \x01(\tR\x06author\x12\x18\n" +
+	"\aversion\x18\r \x01(\x03R\aversion\x1a>\n" +
 	"\x10AnnotationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc4\x01\n" +
@@ -215,21 +264,24 @@ func file_cartographer_v1_models_proto_rawDescGZIP() []byte {
 
 var file_cartographer_v1_models_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_cartographer_v1_models_proto_goTypes = []any{
-	(*Note)(nil),            // 0: cartographer.v1.Note
-	(*Tag)(nil),             // 1: cartographer.v1.Tag
-	nil,                     // 2: cartographer.v1.Note.AnnotationsEntry
-	nil,                     // 3: cartographer.v1.Tag.AnnotationsEntry
-	(*structpb.Struct)(nil), // 4: google.protobuf.Struct
+	(*Note)(nil),                  // 0: cartographer.v1.Note
+	(*Tag)(nil),                   // 1: cartographer.v1.Tag
+	nil,                           // 2: cartographer.v1.Note.AnnotationsEntry
+	nil,                           // 3: cartographer.v1.Tag.AnnotationsEntry
+	(*structpb.Struct)(nil),       // 4: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
 }
 var file_cartographer_v1_models_proto_depIdxs = []int32{
 	4, // 0: cartographer.v1.Note.data:type_name -> google.protobuf.Struct
 	2, // 1: cartographer.v1.Note.annotations:type_name -> cartographer.v1.Note.AnnotationsEntry
-	3, // 2: cartographer.v1.Tag.annotations:type_name -> cartographer.v1.Tag.AnnotationsEntry
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 2: cartographer.v1.Note.created_at:type_name -> google.protobuf.Timestamp
+	5, // 3: cartographer.v1.Note.updated_at:type_name -> google.protobuf.Timestamp
+	3, // 4: cartographer.v1.Tag.annotations:type_name -> cartographer.v1.Tag.AnnotationsEntry
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_cartographer_v1_models_proto_init() }

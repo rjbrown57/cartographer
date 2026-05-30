@@ -3,13 +3,16 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// Add writes notes into the live server, applying metadata defaults and indexing them.
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
 
 	// record the duration of the add operation
@@ -30,6 +33,7 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// Get notes
 	// should make a dataMap constructor
 	for _, v := range in.Request.GetNotes() {
+		c.applyNoteMetadata(v, ns)
 		newData[v.GetKey()] = v
 		c.AddToCache(v, ns)
 		metrics.Metrics().IncrementObjectCount("note", ns, 1)
@@ -53,4 +57,49 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	go c.Notifier.Publish(r)
 
 	return &proto.CartographerAddResponse{Response: r}, nil
+}
+
+// applyNoteMetadata fills lifecycle fields for created and updated notes.
+func (c *CartographerServer) applyNoteMetadata(note *proto.Note, ns string) {
+	now := timestamppb.New(time.Now().UTC())
+
+	c.mu.RLock()
+	cn := c.nsCache[ns]
+	c.mu.RUnlock()
+
+	var existing *proto.Note
+	if cn != nil {
+		cn.mu.RLock()
+		existing = cn.NoteCache[note.GetKey()]
+		cn.mu.RUnlock()
+	}
+
+	if existing != nil {
+		if note.GetCreatedAt() == nil {
+			note.CreatedAt = existing.GetCreatedAt()
+		}
+		if note.GetSource() == "" {
+			note.Source = existing.GetSource()
+		}
+		if note.GetAuthor() == "" {
+			note.Author = existing.GetAuthor()
+		}
+		if note.GetVersion() == 0 {
+			note.Version = existing.GetVersion() + 1
+		}
+	} else {
+		if note.GetCreatedAt() == nil {
+			note.CreatedAt = now
+		}
+		if note.GetVersion() == 0 {
+			note.Version = 1
+		}
+	}
+
+	if note.GetUpdatedAt() == nil {
+		note.UpdatedAt = now
+	}
+	if note.GetSource() == "" {
+		note.Source = "cartographer"
+	}
 }

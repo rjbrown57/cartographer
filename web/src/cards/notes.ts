@@ -22,12 +22,26 @@ type NoteEditDetail = {
     url: string;
     tags: string[];
     data?: Record<string, any>;
+    metadata?: NoteMetadata;
 };
 
 type NoteTypeDetail = {
     className: string;
     icon: string;
     label: string;
+};
+
+export type NoteMetadata = {
+    created_at?: TimestampValue;
+    updated_at?: TimestampValue;
+    source?: string;
+    author?: string;
+    version?: number;
+};
+
+export type TimestampValue = string | {
+    seconds?: number | string;
+    nanos?: number;
 };
 
 // RenderMarkdown renders markdown text through the configured sanitizer.
@@ -60,6 +74,7 @@ export class Note implements cards.Card {
     url: string;
     tags: string[];
     data?: Record<string, any>;
+    metadata: NoteMetadata;
     private self: HTMLElement;
     private isMaximized: boolean = false;
     private originalParent: HTMLElement | null = null;
@@ -69,7 +84,7 @@ export class Note implements cards.Card {
     private readonly maxVisibleTags: number = 4;
 
     // constructor initializes a note card instance and its base DOM element.
-    constructor(id: string, title: string, body: string, url: string, tags: string[], data?: Record<string, any>) {
+    constructor(id: string, title: string, body: string, url: string, tags: string[], data?: Record<string, any>, metadata: NoteMetadata = {}) {
         this.id = id;
         this.title = title;
         this.displayname = title;
@@ -77,6 +92,7 @@ export class Note implements cards.Card {
         this.url = url;
         this.tags = tags;
         this.data = data;
+        this.metadata = metadata;
         this.self = document.createElement('div');
     }
 
@@ -174,6 +190,20 @@ export class Note implements cards.Card {
             tagCount.className = 'note-meta-chip note-meta-chip--tags';
             tagCount.innerHTML = `<i class="bi bi-tags"></i> ${this.tags.length}`;
             meta.appendChild(tagCount);
+        }
+
+        if (this.metadata.version) {
+            const versionChip = document.createElement('span');
+            versionChip.className = 'note-meta-chip';
+            versionChip.innerHTML = `<i class="bi bi-clock-history"></i> v${this.metadata.version}`;
+            meta.appendChild(versionChip);
+        }
+
+        if (this.metadata.source) {
+            const sourceChip = document.createElement('span');
+            sourceChip.className = 'note-meta-chip';
+            sourceChip.textContent = this.metadata.source;
+            meta.appendChild(sourceChip);
         }
 
         return meta;
@@ -294,6 +324,7 @@ export class Note implements cards.Card {
                 url: this.url,
                 tags: this.tags,
                 data: this.data,
+                metadata: this.metadata,
             },
         } satisfies CustomEventInit<NoteEditDetail>));
     }

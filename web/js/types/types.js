@@ -45,7 +45,13 @@ export class Cartographer {
             const resolvedTitle = note.title || resolvedURL || resolvedID;
             const resolvedBody = note.body || resolvedURL || '';
             const resolvedTags = Array.isArray(note.tags) ? note.tags : [];
-            this.Cards.push(new Note(resolvedID, resolvedTitle, resolvedBody, resolvedURL, resolvedTags, note.data));
+            this.Cards.push(new Note(resolvedID, resolvedTitle, resolvedBody, resolvedURL, resolvedTags, note.data, {
+                created_at: note.created_at,
+                updated_at: note.updated_at,
+                source: note.source,
+                author: note.author,
+                version: note.version,
+            }));
         });
         RenderNavMetadata(this.Cards);
         this.renderCards();
@@ -147,8 +153,13 @@ function SetupNoteSubmission() {
     const toggle = document.getElementById('noteComposerToggle');
     const close = document.getElementById('noteComposerClose');
     const noteID = document.getElementById('noteID');
+    const noteCreatedAt = document.getElementById('noteCreatedAt');
+    const noteUpdatedAt = document.getElementById('noteUpdatedAt');
+    const noteVersion = document.getElementById('noteVersion');
     const titleInput = document.getElementById('noteTitle');
     const urlInput = document.getElementById('noteURL');
+    const sourceInput = document.getElementById('noteSource');
+    const authorInput = document.getElementById('noteAuthor');
     const namespaceInput = document.getElementById('noteNamespace');
     const namespaceOptions = document.getElementById('noteNamespaceOptions');
     const bodyInput = document.getElementById('noteBody');
@@ -192,6 +203,20 @@ function SetupNoteSubmission() {
             dataInput?.focus();
             return null;
         }
+    };
+    const normalizeTimestampValue = (value) => {
+        if (!value) {
+            return '';
+        }
+        if (typeof value === 'string') {
+            return value;
+        }
+        const seconds = Number(value.seconds || 0);
+        const nanos = Number(value.nanos || 0);
+        if (!seconds && !nanos) {
+            return '';
+        }
+        return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
     };
     const setDataValue = (data) => {
         if (!dataInput) {
@@ -293,6 +318,15 @@ function SetupNoteSubmission() {
         if (noteID) {
             noteID.value = '';
         }
+        if (noteCreatedAt) {
+            noteCreatedAt.value = '';
+        }
+        if (noteUpdatedAt) {
+            noteUpdatedAt.value = '';
+        }
+        if (noteVersion) {
+            noteVersion.value = '';
+        }
         if (namespaceInput) {
             namespaceInput.disabled = false;
         }
@@ -348,6 +382,15 @@ function SetupNoteSubmission() {
         if (noteID) {
             noteID.value = detail.id;
         }
+        if (noteCreatedAt) {
+            noteCreatedAt.value = normalizeTimestampValue(detail.metadata?.created_at);
+        }
+        if (noteUpdatedAt) {
+            noteUpdatedAt.value = normalizeTimestampValue(detail.metadata?.updated_at);
+        }
+        if (noteVersion) {
+            noteVersion.value = String(detail.metadata?.version || '');
+        }
         if (namespaceInput) {
             namespaceInput.disabled = true;
         }
@@ -357,6 +400,12 @@ function SetupNoteSubmission() {
         }
         if (urlInput) {
             urlInput.value = detail.url;
+        }
+        if (sourceInput) {
+            sourceInput.value = detail.metadata?.source || '';
+        }
+        if (authorInput) {
+            authorInput.value = detail.metadata?.author || '';
         }
         if (bodyInput) {
             bodyInput.value = detail.body;
@@ -391,6 +440,8 @@ function SetupNoteSubmission() {
         const existingID = noteID?.value.trim() || '';
         const title = titleInput?.value.trim() || '';
         const url = urlInput?.value.trim() || '';
+        const source = sourceInput?.value.trim() || '';
+        const author = authorInput?.value.trim() || '';
         const body = bodyInput?.value.trim() || '';
         const tags = parseTags();
         const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
@@ -425,6 +476,11 @@ function SetupNoteSubmission() {
             tags,
             data: data || undefined,
             namespace,
+            created_at: noteCreatedAt?.value || undefined,
+            updated_at: undefined,
+            source: source || undefined,
+            author: author || undefined,
+            version: undefined,
         };
         const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';
         if (status) {

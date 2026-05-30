@@ -104,6 +104,18 @@ func TestAdd(t *testing.T) {
 			if got := cachedLink.GetUrl(); got != tc.url {
 				t.Fatalf("expected cached link url %q, got %q", tc.url, got)
 			}
+			if cachedLink.GetCreatedAt() == nil {
+				t.Fatal("expected cached link created_at to be set")
+			}
+			if cachedLink.GetUpdatedAt() == nil {
+				t.Fatal("expected cached link updated_at to be set")
+			}
+			if got := cachedLink.GetSource(); got != "cartographer" {
+				t.Fatalf("expected cached link source cartographer, got %q", got)
+			}
+			if got := cachedLink.GetVersion(); got != 1 {
+				t.Fatalf("expected cached link version 1, got %d", got)
+			}
 
 			backendResp := testServer.Backend.Get(backend.NewBackendRequest(tc.namespace, tc.id))
 			if backendResp == nil {

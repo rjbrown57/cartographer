@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/rjbrown57/cartographer/pkg/log"
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
@@ -50,6 +51,11 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 			WithData(n.Data).
 			WithId(n.Id).
 			WithAnnotations(n.Annotations).
+			WithCreatedAt(n.CreatedAt).
+			WithUpdatedAt(n.UpdatedAt).
+			WithSource(n.Source).
+			WithAuthor(n.Author).
+			WithVersion(n.Version).
 			Build()
 		if err != nil {
 			log.Fatalf("Error building note: %s", err)
@@ -69,6 +75,11 @@ func (i *IngestConfig) Convert() *CartographerConfig {
 			WithData(l.Data).
 			WithId(l.Id).
 			WithAnnotations(l.Annotations).
+			WithCreatedAt(l.CreatedAt).
+			WithUpdatedAt(l.UpdatedAt).
+			WithSource(l.Source).
+			WithAuthor(l.Author).
+			WithVersion(l.Version).
 			Build()
 		if err != nil {
 			log.Fatalf("Error building legacy link note: %s", err)
@@ -103,6 +114,11 @@ type YamlNote struct {
 	Data        map[string]any    `yaml:"data,omitempty"`
 	Id          string            `yaml:"id,omitempty"`
 	Annotations map[string]string `yaml:"annotations,omitempty"`
+	CreatedAt   time.Time         `yaml:"created_at,omitempty"`
+	UpdatedAt   time.Time         `yaml:"updated_at,omitempty"`
+	Source      string            `yaml:"source,omitempty"`
+	Author      string            `yaml:"author,omitempty"`
+	Version     int64             `yaml:"version,omitempty"`
 }
 
 // YamlLink is a struct that is used to ingest data from a yaml file.
@@ -115,6 +131,11 @@ type YamlLink struct {
 	Data        map[string]any    `yaml:"data,omitempty"`
 	Id          string            `yaml:"id,omitempty"`
 	Annotations map[string]string `yaml:"annotations,omitempty"`
+	CreatedAt   time.Time         `yaml:"created_at,omitempty"`
+	UpdatedAt   time.Time         `yaml:"updated_at,omitempty"`
+	Source      string            `yaml:"source,omitempty"`
+	Author      string            `yaml:"author,omitempty"`
+	Version     int64             `yaml:"version,omitempty"`
 }
 
 // WithIngest is a builder for the CartographerConfig struct to ingest data from a yaml file
