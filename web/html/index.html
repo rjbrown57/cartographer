@@ -258,10 +258,120 @@
 			animation: spin 0.7s linear infinite;
 		}
 
+		.namespace-tab--utility {
+			justify-content: center;
+			min-width: 2.45rem;
+			padding-inline: 0.65rem;
+		}
+
+		.namespace-tab--utility i {
+			font-size: 0.95rem;
+			line-height: 1;
+		}
+
 		.namespace-tab__text {
 			max-width: 12rem;
 			overflow: hidden;
 			text-overflow: ellipsis;
+		}
+
+		.namespace-finder {
+			width: min(460px, 100%);
+			margin-top: 0.55rem;
+			padding: 0.6rem;
+			border: 1px solid rgba(148, 163, 184, 0.24);
+			border-radius: 8px;
+			background: rgba(15, 23, 42, 0.94);
+			box-shadow: 0 16px 36px rgba(15, 23, 42, 0.25);
+			display: grid;
+			gap: 0.45rem;
+		}
+
+		.namespace-finder__bar {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+		}
+
+		.namespace-finder__input {
+			width: 100%;
+			min-height: 2.15rem;
+			border: 1px solid rgba(148, 163, 184, 0.32);
+			border-radius: 6px;
+			background: rgba(248, 250, 252, 0.08);
+			color: #f8fafc;
+			font-size: 0.84rem;
+			outline: none;
+			padding: 0.45rem 0.65rem;
+		}
+
+		.namespace-finder__input:focus {
+			border-color: rgba(56, 189, 248, 0.8);
+			box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+		}
+
+		.namespace-finder__close {
+			width: 2.15rem;
+			height: 2.15rem;
+			border: 1px solid rgba(148, 163, 184, 0.28);
+			border-radius: 6px;
+			background: rgba(248, 250, 252, 0.06);
+			color: rgba(226, 232, 240, 0.82);
+		}
+
+		.namespace-finder__close:hover {
+			background: rgba(248, 250, 252, 0.12);
+			color: #f8fafc;
+		}
+
+		.namespace-finder__list {
+			display: grid;
+			gap: 0.25rem;
+			max-height: 15rem;
+			overflow: auto;
+			padding-right: 0.15rem;
+		}
+
+		.namespace-finder__item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+			width: 100%;
+			border: 1px solid transparent;
+			border-radius: 6px;
+			background: transparent;
+			color: rgba(226, 232, 240, 0.9);
+			font-size: 0.84rem;
+			font-weight: 700;
+			padding: 0.45rem 0.55rem;
+			text-align: left;
+		}
+
+		.namespace-finder__item:hover,
+		.namespace-finder__item:focus {
+			border-color: rgba(56, 189, 248, 0.36);
+			background: rgba(56, 189, 248, 0.14);
+			color: #f8fafc;
+			outline: none;
+		}
+
+		.namespace-finder__item small {
+			color: rgba(148, 163, 184, 0.88);
+			font-size: 0.72rem;
+			font-weight: 700;
+		}
+
+		.namespace-finder__item--create {
+			color: #bae6fd;
+		}
+
+		.namespace-finder__empty {
+			margin: 0;
+			color: rgba(226, 232, 240, 0.72);
+			font-size: 0.78rem;
+			line-height: 1.35;
+			padding: 0.25rem 0.1rem;
 		}
 
 		@keyframes shimmer {
@@ -1046,6 +1156,7 @@
 			<div class="container-fluid">
 				<div class="nav-meta__content">
 					<div class="nav-tags namespace-tabs" id="namespaceList"></div>
+					<div id="namespaceFinder" class="namespace-finder is-hidden"></div>
 					<div class="nav-tags" id="navMetaTags">
 						<i class="bi bi-tags nav-meta__icon"></i>
 						<span class="nav-meta__label">Top tags</span>
@@ -1069,13 +1180,18 @@
 				<form id="noteForm" class="note-form-grid">
 					<input id="noteID" type="hidden">
 					<div class="row g-3">
-						<div class="col-12 col-lg-6">
+						<div class="col-12 col-lg-4">
 							<label for="noteTitle" class="form-label">Title</label>
 							<input id="noteTitle" class="form-control" type="text" autocomplete="off" required>
 						</div>
-						<div class="col-12 col-lg-6">
+						<div class="col-12 col-lg-4">
 							<label for="noteURL" class="form-label">URL</label>
 							<input id="noteURL" class="form-control" type="url" autocomplete="off">
+						</div>
+						<div class="col-12 col-lg-4">
+							<label for="noteNamespace" class="form-label">Namespace</label>
+							<input id="noteNamespace" class="form-control" type="text" autocomplete="off" list="noteNamespaceOptions" required>
+							<datalist id="noteNamespaceOptions"></datalist>
 						</div>
 						<div class="col-12">
 							<div class="d-flex align-items-center justify-content-between gap-2 mb-2">
