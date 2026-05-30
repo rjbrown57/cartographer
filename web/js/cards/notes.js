@@ -50,7 +50,6 @@ export class Note {
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createNoteActions());
         card.appendChild(this.createCardView(dataText));
-        card.appendChild(this.createListRow());
         return card;
     }
     setupCardBase(card) {
@@ -243,26 +242,6 @@ export class Note {
         footer.appendChild(this.tagList);
         return footer;
     }
-    createListRow() {
-        const listRow = document.createElement('div');
-        listRow.className = 'list-view-row list-grid';
-        const titleColumn = document.createElement('div');
-        titleColumn.className = 'd-flex align-items-center';
-        const titleElement = this.createTitleElement('list-title note-list-title');
-        titleElement.title = this.url || this.title;
-        titleElement.textContent = this.title;
-        titleColumn.appendChild(titleElement);
-        const descriptionColumn = document.createElement('div');
-        descriptionColumn.className = 'list-description';
-        descriptionColumn.textContent = this.body;
-        const tagsColumn = document.createElement('div');
-        tagsColumn.className = 'list-tags';
-        tagsColumn.appendChild(this.createTagListElement(4));
-        listRow.appendChild(titleColumn);
-        listRow.appendChild(descriptionColumn);
-        listRow.appendChild(tagsColumn);
-        return listRow;
-    }
     renderTags(showAllOverride = false) {
         if (!this.tagList) {
             return;
@@ -313,31 +292,6 @@ export class Note {
         li.appendChild(button);
         this.tagList.appendChild(li);
     }
-    createTagListElement(maxVisible) {
-        const list = document.createElement('ul');
-        list.className = 'list-unstyled d-flex flex-wrap gap-2 m-0';
-        const visibleTags = this.tags.slice(0, maxVisible);
-        visibleTags.forEach(tag => {
-            const li = document.createElement('li');
-            li.className = 'tag-pill tag-pill--compact';
-            const tagLink = document.createElement('a');
-            tagLink.href = "#";
-            tagLink.className = 'tag-link';
-            tagLink.textContent = tag;
-            tagLink.onclick = () => {
-                TagFilter(tag);
-            };
-            li.appendChild(tagLink);
-            list.appendChild(li);
-        });
-        if (this.tags.length > maxVisible) {
-            const more = document.createElement('span');
-            more.className = 'tag-overflow';
-            more.textContent = `+${this.tags.length - maxVisible} more`;
-            list.appendChild(more);
-        }
-        return list;
-    }
     toggleMaximize() {
         if (this.isMaximized) {
             this.minimize();
@@ -349,7 +303,6 @@ export class Note {
     maximize() {
         const card = this.self;
         const dataContainer = card.querySelector('.data-container');
-        const listRow = card.querySelector('.list-view-row');
         const markdown = card.querySelector('.note-markdown');
         this.originalParent = card.parentElement;
         this.originalNextSibling = card.nextSibling;
@@ -382,16 +335,12 @@ export class Note {
             dataContainer.classList.remove('is-hidden');
         }
         overlay.style.display = 'flex';
-        if (listRow) {
-            listRow.style.display = 'none';
-        }
         this.renderTags(true);
         this.isMaximized = true;
     }
     minimize() {
         const card = this.self;
         const dataContainer = card.querySelector('.data-container');
-        const listRow = card.querySelector('.list-view-row');
         const markdown = card.querySelector('.note-markdown');
         const overlay = document.getElementById('maximized-card-overlay');
         if (overlay) {
@@ -403,9 +352,6 @@ export class Note {
         }
         if (dataContainer) {
             dataContainer.classList.add('is-hidden');
-        }
-        if (listRow) {
-            listRow.style.display = '';
         }
         this.tagsExpanded = false;
         this.renderTags(false);
