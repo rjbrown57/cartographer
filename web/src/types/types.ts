@@ -16,6 +16,9 @@ let CartographerData: CartoResponse;
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const NamespaceListId = 'namespaceList'
+const NamespaceFinderId = 'namespaceFinder'
+const MaxVisibleNamespaceTabs = 8;
+const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 
 export type CartoResponse = {
@@ -41,6 +44,11 @@ type NoteEditEvent = CustomEvent<{
     body: string;
     url: string;
     tags: string[];
+}>;
+
+type NoteComposeEvent = CustomEvent<{
+    namespace?: string;
+    focusNamespace?: boolean;
 }>;
 
 type NamespaceSwitchHandler = (namespace: string, nextURL: URL) => Promise<void>;
@@ -236,6 +244,8 @@ function SetupNoteSubmission(): void {
     const noteID = document.getElementById('noteID') as HTMLInputElement | null;
     const titleInput = document.getElementById('noteTitle') as HTMLInputElement | null;
     const urlInput = document.getElementById('noteURL') as HTMLInputElement | null;
+    const namespaceInput = document.getElementById('noteNamespace') as HTMLInputElement | null;
+    const namespaceOptions = document.getElementById('noteNamespaceOptions') as HTMLDataListElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
     const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
     const tagsPreview = document.getElementById('noteTagPreview') as HTMLElement | null;
@@ -284,6 +294,37 @@ function SetupNoteSubmission(): void {
         });
     };
 
+    // populateNamespaceOptions refreshes namespace suggestions for the note form.
+    const populateNamespaceOptions = async (selectedNamespace: string) => {
+        if (!namespaceOptions) {
+            return;
+        }
+
+        const namespaces = await GetNamespaces();
+        const selected = NormalizeNamespaceInput(selectedNamespace || query.GetSelectedNamespace());
+        if (selected && !namespaces.includes(selected)) {
+            namespaces.push(selected);
+        }
+        namespaces.sort((a, b) => a.localeCompare(b));
+
+        namespaceOptions.innerHTML = '';
+        namespaces.forEach((namespace) => {
+            const option = document.createElement('option');
+            option.value = namespace;
+            namespaceOptions.appendChild(option);
+        });
+    };
+
+    // setNamespaceValue writes a normalized namespace into the note form.
+    const setNamespaceValue = (namespace: string) => {
+        if (!namespaceInput) {
+            return;
+        }
+
+        namespaceInput.value = NormalizeNamespaceInput(namespace || query.GetSelectedNamespace());
+        void populateNamespaceOptions(namespaceInput.value);
+    };
+
     // updatePreview refreshes the rendered markdown preview pane.
     const updatePreview = () => {
         if (!previewPane || !bodyInput) {
@@ -310,7 +351,7 @@ function SetupNoteSubmission(): void {
         }
     };
 
-    const setComposerOpen = (open: boolean) => {
+    const setComposerOpen = (open: boolean, focusNamespace = false) => {
         if (!composer || !toggle) {
             return;
         }
@@ -321,14 +362,23 @@ function SetupNoteSubmission(): void {
         toggle.classList.toggle('nav-action--active', open);
 
         if (open) {
-            titleInput?.focus();
+            if (focusNamespace) {
+                namespaceInput?.focus();
+                namespaceInput?.select();
+            } else {
+                titleInput?.focus();
+            }
         }
     };
 
-    const setCreateMode = () => {
+    const setCreateMode = (namespace = query.GetSelectedNamespace()) => {
         if (noteID) {
             noteID.value = '';
         }
+        if (namespaceInput) {
+            namespaceInput.disabled = false;
+        }
+        setNamespaceValue(namespace);
         if (submitLabel) {
             submitLabel.textContent = 'Save note';
         }
@@ -353,7 +403,7 @@ function SetupNoteSubmission(): void {
         const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
         if (!isOpen) {
             form.reset();
-            setCreateMode();
+            setCreateMode(query.GetSelectedNamespace());
         }
         setComposerOpen(!isOpen);
     });
@@ -386,6 +436,10 @@ function SetupNoteSubmission(): void {
         if (noteID) {
             noteID.value = detail.id;
         }
+        if (namespaceInput) {
+            namespaceInput.disabled = true;
+        }
+        setNamespaceValue(query.GetSelectedNamespace());
         if (titleInput) {
             titleInput.value = detail.title;
         }
@@ -415,6 +469,13 @@ function SetupNoteSubmission(): void {
         setComposerOpen(true);
     }) as EventListener);
 
+    document.addEventListener('cartographer:add-note', ((event: Event) => {
+        const detail = (event as NoteComposeEvent).detail;
+        form.reset();
+        setCreateMode(detail?.namespace || query.GetSelectedNamespace());
+        setComposerOpen(true, Boolean(detail?.focusNamespace));
+    }) as EventListener);
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -423,6 +484,7 @@ function SetupNoteSubmission(): void {
         const url = urlInput?.value.trim() || '';
         const body = bodyInput?.value.trim() || '';
         const tags = parseTags();
+        const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
 
         if (!title || !body) {
             if (status) {
@@ -432,14 +494,28 @@ function SetupNoteSubmission(): void {
             return;
         }
 
+        if (!IsValidNamespace(namespace)) {
+            if (status) {
+                status.textContent = 'Use a valid namespace: lowercase letters, numbers, and hyphens.';
+                status.className = 'note-form-status text-danger';
+            }
+            namespaceInput?.focus();
+            return;
+        }
+
+        if (namespaceInput) {
+            namespaceInput.value = namespace;
+        }
+
         const payload = {
             id: existingID || crypto.randomUUID(),
             title,
             body,
             url,
             tags,
-            namespace: query.GetSelectedNamespace(),
+            namespace,
         };
+        const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';
 
         if (status) {
             status.textContent = existingID ? 'Saving changes...' : 'Saving note...';
@@ -464,7 +540,12 @@ function SetupNoteSubmission(): void {
                 status.className = 'note-form-status text-success';
             }
             form.reset();
-            setCreateMode();
+            setCreateMode(query.GetSelectedNamespace());
+            if (namespaceToOpen) {
+                query.SetSelectedNamespace(namespaceToOpen);
+                window.location.assign(GetNamespaceURL(namespaceToOpen).toString());
+                return;
+            }
             window.location.reload();
         } catch (err) {
             console.error(err);
@@ -481,9 +562,210 @@ function GetNamespacesEndpoint(): string {
     return NamespaceEndpoint;
 }
 
+// NormalizeNamespaceInput converts raw text into the backend namespace shape.
+function NormalizeNamespaceInput(value: string): string {
+    return value.trim().toLowerCase();
+}
+
+// IsValidNamespace checks the UI input against the backend namespace rule.
+function IsValidNamespace(namespace: string): boolean {
+    return NamespacePattern.test(namespace);
+}
+
+// GetNamespaceURL returns the URL that should be used after switching namespaces.
+function GetNamespaceURL(namespace: string): URL {
+    const nextURL = new URL(window.location.href);
+    // Namespace switches should start from a clean filter state.
+    nextURL.searchParams.delete('tag');
+    nextURL.searchParams.delete('term');
+    if (query.IsDefaultNamespace(namespace)) {
+        nextURL.searchParams.delete('namespace');
+    } else {
+        nextURL.searchParams.set('namespace', namespace);
+    }
+    return nextURL;
+}
+
+// GetVisibleNamespaces keeps the selected namespace visible while capping tab count.
+function GetVisibleNamespaces(availableNamespaces: string[], currentNamespace: string): string[] {
+    if (availableNamespaces.length <= MaxVisibleNamespaceTabs) {
+        return availableNamespaces;
+    }
+
+    const visible = availableNamespaces.slice(0, MaxVisibleNamespaceTabs);
+    if (visible.includes(currentNamespace)) {
+        return visible;
+    }
+
+    visible[visible.length - 1] = currentNamespace;
+    return visible.sort((a, b) => a.localeCompare(b));
+}
+
+// NamespaceMatches applies a lightweight fuzzy match for namespace finder results.
+function NamespaceMatches(namespace: string, term: string): boolean {
+    const normalizedNamespace = namespace.toLowerCase();
+    const normalizedTerm = term.toLowerCase();
+    if (!normalizedTerm || normalizedNamespace.includes(normalizedTerm)) {
+        return true;
+    }
+
+    let termIndex = 0;
+    for (const char of normalizedNamespace) {
+        if (char === normalizedTerm[termIndex]) {
+            termIndex++;
+            if (termIndex === normalizedTerm.length) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// RenderNamespaceFinder opens a searchable namespace picker with create support.
+function RenderNamespaceFinder(
+    finder: HTMLElement,
+    availableNamespaces: string[],
+    mode: 'find' | 'create',
+    onSelect: (namespace: string) => Promise<void>,
+    onCreate: (namespace: string) => void
+): void {
+    const closeFinder = () => {
+        finder.classList.add('is-hidden');
+        finder.innerHTML = '';
+    };
+
+    finder.classList.remove('is-hidden');
+    finder.innerHTML = '';
+
+    const bar = document.createElement('div');
+    bar.className = 'namespace-finder__bar';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'namespace-finder__input';
+    input.placeholder = mode === 'create' ? 'new-namespace' : 'Find or create namespace';
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', mode === 'create' ? 'New namespace name' : 'Find namespace');
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'namespace-finder__close';
+    closeButton.setAttribute('aria-label', 'Close namespace finder');
+    closeButton.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+    closeButton.addEventListener('click', closeFinder);
+
+    const list = document.createElement('div');
+    list.className = 'namespace-finder__list';
+    list.setAttribute('role', 'listbox');
+
+    const selectNamespace = async (namespace: string) => {
+        closeFinder();
+        await onSelect(namespace);
+    };
+
+    const createNamespace = (namespace: string) => {
+        closeFinder();
+        onCreate(namespace);
+    };
+
+    const renderResults = () => {
+        const term = NormalizeNamespaceInput(input.value);
+        const matchingNamespaces = availableNamespaces
+            .filter((namespace) => NamespaceMatches(namespace, term))
+            .slice(0, 12);
+        const exactMatch = availableNamespaces.includes(term);
+
+        list.innerHTML = '';
+
+        if (term && IsValidNamespace(term) && !exactMatch) {
+            const createItem = document.createElement('button');
+            createItem.type = 'button';
+            createItem.className = 'namespace-finder__item namespace-finder__item--create';
+
+            const createLabel = document.createElement('span');
+            createLabel.textContent = term;
+
+            const createHint = document.createElement('small');
+            createHint.textContent = 'Add note';
+
+            createItem.append(createLabel, createHint);
+            createItem.addEventListener('click', () => {
+                createNamespace(term);
+            });
+            list.appendChild(createItem);
+        }
+
+        matchingNamespaces.forEach((namespace) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'namespace-finder__item';
+            item.setAttribute('role', 'option');
+
+            const label = document.createElement('span');
+            label.textContent = namespace;
+
+            const hint = document.createElement('small');
+            hint.textContent = 'Open';
+
+            item.append(label, hint);
+            item.addEventListener('click', () => {
+                selectNamespace(namespace);
+            });
+            list.appendChild(item);
+        });
+
+        if (!list.childElementCount) {
+            const empty = document.createElement('p');
+            empty.className = 'namespace-finder__empty';
+            empty.textContent = term && !IsValidNamespace(term)
+                ? 'Use lowercase letters, numbers, and hyphens. Names must start and end with a letter or number.'
+                : 'No namespaces found.';
+            list.appendChild(empty);
+        }
+    };
+
+    input.addEventListener('input', renderResults);
+    input.addEventListener('keydown', async (event) => {
+        if (event.key === 'Escape') {
+            closeFinder();
+            return;
+        }
+
+        if (event.key !== 'Enter') {
+            return;
+        }
+
+        event.preventDefault();
+        const term = NormalizeNamespaceInput(input.value);
+        if (availableNamespaces.includes(term)) {
+            await selectNamespace(term);
+            return;
+        }
+        if (IsValidNamespace(term)) {
+            createNamespace(term);
+        }
+    });
+
+    bar.append(input, closeButton);
+    finder.append(bar, list);
+
+    if (mode === 'find') {
+        renderResults();
+    } else {
+        const empty = document.createElement('p');
+        empty.className = 'namespace-finder__empty';
+        empty.textContent = 'Type a namespace name to add its first note.';
+        list.appendChild(empty);
+    }
+
+    requestAnimationFrame(() => input.focus());
+}
+
 // SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
 async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promise<void> {
     const namespaceList = document.getElementById(NamespaceListId) as HTMLElement | null;
+    const namespaceFinder = document.getElementById(NamespaceFinderId) as HTMLElement | null;
     if (!namespaceList) {
         return;
     }
@@ -515,21 +797,63 @@ async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promis
     }
 
     namespaceList.innerHTML = '';
+    if (namespaceFinder) {
+        namespaceFinder.classList.add('is-hidden');
+        namespaceFinder.innerHTML = '';
+    }
     namespaceList.setAttribute('role', 'tablist');
     namespaceList.setAttribute('aria-label', 'Namespaces');
     let switchingNamespace = false;
+    const visibleNamespaces = GetVisibleNamespaces(availableNamespaces, currentNamespace);
+    const hasOverflow = visibleNamespaces.length < availableNamespaces.length;
 
-    availableNamespaces.forEach((namespace) => {
-        const nextURL = new URL(window.location.href);
-        // Namespace switches should start from a clean filter state.
-        nextURL.searchParams.delete('tag');
-        nextURL.searchParams.delete('term');
-        if (query.IsDefaultNamespace(namespace)) {
-            nextURL.searchParams.delete('namespace');
-        } else {
-            nextURL.searchParams.set('namespace', namespace);
+    const selectNamespace = async (namespace: string, button?: HTMLButtonElement) => {
+        if (namespace === currentNamespace || switchingNamespace) {
+            return;
         }
 
+        switchingNamespace = true;
+        query.SetSelectedNamespace(namespace);
+        namespaceList.querySelectorAll('.namespace-tab').forEach((tab) => {
+            tab.setAttribute('aria-selected', 'false');
+            tab.setAttribute('aria-current', 'false');
+            (tab as HTMLButtonElement).disabled = true;
+        });
+        if (button) {
+            button.setAttribute('aria-selected', 'true');
+            button.setAttribute('aria-current', 'page');
+            button.classList.add('namespace-tab--loading');
+        }
+        document.body.classList.add('namespace-switching');
+
+        try {
+            const nextURL = GetNamespaceURL(namespace);
+            if (onSwitch) {
+                await onSwitch(namespace, nextURL);
+            } else {
+                window.location.assign(nextURL.toString());
+            }
+        } catch (err) {
+            console.error(err);
+            switchingNamespace = false;
+            document.body.classList.remove('namespace-switching');
+            await SetupNamespaceSelector(onSwitch);
+        }
+    };
+
+    const openAddNoteInNamespace = (namespace: string) => {
+        document.dispatchEvent(new CustomEvent('cartographer:add-note', {
+            detail: { namespace, focusNamespace: false },
+        }));
+    };
+
+    const openAddNoteNamespacePicker = () => {
+        document.dispatchEvent(new CustomEvent('cartographer:add-note', {
+            detail: { namespace: query.GetSelectedNamespace(), focusNamespace: true },
+        }));
+    };
+
+    const createNamespaceButton = (namespace: string): HTMLButtonElement => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'namespace-tab';
@@ -545,38 +869,39 @@ async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promis
         button.appendChild(namespaceText);
         button.addEventListener('click', async (event) => {
             event.preventDefault();
-            if (namespace === currentNamespace || switchingNamespace) {
-                return;
-            }
-
-            switchingNamespace = true;
-            query.SetSelectedNamespace(namespace);
-            namespaceList.querySelectorAll('.namespace-tab').forEach((tab) => {
-                tab.setAttribute('aria-selected', 'false');
-                tab.setAttribute('aria-current', 'false');
-                (tab as HTMLButtonElement).disabled = true;
-            });
-            button.setAttribute('aria-selected', 'true');
-            button.setAttribute('aria-current', 'page');
-            button.classList.add('namespace-tab--loading');
-            document.body.classList.add('namespace-switching');
-
-            try {
-                if (onSwitch) {
-                    await onSwitch(namespace, nextURL);
-                } else {
-                    window.location.assign(nextURL.toString());
-                }
-            } catch (err) {
-                console.error(err);
-                switchingNamespace = false;
-                document.body.classList.remove('namespace-switching');
-                await SetupNamespaceSelector(onSwitch);
-            }
+            await selectNamespace(namespace, button);
         });
 
-        namespaceList.appendChild(button);
+        return button;
+    };
+
+    visibleNamespaces.forEach((namespace) => {
+        namespaceList.appendChild(createNamespaceButton(namespace));
     });
+
+    if (namespaceFinder && hasOverflow) {
+        const finderButton = document.createElement('button');
+        finderButton.type = 'button';
+        finderButton.className = 'namespace-tab namespace-tab--utility';
+        finderButton.setAttribute('aria-label', 'Find namespace');
+        finderButton.innerHTML = '<i class="bi bi-search" aria-hidden="true"></i>';
+        finderButton.addEventListener('click', () => {
+            RenderNamespaceFinder(namespaceFinder, availableNamespaces, 'find', selectNamespace, openAddNoteInNamespace);
+        });
+        namespaceList.appendChild(finderButton);
+    }
+
+    if (namespaceFinder) {
+        const createButton = document.createElement('button');
+        createButton.type = 'button';
+        createButton.className = 'namespace-tab namespace-tab--utility namespace-tab--create';
+        createButton.setAttribute('aria-label', 'Add note to namespace');
+        createButton.innerHTML = '<i class="bi bi-plus-lg" aria-hidden="true"></i>';
+        createButton.addEventListener('click', () => {
+            openAddNoteNamespacePicker();
+        });
+        namespaceList.appendChild(createButton);
+    }
 }
 
 // Fetch main data with cache validation and update the global store.
