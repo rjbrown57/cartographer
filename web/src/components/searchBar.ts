@@ -76,7 +76,9 @@ function FilterCards(deck: cards.Card[], filter: string[]) {
 
     // if the filter is unset, or emptied, show all cards
     if (filter.length === 0) {
-        cards.ShowAllCards(deck);
+        deck.forEach(card => {
+            card.processFilter(filter);
+        });
         return
     }
 
