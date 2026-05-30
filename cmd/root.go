@@ -6,6 +6,7 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/log"
 
 	clientcmd "github.com/rjbrown57/cartographer/cmd/client"
+	mcpcmd "github.com/rjbrown57/cartographer/cmd/mcp"
 	servecmd "github.com/rjbrown57/cartographer/cmd/serve"
 	testcmd "github.com/rjbrown57/cartographer/cmd/test"
 	"github.com/spf13/cobra"
@@ -50,7 +51,7 @@ func init() {
 	// Set the logging options
 	rootCmd.PersistentFlags().CountVarP(&debug, "debug", "d", "enable debug logging. Set multiple times to increase log level")
 	rootCmd.PersistentFlags().BoolVarP(&jsonLog, "json", "j", false, "enable json style logging")
-	rootCmd.AddCommand(servecmd.ServeCmd, clientcmd.ClientCmd, testcmd.TestCmd, versionCmd)
+	rootCmd.AddCommand(servecmd.ServeCmd, clientcmd.ClientCmd, mcpcmd.McpCmd, testcmd.TestCmd, versionCmd)
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
