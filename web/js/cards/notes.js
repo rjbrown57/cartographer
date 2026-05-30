@@ -1,4 +1,5 @@
 import { TagFilter } from "../components/searchBar.js";
+import * as query from "../query/query.js";
 export function RenderMarkdown(markdown) {
     if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
         return EscapeHTML(markdown).replace(/\n/g, '<br>');
@@ -45,6 +46,7 @@ export class Note {
     render() {
         const card = this.self;
         this.setupCardBase(card);
+        card.replaceChildren();
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createNoteActions());
         card.appendChild(this.createCardView(dataText));
@@ -135,6 +137,7 @@ export class Note {
         };
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
+        actions.appendChild(this.createRawButton());
         return actions;
     }
     copyTextToClipboard(text, onSuccess) {
@@ -198,6 +201,26 @@ export class Note {
             });
         };
         return copyButton;
+    }
+    createRawButton() {
+        const rawButton = document.createElement('button');
+        rawButton.type = 'button';
+        rawButton.className = 'note-action-button';
+        rawButton.title = 'Open raw note data';
+        rawButton.setAttribute('aria-label', 'Open raw note data');
+        rawButton.innerHTML = '<i class="bi bi-code-slash"></i>';
+        rawButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(this.getRawQueryURL(), '_blank', 'noopener,noreferrer');
+        };
+        return rawButton;
+    }
+    getRawQueryURL() {
+        const rawURL = new URL(query.GetEndpoint, window.location.origin);
+        rawURL.searchParams.set('id', this.id);
+        rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
+        return rawURL.toString();
     }
     setCopyButtonState(copyButton, copied) {
         if (!copied) {

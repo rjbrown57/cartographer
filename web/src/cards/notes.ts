@@ -1,5 +1,6 @@
 import * as cards from "./cards";
 import { TagFilter } from "../components/searchBar.js";
+import * as query from "../query/query.js";
 
 declare const marked: {
     parse(markdown: string): string | Promise<string>;
@@ -68,6 +69,7 @@ export class Note implements cards.Card {
     render(): Node {
         const card = this.self;
         this.setupCardBase(card);
+        card.replaceChildren();
         const dataText = this.data ? JSON.stringify(this.data, null, 2) : null;
         card.appendChild(this.createNoteActions());
         card.appendChild(this.createCardView(dataText));
@@ -182,6 +184,7 @@ export class Note implements cards.Card {
 
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
+        actions.appendChild(this.createRawButton());
         return actions;
     }
 
@@ -262,6 +265,31 @@ export class Note implements cards.Card {
         };
 
         return copyButton;
+    }
+
+    // createRawButton builds a button that opens the exact raw note API query.
+    private createRawButton(): HTMLButtonElement {
+        const rawButton = document.createElement('button');
+        rawButton.type = 'button';
+        rawButton.className = 'note-action-button';
+        rawButton.title = 'Open raw note data';
+        rawButton.setAttribute('aria-label', 'Open raw note data');
+        rawButton.innerHTML = '<i class="bi bi-code-slash"></i>';
+        rawButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(this.getRawQueryURL(), '_blank', 'noopener,noreferrer');
+        };
+
+        return rawButton;
+    }
+
+    // getRawQueryURL builds the v1/get query URL for this exact card.
+    private getRawQueryURL(): string {
+        const rawURL = new URL(query.GetEndpoint, window.location.origin);
+        rawURL.searchParams.set('id', this.id);
+        rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
+        return rawURL.toString();
     }
 
     // setCopyButtonState updates the copy button to a temporary copied state.

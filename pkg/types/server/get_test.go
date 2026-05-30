@@ -53,3 +53,44 @@ func TestGetNamespaces(t *testing.T) {
 		t.Fatalf("expected namespace %q in response, got %v", testNamespace, resp.Response.GetMsg())
 	}
 }
+
+// TestGetByExactNoteID verifies Get can resolve a note by exact cache key.
+func TestGetByExactNoteID(t *testing.T) {
+	const testNamespace = "get-exact-note-test"
+	const wantedID = "get-exact-note-id"
+	const otherID = "get-exact-note-other"
+
+	testServer.mu.Lock()
+	testServer.nsCache.AddToCache(testNamespace, &proto.Note{Id: wantedID, Body: "wanted"})
+	testServer.nsCache.AddToCache(testNamespace, &proto.Note{Id: otherID, Body: "other"})
+	testServer.mu.Unlock()
+	defer func() {
+		testServer.mu.Lock()
+		delete(testServer.nsCache, testNamespace)
+		testServer.mu.Unlock()
+	}()
+
+	req := &proto.CartographerGetRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: testNamespace,
+			Notes: []*proto.Note{
+				{Id: wantedID},
+			},
+		},
+		Type: proto.RequestType_REQUEST_TYPE_DATA,
+	}
+
+	resp, err := testServer.Get(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	notes := resp.GetResponse().GetNotes()
+	if got := len(notes); got != 1 {
+		t.Fatalf("expected one exact note, got %d: %v", got, notes)
+	}
+
+	if got := notes[0].GetId(); got != wantedID {
+		t.Fatalf("expected note %q, got %q", wantedID, got)
+	}
+}

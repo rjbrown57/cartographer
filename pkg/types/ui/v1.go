@@ -48,6 +48,7 @@ func pingFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Produce json
 // @Param tag query string false "Filter by tag names (comma-separated)" example("oci,k8s")
 // @Param term query string false "Filter by term (comma-separated)" example("ko,binman")
+// @Param id query string false "Filter by exact note ID (comma-separated)" example("note-123")
 // @Param namespace query string false "Namespace scope for the query" example("default")
 // @Success 200 {object} map[string]interface{} "Filtered data"
 // @Failure 400 {object} map[string]interface{} "Invalid namespace"
@@ -76,6 +77,11 @@ func getFunc(carto *client.CartographerClient) gin.HandlerFunc {
 
 		// Get the Terms(s) from the query parameter
 		gr.Request.Terms = SplitQueryArray(c.QueryArray("term"))
+
+		// Get exact note ID filters from the query parameter.
+		for _, id := range SplitQueryArray(c.QueryArray("id")) {
+			gr.Request.Notes = append(gr.Request.Notes, &proto.Note{Id: id})
+		}
 
 		pr, err := carto.Client.Get(carto.Ctx, gr)
 

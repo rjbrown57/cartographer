@@ -42,6 +42,25 @@ func (n *NSCache) GetNotes(ns string) []*proto.Note {
 	return notes
 }
 
+// GetNotesByKey returns namespace-scoped notes for the supplied cache keys.
+func (n *NSCache) GetNotesByKey(ns string, keys []string) []*proto.Note {
+	cn, ok := (*n)[ns]
+	if !ok {
+		return nil
+	}
+
+	cn.mu.RLock()
+	notes := make([]*proto.Note, 0, len(keys))
+	for _, key := range keys {
+		if note, ok := cn.NoteCache[key]; ok {
+			notes = append(notes, note)
+		}
+	}
+	cn.mu.RUnlock()
+
+	return notes
+}
+
 // GetTags returns a namespace-scoped snapshot of tag names for safe iteration without holding locks.
 func (n *NSCache) GetTags(ns string) []string {
 	cn, ok := (*n)[ns]
