@@ -152,6 +152,8 @@ function SetupNoteSubmission() {
     const namespaceInput = document.getElementById('noteNamespace');
     const namespaceOptions = document.getElementById('noteNamespaceOptions');
     const bodyInput = document.getElementById('noteBody');
+    const dataDetails = document.getElementById('noteDataDetails');
+    const dataInput = document.getElementById('noteData');
     const tagsInput = document.getElementById('noteTags');
     const tagsPreview = document.getElementById('noteTagPreview');
     const writeTab = document.getElementById('noteWriteTab');
@@ -167,6 +169,37 @@ function SetupNoteSubmission() {
         return tagsValue.split(',')
             .map(tag => tag.trim())
             .filter(tag => tag !== '');
+    };
+    const parseDataInput = () => {
+        const dataValue = dataInput?.value.trim() || '';
+        if (!dataValue) {
+            return null;
+        }
+        try {
+            const parsed = JSON.parse(dataValue);
+            if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+                throw new Error('Data must be a JSON object.');
+            }
+            return parsed;
+        }
+        catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Data must be valid JSON object syntax.';
+                status.className = 'note-form-status text-danger';
+            }
+            dataDetails?.setAttribute('open', '');
+            dataInput?.focus();
+            return null;
+        }
+    };
+    const setDataValue = (data) => {
+        if (!dataInput) {
+            return;
+        }
+        const hasData = data && Object.keys(data).length > 0;
+        dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
+        dataDetails?.toggleAttribute('open', Boolean(hasData));
     };
     const syncTagPreview = () => {
         if (!tagsPreview) {
@@ -264,6 +297,7 @@ function SetupNoteSubmission() {
             namespaceInput.disabled = false;
         }
         setNamespaceValue(namespace);
+        setDataValue();
         if (submitLabel) {
             submitLabel.textContent = 'Save note';
         }
@@ -327,6 +361,7 @@ function SetupNoteSubmission() {
         if (bodyInput) {
             bodyInput.value = detail.body;
         }
+        setDataValue(detail.data);
         if (tagsInput) {
             tagsInput.value = detail.tags.join(', ');
         }
@@ -359,6 +394,11 @@ function SetupNoteSubmission() {
         const body = bodyInput?.value.trim() || '';
         const tags = parseTags();
         const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
+        const data = parseDataInput();
+        const hasDataInput = Boolean(dataInput?.value.trim());
+        if (hasDataInput && !data) {
+            return;
+        }
         if (!title || !body) {
             if (status) {
                 status.textContent = 'Title and markdown body are required.';
@@ -383,6 +423,7 @@ function SetupNoteSubmission() {
             body,
             url,
             tags,
+            data: data || undefined,
             namespace,
         };
         const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';

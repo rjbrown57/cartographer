@@ -101,6 +101,7 @@ type noteCreateRequest struct {
 	Body        string            `json:"body"`
 	URL         string            `json:"url"`
 	Tags        []string          `json:"tags"`
+	Data        map[string]any    `json:"data"`
 	Namespace   string            `json:"namespace"`
 	Annotations map[string]string `json:"annotations"`
 }
@@ -126,6 +127,7 @@ func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			WithBody(nr.Body).
 			WithURL(nr.URL).
 			WithTags(nr.Tags).
+			WithData(nr.Data).
 			WithAnnotations(nr.Annotations).
 			Build()
 		if err != nil {

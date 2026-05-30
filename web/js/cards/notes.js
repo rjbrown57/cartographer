@@ -168,6 +168,7 @@ export class Note {
                 body: this.body,
                 url: this.url,
                 tags: this.tags,
+                data: this.data,
             },
         }));
     }
@@ -308,25 +309,27 @@ export class Note {
         this.originalNextSibling = card.nextSibling;
         let overlay = document.getElementById('maximized-card-overlay');
         if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'maximized-card-overlay';
-            overlay.className = 'maximized-overlay';
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    this.minimize();
+            const createdOverlay = document.createElement('div');
+            createdOverlay.id = 'maximized-card-overlay';
+            createdOverlay.className = 'maximized-overlay';
+            document.body.appendChild(createdOverlay);
+            createdOverlay.addEventListener('click', (e) => {
+                if (e.target === createdOverlay) {
+                    createdOverlay.activeCard?.minimize();
                 }
             });
             const handleKeyDown = (e) => {
-                if (e.key === 'Escape' && overlay && overlay.style.display !== 'none') {
-                    this.minimize();
+                if (e.key === 'Escape' && createdOverlay.style.display !== 'none') {
+                    createdOverlay.activeCard?.minimize();
                 }
             };
             document.addEventListener('keydown', handleKeyDown);
-            overlay.keyHandler = handleKeyDown;
+            createdOverlay.keyHandler = handleKeyDown;
+            overlay = createdOverlay;
         }
         card.remove();
-        overlay.appendChild(card);
+        overlay.replaceChildren(card);
+        overlay.activeCard = this;
         card.className = 'link-card note-card';
         if (markdown) {
             markdown.classList.remove('note-markdown--preview');
@@ -345,6 +348,9 @@ export class Note {
         const overlay = document.getElementById('maximized-card-overlay');
         if (overlay) {
             overlay.style.display = 'none';
+            if (overlay.activeCard === this) {
+                overlay.activeCard = undefined;
+            }
         }
         card.className = 'link-card note-card';
         if (markdown) {
