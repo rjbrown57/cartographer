@@ -561,47 +561,105 @@
 
 		#linkgrid {
 			display: grid;
-			gap: 1.5rem;
-			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-			grid-auto-rows: minmax(0, 1fr);
+			gap: 1rem;
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			grid-auto-rows: minmax(14.5rem, auto);
 		}
 
 		.link-card {
 			background: var(--card-bg);
-			border: 1.5px solid var(--card-border);
-			border-radius: 20px;
-			padding: 1.5rem;
+			border: 1px solid var(--card-border);
+			border-radius: 12px;
+			padding: 1rem;
 			position: relative;
 			display: flex;
 			flex-direction: column;
-			gap: 1rem;
+			gap: 0.75rem;
 			height: 100%;
-			box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-			transition: transform 0.2s ease, box-shadow 0.2s ease;
+			min-height: 14.5rem;
+			box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+			transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 			will-change: transform;
 			backface-visibility: hidden;
 			transform: translateZ(0);
 			cursor: pointer;
+			overflow: hidden;
+		}
+
+		.link-card::before {
+			content: "";
+			position: absolute;
+			inset: 0 auto 0 0;
+			width: 4px;
+			background: var(--card-rail, var(--accent));
+		}
+
+		.note-card--link {
+			--card-rail: #0ea5e9;
+		}
+
+		.note-card--text {
+			--card-rail: #6366f1;
+		}
+
+		.note-card--data {
+			--card-rail: #059669;
 		}
 
 		.link-card:hover {
-			transform: translate3d(0, -4px, 0);
-			box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+			border-color: #94a3b8;
+			transform: translate3d(0, -2px, 0);
+			box-shadow: 0 14px 28px rgba(15, 23, 42, 0.11);
 		}
 
 		.card-view {
 			display: flex;
 			flex-direction: column;
-			gap: 0.75rem;
+			gap: 0.65rem;
 			flex: 1 1 auto;
 			min-height: 0;
-			padding-right: 5.5rem;
+			padding-right: 0;
+		}
+
+		.note-card__content {
+			min-height: 0;
+		}
+
+		.note-meta-row {
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 0.4rem;
+			min-height: 1.5rem;
+		}
+
+		.note-type-badge,
+		.note-meta-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.3rem;
+			border-radius: 999px;
+			font-size: 0.68rem;
+			font-weight: 700;
+			line-height: 1;
+			padding: 0.3rem 0.5rem;
+		}
+
+		.note-type-badge {
+			background: color-mix(in srgb, var(--card-rail) 12%, white);
+			color: color-mix(in srgb, var(--card-rail) 72%, #0f172a);
+		}
+
+		.note-meta-chip {
+			background: #f1f5f9;
+			color: #64748b;
 		}
 
 		.link-title {
 			font-weight: 600;
-			font-size: 1.1rem;
-			color: var(--accent);
+			font-size: 1rem;
+			line-height: 1.35;
+			color: var(--text-primary);
 			text-decoration: none;
 			display: -webkit-box;
 			-webkit-line-clamp: 2;
@@ -626,7 +684,7 @@
 
 		.link-description {
 			color: var(--text-muted);
-			font-size: 0.95rem;
+			font-size: 0.9rem;
 			margin: 0;
 		}
 
@@ -639,10 +697,10 @@
 
 		.note-actions {
 			position: absolute;
-			top: 1rem;
-			right: 1rem;
+			top: 0.85rem;
+			right: 0.85rem;
 			z-index: 2;
-			display: flex;
+			display: none;
 			align-items: center;
 			gap: 0.35rem;
 			background: rgba(248, 250, 252, 0.88);
@@ -651,6 +709,10 @@
 			box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 			padding: 0.2rem;
 			backdrop-filter: blur(6px);
+		}
+
+		#maximized-card-overlay .note-actions {
+			display: flex;
 		}
 
 		.note-action-button {
@@ -681,7 +743,7 @@
 		}
 
 		.note-markdown {
-			line-height: 1.5;
+			line-height: 1.48;
 		}
 
 		.note-markdown h1,
@@ -693,23 +755,23 @@
 			color: var(--text-primary);
 			font-family: 'Inter', system-ui, -apple-system, sans-serif;
 			font-weight: 700;
-			line-height: 1.25;
-			margin: 0.95rem 0 0.45rem;
+			line-height: 1.28;
+			margin: 0.85rem 0 0.4rem;
 		}
 
 		.note-markdown h1 {
-			font-size: 1.45rem;
+			font-size: 1.35rem;
 		}
 
 		.note-markdown h2 {
-			font-size: 1.25rem;
+			font-size: 1.16rem;
 		}
 
 		.note-markdown h3,
 		.note-markdown h4,
 		.note-markdown h5,
 		.note-markdown h6 {
-			font-size: 1.08rem;
+			font-size: 1rem;
 		}
 
 		.note-markdown > :first-child {
@@ -721,8 +783,9 @@
 		}
 
 		.note-markdown--preview {
-			max-height: 7.5rem;
+			max-height: 5.25rem;
 			overflow: hidden;
+			position: relative;
 		}
 
 		.note-markdown--preview h1,
@@ -731,8 +794,8 @@
 		.note-markdown--preview h4,
 		.note-markdown--preview h5,
 		.note-markdown--preview h6 {
-			font-size: 0.98rem;
-			line-height: 1.35;
+			font-size: 0.92rem;
+			line-height: 1.3;
 			margin: 0 0 0.35rem;
 		}
 
@@ -742,6 +805,38 @@
 		.note-markdown--preview pre,
 		.note-markdown--preview blockquote {
 			margin-bottom: 0.45rem;
+		}
+
+		.note-markdown code {
+			background: #eef2f7;
+			border: 1px solid #dbe3ef;
+			border-radius: 5px;
+			color: #334155;
+			font-size: 0.86em;
+			padding: 0.05rem 0.25rem;
+		}
+
+		.note-markdown pre {
+			background: #0f172a;
+			border-radius: 10px;
+			color: #e2e8f0;
+			font-size: 0.78rem;
+			overflow: auto;
+			padding: 0.75rem;
+		}
+
+		.note-markdown pre code {
+			background: transparent;
+			border: 0;
+			color: inherit;
+			padding: 0;
+		}
+
+		.search-match {
+			background: #fef08a;
+			border-radius: 4px;
+			color: #713f12;
+			padding: 0 0.12rem;
 		}
 
 		.note-composer {
@@ -901,23 +996,25 @@
 
 		.data-container {
 			background: #f8fafc;
-			border-radius: 16px;
-			padding: 1rem;
-			border: 1px dashed #cbd5f5;
+			border-radius: 10px;
+			padding: 0.85rem;
+			border: 1px solid #cbd5e1;
 		}
 
 		.data-label {
-			font-size: 0.8rem;
+			font-size: 0.72rem;
 			font-weight: 600;
 			color: #64748b;
 			margin-bottom: 0.5rem;
+			text-transform: uppercase;
+			letter-spacing: 0.06em;
 		}
 
 		.data-content {
 			background: #0f172a;
 			color: #e2e8f0;
-			border-radius: 12px;
-			padding: 1rem;
+			border-radius: 8px;
+			padding: 0.85rem;
 			font-size: 0.75rem;
 			max-height: 280px;
 			overflow: auto;
@@ -935,10 +1032,10 @@
 			margin: 0;
 			display: flex;
 			flex-wrap: wrap;
-			gap: 0.35rem;
+			gap: 0.28rem;
 			align-items: center;
 			border-top: 1px solid var(--card-border);
-			padding-top: 0.5rem;
+			padding-top: 0.6rem;
 		}
 
 		.footer {
@@ -947,15 +1044,18 @@
 
 		.tag-icon {
 			color: #94a3b8;
+			font-size: 0.86rem;
 		}
 
 		.tag-pill {
 			background: var(--tag-bg);
+			border: 1px solid transparent;
 			border-radius: 999px;
-			padding: 0.28rem 0.6rem;
-			font-size: 0.78rem;
+			padding: 0.22rem 0.5rem;
+			font-size: 0.72rem;
 			font-weight: 600;
 			line-height: 1.2;
+			max-width: 100%;
 		}
 
 		.tag-pill--compact {
@@ -968,9 +1068,21 @@
 			background: var(--tag-hover);
 		}
 
+		.tag-pill--match {
+			background: #eef2ff;
+			border-color: #a5b4fc;
+			box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
+		}
+
 		.tag-link {
 			color: var(--tag-text);
+			display: inline-block;
+			max-width: 9rem;
+			overflow: hidden;
 			text-decoration: none;
+			text-overflow: ellipsis;
+			vertical-align: bottom;
+			white-space: nowrap;
 		}
 
 		.tag-link:hover {
@@ -1007,12 +1119,46 @@
 		}
 
 		#maximized-card-overlay .link-card {
-			max-width: 960px;
+			max-width: 1080px;
 			width: 100%;
 			max-height: 90vh;
 			overflow-y: auto;
 			cursor: default;
 			animation: overlayPop 0.3s ease;
+			border-radius: 14px;
+			padding: 1.35rem;
+			min-height: auto;
+			height: auto;
+		}
+
+		#maximized-card-overlay .card-view {
+			gap: 1rem;
+			padding-right: 5rem;
+		}
+
+		#maximized-card-overlay .link-title {
+			font-size: 1.28rem;
+			-webkit-line-clamp: unset;
+		}
+
+		#maximized-card-overlay .link-description {
+			font-size: 0.98rem;
+		}
+
+		#maximized-card-overlay .note-meta-row {
+			margin-right: 5rem;
+		}
+
+		#maximized-card-overlay .note-meta-chip--tags {
+			display: none;
+		}
+
+		#maximized-card-overlay .tag-list {
+			gap: 0.35rem;
+		}
+
+		#maximized-card-overlay .tag-link {
+			max-width: 18rem;
 		}
 
 		@keyframes overlayPop {

@@ -29,7 +29,7 @@ export class Note {
     originalNextSibling = null;
     tagList;
     tagsExpanded = false;
-    maxVisibleTags = 8;
+    maxVisibleTags = 4;
     constructor(id, title, body, url, tags, data) {
         this.id = id;
         this.title = title;
@@ -54,7 +54,9 @@ export class Note {
     }
     setupCardBase(card) {
         card.id = this.id || this.title;
-        card.className = 'link-card note-card';
+        const noteType = this.getNoteType();
+        card.className = `link-card note-card ${noteType.className}`;
+        card.dataset.noteType = noteType.label;
         card.onclick = (event) => {
             this.handleCardClick(event);
         };
@@ -80,18 +82,57 @@ export class Note {
     }
     createBody(dataText) {
         const body = document.createElement('div');
-        body.className = 'd-flex flex-column gap-2';
+        body.className = 'note-card__content d-flex flex-column gap-2';
+        body.appendChild(this.createMetaRow());
         const title = this.createTitleElement('link-title note-title');
-        title.textContent = this.title;
+        this.setHighlightedText(title, this.title, this.getSearchTerms());
         body.appendChild(title);
         const markdown = document.createElement('div');
         markdown.className = 'link-description note-markdown note-markdown--preview';
         markdown.innerHTML = RenderMarkdown(this.body);
+        this.highlightTermsInElement(markdown, this.getSearchTerms());
         body.appendChild(markdown);
         if (dataText) {
             body.appendChild(this.createDataContainer(dataText));
         }
         return body;
+    }
+    createMetaRow() {
+        const meta = document.createElement('div');
+        meta.className = 'note-meta-row';
+        const noteType = this.getNoteType();
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'note-type-badge';
+        typeBadge.innerHTML = `<i class="${noteType.icon}"></i> ${noteType.label}`;
+        meta.appendChild(typeBadge);
+        if (this.tags.length > 0) {
+            const tagCount = document.createElement('span');
+            tagCount.className = 'note-meta-chip note-meta-chip--tags';
+            tagCount.innerHTML = `<i class="bi bi-tags"></i> ${this.tags.length}`;
+            meta.appendChild(tagCount);
+        }
+        return meta;
+    }
+    getNoteType() {
+        if (this.data) {
+            return {
+                className: 'note-card--data',
+                icon: 'bi bi-braces',
+                label: 'Data',
+            };
+        }
+        if (this.url) {
+            return {
+                className: 'note-card--link',
+                icon: 'bi bi-link-45deg',
+                label: 'Link',
+            };
+        }
+        return {
+            className: 'note-card--text',
+            icon: 'bi bi-journal-text',
+            label: 'Note',
+        };
     }
     createTitleElement(className) {
         if (this.url) {
@@ -256,11 +297,16 @@ export class Note {
         visibleTags.forEach(tag => {
             const li = document.createElement('li');
             li.className = 'tag-pill';
+            if (this.tagMatchesActiveSearch(tag)) {
+                li.classList.add('tag-pill--match');
+            }
             const tagLink = document.createElement('a');
             tagLink.href = "#";
             tagLink.className = 'tag-link';
-            tagLink.textContent = tag;
-            tagLink.onclick = () => {
+            this.setHighlightedText(tagLink, tag, this.getSearchTerms());
+            tagLink.onclick = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 TagFilter(tag);
             };
             li.appendChild(tagLink);
@@ -330,7 +376,7 @@ export class Note {
         card.remove();
         overlay.replaceChildren(card);
         overlay.activeCard = this;
-        card.className = 'link-card note-card';
+        card.className = `link-card note-card ${this.getNoteType().className}`;
         if (markdown) {
             markdown.classList.remove('note-markdown--preview');
         }
@@ -352,7 +398,7 @@ export class Note {
                 overlay.activeCard = undefined;
             }
         }
-        card.className = 'link-card note-card';
+        card.className = `link-card note-card ${this.getNoteType().className}`;
         if (markdown) {
             markdown.classList.add('note-markdown--preview');
         }
@@ -375,6 +421,7 @@ export class Note {
     }
     processFilter(filter) {
         if (filter.length === 0) {
+            this.refreshSearchHighlights();
             this.show();
             return;
         }
@@ -382,6 +429,7 @@ export class Note {
         const matchesAll = filter.every(term => searchableText.includes(term.toUpperCase()) ||
             this.tags.some(tag => tag.toUpperCase().includes(term.toUpperCase())));
         if (matchesAll) {
+            this.refreshSearchHighlights();
             this.show();
         }
         else {
@@ -396,5 +444,96 @@ export class Note {
     }
     remove() {
         this.self.remove();
+    }
+    refreshSearchHighlights() {
+        const title = this.self.querySelector('.link-title');
+        if (title) {
+            this.setHighlightedText(title, this.title, this.getSearchTerms());
+        }
+        const markdown = this.self.querySelector('.note-markdown');
+        if (markdown) {
+            markdown.innerHTML = RenderMarkdown(this.body);
+            this.highlightTermsInElement(markdown, this.getSearchTerms());
+        }
+        this.renderTags(this.isMaximized);
+    }
+    getSearchTerms() {
+        const urlTerms = new URLSearchParams(window.location.search).getAll('term');
+        const searchElement = document.getElementById('searchBar');
+        const inputTerms = searchElement?.value.split(/\s+/) || [];
+        const terms = [...urlTerms, ...inputTerms]
+            .flatMap(term => term.split(/\s+/))
+            .map(term => term.trim())
+            .filter(term => term.length > 1);
+        return Array.from(new Set(terms));
+    }
+    getActiveTags() {
+        const tags = new URLSearchParams(window.location.search)
+            .getAll('tag')
+            .flatMap(tag => tag.split(/\s+/))
+            .map(tag => tag.trim().toLowerCase())
+            .filter(tag => tag !== '');
+        return new Set(tags);
+    }
+    tagMatchesActiveSearch(tag) {
+        const normalizedTag = tag.toLowerCase();
+        const activeTags = this.getActiveTags();
+        const activeTerms = this.getSearchTerms().map(term => term.toLowerCase());
+        return activeTags.has(normalizedTag) || activeTerms.some(term => normalizedTag.includes(term));
+    }
+    setHighlightedText(element, value, terms) {
+        element.textContent = value;
+        this.highlightTermsInElement(element, terms);
+    }
+    highlightTermsInElement(element, terms) {
+        const pattern = this.buildHighlightPattern(terms);
+        if (!pattern) {
+            return;
+        }
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+                if (!node.textContent || !pattern.test(node.textContent)) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                pattern.lastIndex = 0;
+                return NodeFilter.FILTER_ACCEPT;
+            },
+        });
+        const textNodes = [];
+        while (walker.nextNode()) {
+            textNodes.push(walker.currentNode);
+        }
+        textNodes.forEach(node => {
+            const text = node.textContent || '';
+            const fragment = document.createDocumentFragment();
+            let lastIndex = 0;
+            text.replace(pattern, (match, _group, offset) => {
+                if (offset > lastIndex) {
+                    fragment.appendChild(document.createTextNode(text.slice(lastIndex, offset)));
+                }
+                const mark = document.createElement('mark');
+                mark.className = 'search-match';
+                mark.textContent = match;
+                fragment.appendChild(mark);
+                lastIndex = offset + match.length;
+                return match;
+            });
+            if (lastIndex < text.length) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+            }
+            node.replaceWith(fragment);
+            pattern.lastIndex = 0;
+        });
+    }
+    buildHighlightPattern(terms) {
+        const escapedTerms = terms
+            .map(term => term.trim())
+            .filter(term => term.length > 1)
+            .sort((a, b) => b.length - a.length)
+            .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (escapedTerms.length === 0) {
+            return null;
+        }
+        return new RegExp(`(${escapedTerms.join('|')})`, 'gi');
     }
 }

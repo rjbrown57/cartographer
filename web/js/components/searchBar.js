@@ -1,4 +1,3 @@
-import * as cards from '../cards/cards.js';
 const searchId = 'searchBar';
 export class SearchBar {
     filter = [];
@@ -49,7 +48,9 @@ export class SearchBar {
 }
 function FilterCards(deck, filter) {
     if (filter.length === 0) {
-        cards.ShowAllCards(deck);
+        deck.forEach(card => {
+            card.processFilter(filter);
+        });
         return;
     }
     deck.forEach(card => {
