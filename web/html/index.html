@@ -1132,8 +1132,27 @@
 		}
 
 		#maximized-card-overlay .card-view {
+			display: flex;
+			flex: 0 0 auto;
 			gap: 1rem;
+			min-height: auto;
 			padding-right: 5rem;
+		}
+
+		#maximized-card-overlay .note-card__content {
+			flex: 0 0 auto;
+			min-height: auto;
+			overflow: visible;
+		}
+
+		#maximized-card-overlay .data-container {
+			flex: 0 0 auto;
+			margin-top: 0.35rem;
+		}
+
+		#maximized-card-overlay .footer {
+			flex: 0 0 auto;
+			margin-top: 0.75rem;
 		}
 
 		#maximized-card-overlay .link-title {
@@ -1232,6 +1251,9 @@
 				</div>
 				<form id="noteForm" class="note-form-grid">
 					<input id="noteID" type="hidden">
+					<input id="noteCreatedAt" type="hidden">
+					<input id="noteUpdatedAt" type="hidden">
+					<input id="noteVersion" type="hidden">
 					<div class="row g-3">
 						<div class="col-12 col-lg-4">
 							<label for="noteTitle" class="form-label">Title</label>
@@ -1267,6 +1289,14 @@
 							<label for="noteTags" class="form-label">Tags</label>
 							<input id="noteTags" class="form-control" type="text" autocomplete="off" placeholder="ops, runbook, incident">
 							<div id="noteTagPreview" class="note-tag-preview" aria-live="polite"></div>
+						</div>
+						<div class="col-12 col-lg-2">
+							<label for="noteSource" class="form-label">Source</label>
+							<input id="noteSource" class="form-control" type="text" autocomplete="off" placeholder="cartographer">
+						</div>
+						<div class="col-12 col-lg-2">
+							<label for="noteAuthor" class="form-label">Author</label>
+							<input id="noteAuthor" class="form-control" type="text" autocomplete="off">
 						</div>
 						<div class="col-12">
 							<details id="noteDataDetails" class="note-data-details">

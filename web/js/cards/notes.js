@@ -23,6 +23,7 @@ export class Note {
     url;
     tags;
     data;
+    metadata;
     self;
     isMaximized = false;
     originalParent = null;
@@ -30,7 +31,7 @@ export class Note {
     tagList;
     tagsExpanded = false;
     maxVisibleTags = 4;
-    constructor(id, title, body, url, tags, data) {
+    constructor(id, title, body, url, tags, data, metadata = {}) {
         this.id = id;
         this.title = title;
         this.displayname = title;
@@ -38,6 +39,7 @@ export class Note {
         this.url = url;
         this.tags = tags;
         this.data = data;
+        this.metadata = metadata;
         this.self = document.createElement('div');
     }
     log() {
@@ -110,6 +112,18 @@ export class Note {
             tagCount.className = 'note-meta-chip note-meta-chip--tags';
             tagCount.innerHTML = `<i class="bi bi-tags"></i> ${this.tags.length}`;
             meta.appendChild(tagCount);
+        }
+        if (this.metadata.version) {
+            const versionChip = document.createElement('span');
+            versionChip.className = 'note-meta-chip';
+            versionChip.innerHTML = `<i class="bi bi-clock-history"></i> v${this.metadata.version}`;
+            meta.appendChild(versionChip);
+        }
+        if (this.metadata.source) {
+            const sourceChip = document.createElement('span');
+            sourceChip.className = 'note-meta-chip';
+            sourceChip.textContent = this.metadata.source;
+            meta.appendChild(sourceChip);
         }
         return meta;
     }
@@ -210,6 +224,7 @@ export class Note {
                 url: this.url,
                 tags: this.tags,
                 data: this.data,
+                metadata: this.metadata,
             },
         }));
     }

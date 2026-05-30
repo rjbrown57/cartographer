@@ -1,5 +1,6 @@
 import * as cards from '../cards/cards.js';
 import { Note, RenderMarkdown } from '../cards/notes.js';
+import type { NoteMetadata, TimestampValue } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import * as query from '../query/query.js';
@@ -35,6 +36,11 @@ export type NoteData = {
     body: string;
     tags: string[];
     data?: Record<string, any>;
+    created_at?: TimestampValue;
+    updated_at?: TimestampValue;
+    source?: string;
+    author?: string;
+    version?: number;
 }
 
 type NoteEditEvent = CustomEvent<{
@@ -44,6 +50,7 @@ type NoteEditEvent = CustomEvent<{
     url: string;
     tags: string[];
     data?: Record<string, any>;
+    metadata?: NoteMetadata;
 }>;
 
 type NoteComposeEvent = CustomEvent<{
@@ -101,7 +108,14 @@ export class Cartographer {
                     resolvedBody,
                     resolvedURL,
                     resolvedTags,
-                    note.data
+                    note.data,
+                    {
+                        created_at: note.created_at,
+                        updated_at: note.updated_at,
+                        source: note.source,
+                        author: note.author,
+                        version: note.version,
+                    }
                 )
             );
         });
@@ -241,8 +255,13 @@ function SetupNoteSubmission(): void {
     const toggle = document.getElementById('noteComposerToggle') as HTMLButtonElement | null;
     const close = document.getElementById('noteComposerClose') as HTMLButtonElement | null;
     const noteID = document.getElementById('noteID') as HTMLInputElement | null;
+    const noteCreatedAt = document.getElementById('noteCreatedAt') as HTMLInputElement | null;
+    const noteUpdatedAt = document.getElementById('noteUpdatedAt') as HTMLInputElement | null;
+    const noteVersion = document.getElementById('noteVersion') as HTMLInputElement | null;
     const titleInput = document.getElementById('noteTitle') as HTMLInputElement | null;
     const urlInput = document.getElementById('noteURL') as HTMLInputElement | null;
+    const sourceInput = document.getElementById('noteSource') as HTMLInputElement | null;
+    const authorInput = document.getElementById('noteAuthor') as HTMLInputElement | null;
     const namespaceInput = document.getElementById('noteNamespace') as HTMLInputElement | null;
     const namespaceOptions = document.getElementById('noteNamespaceOptions') as HTMLDataListElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
@@ -290,6 +309,24 @@ function SetupNoteSubmission(): void {
             dataInput?.focus();
             return null;
         }
+    };
+
+    // normalizeTimestampValue converts protobuf JSON timestamp objects into RFC3339 strings.
+    const normalizeTimestampValue = (value?: TimestampValue): string => {
+        if (!value) {
+            return '';
+        }
+        if (typeof value === 'string') {
+            return value;
+        }
+
+        const seconds = Number(value.seconds || 0);
+        const nanos = Number(value.nanos || 0);
+        if (!seconds && !nanos) {
+            return '';
+        }
+
+        return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
     };
 
     // setDataValue writes optional structured data into the composer.
@@ -412,6 +449,15 @@ function SetupNoteSubmission(): void {
         if (noteID) {
             noteID.value = '';
         }
+        if (noteCreatedAt) {
+            noteCreatedAt.value = '';
+        }
+        if (noteUpdatedAt) {
+            noteUpdatedAt.value = '';
+        }
+        if (noteVersion) {
+            noteVersion.value = '';
+        }
         if (namespaceInput) {
             namespaceInput.disabled = false;
         }
@@ -474,6 +520,15 @@ function SetupNoteSubmission(): void {
         if (noteID) {
             noteID.value = detail.id;
         }
+        if (noteCreatedAt) {
+            noteCreatedAt.value = normalizeTimestampValue(detail.metadata?.created_at);
+        }
+        if (noteUpdatedAt) {
+            noteUpdatedAt.value = normalizeTimestampValue(detail.metadata?.updated_at);
+        }
+        if (noteVersion) {
+            noteVersion.value = String(detail.metadata?.version || '');
+        }
         if (namespaceInput) {
             namespaceInput.disabled = true;
         }
@@ -483,6 +538,12 @@ function SetupNoteSubmission(): void {
         }
         if (urlInput) {
             urlInput.value = detail.url;
+        }
+        if (sourceInput) {
+            sourceInput.value = detail.metadata?.source || '';
+        }
+        if (authorInput) {
+            authorInput.value = detail.metadata?.author || '';
         }
         if (bodyInput) {
             bodyInput.value = detail.body;
@@ -521,6 +582,8 @@ function SetupNoteSubmission(): void {
         const existingID = noteID?.value.trim() || '';
         const title = titleInput?.value.trim() || '';
         const url = urlInput?.value.trim() || '';
+        const source = sourceInput?.value.trim() || '';
+        const author = authorInput?.value.trim() || '';
         const body = bodyInput?.value.trim() || '';
         const tags = parseTags();
         const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
@@ -560,6 +623,11 @@ function SetupNoteSubmission(): void {
             tags,
             data: data || undefined,
             namespace,
+            created_at: noteCreatedAt?.value || undefined,
+            updated_at: undefined,
+            source: source || undefined,
+            author: author || undefined,
+            version: undefined,
         };
         const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';
 

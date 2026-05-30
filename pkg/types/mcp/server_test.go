@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"google.golang.org/grpc"
@@ -119,7 +120,7 @@ func TestServerSearchNotes(t *testing.T) {
 // TestServerAddNote verifies an add tool call maps arguments to a Cartographer add request.
 func TestServerAddNote(t *testing.T) {
 	client := &fakeCartographerClient{}
-	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-1","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"research","id":"note-2","title":"Second note","body":"markdown body","url":"https://example.com","tags":["thought","mcp"],"data":{"source":"test"}}}}` + "\n")
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-1","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"research","id":"note-2","title":"Second note","body":"markdown body","url":"https://example.com","tags":["thought","mcp"],"data":{"source":"test"},"created_at":"2026-05-30T19:00:00Z","updated_at":"2026-05-30T19:10:00Z","source":"mcp-test","author":"codex","version":7}}}` + "\n")
 	var output strings.Builder
 
 	server := NewServer(context.Background(), client, input, &output)
@@ -154,6 +155,21 @@ func TestServerAddNote(t *testing.T) {
 	}
 	if got := note.GetData().AsMap()["source"]; got != "test" {
 		t.Fatalf("expected data source test, got %v", got)
+	}
+	if got := note.GetCreatedAt().AsTime().Format(time.RFC3339); got != "2026-05-30T19:00:00Z" {
+		t.Fatalf("expected created_at timestamp, got %q", got)
+	}
+	if got := note.GetUpdatedAt().AsTime().Format(time.RFC3339); got != "2026-05-30T19:10:00Z" {
+		t.Fatalf("expected updated_at timestamp, got %q", got)
+	}
+	if got := note.GetSource(); got != "mcp-test" {
+		t.Fatalf("expected source mcp-test, got %q", got)
+	}
+	if got := note.GetAuthor(); got != "codex" {
+		t.Fatalf("expected author codex, got %q", got)
+	}
+	if got := note.GetVersion(); got != 7 {
+		t.Fatalf("expected version 7, got %d", got)
 	}
 
 	var response struct {

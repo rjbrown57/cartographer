@@ -2,6 +2,7 @@ package ui
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -104,6 +105,11 @@ type noteCreateRequest struct {
 	Data        map[string]any    `json:"data"`
 	Namespace   string            `json:"namespace"`
 	Annotations map[string]string `json:"annotations"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	Source      string            `json:"source"`
+	Author      string            `json:"author"`
+	Version     int64             `json:"version"`
 }
 
 // postNotesFunc accepts a live note submission and forwards it through the add path.
@@ -129,6 +135,11 @@ func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			WithTags(nr.Tags).
 			WithData(nr.Data).
 			WithAnnotations(nr.Annotations).
+			WithCreatedAt(nr.CreatedAt).
+			WithUpdatedAt(nr.UpdatedAt).
+			WithSource(nr.Source).
+			WithAuthor(nr.Author).
+			WithVersion(nr.Version).
 			Build()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": err.Error()})

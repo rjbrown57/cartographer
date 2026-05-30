@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"google.golang.org/grpc"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const protocolVersion = "2024-11-05"
@@ -90,17 +92,27 @@ type addNoteArgs struct {
 	URL       string         `json:"url"`
 	Tags      []string       `json:"tags"`
 	Data      map[string]any `json:"data"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
+	Source    string         `json:"source"`
+	Author    string         `json:"author"`
+	Version   int64          `json:"version"`
 }
 
 type namespaceArgs struct{}
 
 type mcpNote struct {
-	ID    string         `json:"id"`
-	Title string         `json:"title,omitempty"`
-	URL   string         `json:"url,omitempty"`
-	Body  string         `json:"body,omitempty"`
-	Tags  []string       `json:"tags,omitempty"`
-	Data  map[string]any `json:"data,omitempty"`
+	ID        string         `json:"id"`
+	Title     string         `json:"title,omitempty"`
+	URL       string         `json:"url,omitempty"`
+	Body      string         `json:"body,omitempty"`
+	Tags      []string       `json:"tags,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
+	CreatedAt string         `json:"created_at,omitempty"`
+	UpdatedAt string         `json:"updated_at,omitempty"`
+	Source    string         `json:"source,omitempty"`
+	Author    string         `json:"author,omitempty"`
+	Version   int64          `json:"version,omitempty"`
 }
 
 type notesPayload struct {
@@ -302,6 +314,15 @@ func (s *Server) addNote(args addNoteArgs) (toolResult, error) {
 		return toolResult{}, errors.New("reserved namespace")
 	}
 
+	createdAt, err := parseOptionalTime(args.CreatedAt, "created_at")
+	if err != nil {
+		return toolResult{}, err
+	}
+	updatedAt, err := parseOptionalTime(args.UpdatedAt, "updated_at")
+	if err != nil {
+		return toolResult{}, err
+	}
+
 	note, err := proto.NewNoteBuilder().
 		WithId(resolveNoteID(args.ID, args.URL)).
 		WithTitle(strings.TrimSpace(args.Title)).
@@ -309,6 +330,11 @@ func (s *Server) addNote(args addNoteArgs) (toolResult, error) {
 		WithURL(strings.TrimSpace(args.URL)).
 		WithTags(cleanStrings(args.Tags)).
 		WithData(args.Data).
+		WithCreatedAt(createdAt).
+		WithUpdatedAt(updatedAt).
+		WithSource(strings.TrimSpace(args.Source)).
+		WithAuthor(strings.TrimSpace(args.Author)).
+		WithVersion(args.Version).
 		Build()
 	if err != nil {
 		return toolResult{}, err
@@ -368,13 +394,18 @@ func tools() []tool {
 			Name:        "cartographer_add_note",
 			Description: "Create a note in a live Cartographer namespace. This writes to the backing Cartographer instance.",
 			InputSchema: objectSchema(map[string]any{
-				"namespace": stringSchema("Namespace to write into. Defaults to default."),
-				"id":        stringSchema("Optional exact note ID. If omitted, URL-backed notes use the URL as ID."),
-				"title":     stringSchema("Note title."),
-				"body":      stringSchema("Markdown note body."),
-				"url":       stringSchema("Optional URL associated with the note."),
-				"tags":      arraySchema("Tags to attach to the note."),
-				"data":      flexibleObjectSchema("Optional structured JSON object to attach to the note."),
+				"namespace":  stringSchema("Namespace to write into. Defaults to default."),
+				"id":         stringSchema("Optional exact note ID. If omitted, URL-backed notes use the URL as ID."),
+				"title":      stringSchema("Note title."),
+				"body":       stringSchema("Markdown note body."),
+				"url":        stringSchema("Optional URL associated with the note."),
+				"tags":       arraySchema("Tags to attach to the note."),
+				"data":       flexibleObjectSchema("Optional structured JSON object to attach to the note."),
+				"created_at": stringSchema("Optional RFC3339 creation timestamp. Defaults to server time for new notes."),
+				"updated_at": stringSchema("Optional RFC3339 update timestamp. Defaults to server time."),
+				"source":     stringSchema("Optional source label for where the note came from."),
+				"author":     stringSchema("Optional author or actor associated with the note."),
+				"version":    integerSchema("Optional note version. Defaults to 1 for new notes and increments on update."),
 			}, []string{}),
 		},
 		{
@@ -416,16 +447,42 @@ func notesResult(namespace string, notes []*proto.Note, limit int) (toolResult, 
 
 	for _, note := range notes {
 		payload.Notes = append(payload.Notes, mcpNote{
-			ID:    note.GetId(),
-			Title: note.GetTitle(),
-			URL:   note.GetUrl(),
-			Body:  note.GetBody(),
-			Tags:  note.GetTags(),
-			Data:  structAsMap(note),
+			ID:        note.GetId(),
+			Title:     note.GetTitle(),
+			URL:       note.GetUrl(),
+			Body:      note.GetBody(),
+			Tags:      note.GetTags(),
+			Data:      structAsMap(note),
+			CreatedAt: timestampString(note.GetCreatedAt()),
+			UpdatedAt: timestampString(note.GetUpdatedAt()),
+			Source:    note.GetSource(),
+			Author:    note.GetAuthor(),
+			Version:   note.GetVersion(),
 		})
 	}
 
 	return jsonToolResult(payload)
+}
+
+// parseOptionalTime parses optional RFC3339 metadata timestamps.
+func parseOptionalTime(value, field string) (time.Time, error) {
+	cleaned := strings.TrimSpace(value)
+	if cleaned == "" {
+		return time.Time{}, nil
+	}
+	parsed, err := time.Parse(time.RFC3339, cleaned)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("%s must be an RFC3339 timestamp: %w", field, err)
+	}
+	return parsed, nil
+}
+
+// timestampString returns an RFC3339 timestamp string when a timestamp is set.
+func timestampString(value *timestamppb.Timestamp) string {
+	if value == nil {
+		return ""
+	}
+	return value.AsTime().UTC().Format(time.RFC3339)
 }
 
 // structAsMap returns protobuf Struct data as a JSON-like map.
