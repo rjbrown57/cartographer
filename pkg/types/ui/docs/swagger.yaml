@@ -65,6 +65,11 @@ paths:
         in: query
         name: term
         type: string
+      - description: Filter by exact note ID (comma-separated)
+        example: '"note-123"'
+        in: query
+        name: id
+        type: string
       - description: Namespace scope for the query
         example: '"default"'
         in: query

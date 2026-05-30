@@ -18,6 +18,16 @@ func getDataset(c *CartographerServer, in *proto.CartographerGetRequest, ns stri
 	var err error
 
 	switch {
+	// if exact note keys are supplied, resolve them directly from the namespace cache
+	case len(in.Request.GetNotes()) > 0:
+		keys := make([]string, 0, len(in.Request.GetNotes()))
+		for _, note := range in.Request.GetNotes() {
+			keys = append(keys, note.GetKey())
+		}
+
+		c.mu.RLock()
+		notes = c.nsCache.GetNotesByKey(ns, keys)
+		c.mu.RUnlock()
 	// if there are no tags or terms, send all notes for the NS
 	case len(in.Request.GetTags()) == 0 && len(in.Request.GetTerms()) == 0:
 		c.mu.RLock()

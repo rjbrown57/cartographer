@@ -114,6 +114,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "example": "\"note-123\"",
+                        "description": "Filter by exact note ID (comma-separated)",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "example": "\"default\"",
                         "description": "Namespace scope for the query",
                         "name": "namespace",
