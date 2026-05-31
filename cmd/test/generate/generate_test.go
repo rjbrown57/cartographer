@@ -103,3 +103,33 @@ func TestWriteGeneratedNamespaceFiles(t *testing.T) {
 		}
 	}
 }
+
+// TestWriteGeneratedNamespaceFilesPreservesExistingFiles verifies output writes are scoped.
+func TestWriteGeneratedNamespaceFilesPreservesExistingFiles(t *testing.T) {
+	previousNum := num
+	previousOutputDir := outputDir
+	previousURLPercent := urlPercent
+	defer func() {
+		num = previousNum
+		outputDir = previousOutputDir
+		urlPercent = previousURLPercent
+	}()
+
+	num = 1
+	urlPercent = 0
+	outputDir = t.TempDir()
+	keepFile := filepath.Join(outputDir, "keep.txt")
+	if err := os.WriteFile(keepFile, []byte("do not delete"), 0o644); err != nil {
+		t.Fatalf("write existing file: %s", err)
+	}
+
+	writeGeneratedNamespaceFiles([]string{"default"})
+
+	out, err := os.ReadFile(keepFile)
+	if err != nil {
+		t.Fatalf("expected existing file to remain: %s", err)
+	}
+	if string(out) != "do not delete" {
+		t.Fatalf("expected existing file content to remain, got %q", out)
+	}
+}

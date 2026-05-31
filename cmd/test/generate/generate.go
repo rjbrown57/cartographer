@@ -105,9 +105,6 @@ func writeGeneratedNamespaceFiles(selectedNamespaces []string) {
 		log.Fatalf("refusing to write generated namespace data to %q", outputDir)
 	}
 
-	if err := os.RemoveAll(cleanOutputDir); err != nil {
-		log.Fatalf("Unable to clean output directory %s: %s", cleanOutputDir, err)
-	}
 	if err := os.MkdirAll(cleanOutputDir, 0o755); err != nil {
 		log.Fatalf("Unable to create output directory %s: %s", cleanOutputDir, err)
 	}
