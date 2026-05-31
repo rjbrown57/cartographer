@@ -1318,11 +1318,28 @@
 						<i class="bi bi-sliders"></i>
 						<span>Admin</span>
 					</div>
-					<button id="adminPanelClose" class="note-composer__close" type="button" aria-label="Close admin panel">
-						<i class="bi bi-x-lg"></i>
-					</button>
+					<div class="d-flex align-items-center gap-2">
+						<button id="adminLogout" class="btn btn-sm btn-outline-secondary is-hidden" type="button">Logout</button>
+						<button id="adminPanelClose" class="note-composer__close" type="button" aria-label="Close admin panel">
+							<i class="bi bi-x-lg"></i>
+						</button>
+					</div>
 				</div>
-				<div class="admin-panel__body">
+				<form id="adminLoginForm" class="note-form-grid is-hidden">
+					<div>
+						<label for="adminToken" class="form-label">Admin token</label>
+						<input id="adminToken" class="form-control" type="password" autocomplete="current-password">
+					</div>
+					<div class="d-flex align-items-center gap-3">
+						<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
+							<i class="bi bi-unlock"></i>
+							<span>Unlock admin</span>
+						</button>
+						<span id="adminLoginStatus" class="note-form-status"></span>
+					</div>
+				</form>
+				<div id="adminUnavailable" class="admin-template-empty is-hidden">Admin auth is not configured.</div>
+				<div id="adminPanelBody" class="admin-panel__body is-hidden">
 					<section>
 						<h2 class="h6 mb-3">Templates</h2>
 						<div id="adminTemplateList" class="admin-template-list"></div>
