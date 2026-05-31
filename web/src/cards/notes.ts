@@ -289,6 +289,7 @@ export class Note implements cards.Card {
 
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
+        actions.appendChild(this.createPageButton());
         actions.appendChild(this.createRawButton());
         actions.appendChild(this.createDeleteButton());
         return actions;
@@ -402,6 +403,23 @@ export class Note implements cards.Card {
         return rawButton;
     }
 
+    // createPageButton builds a button that opens this note as a standalone page.
+    private createPageButton(): HTMLButtonElement {
+        const pageButton = document.createElement('button');
+        pageButton.type = 'button';
+        pageButton.className = 'note-action-button';
+        pageButton.title = 'Open note page';
+        pageButton.setAttribute('aria-label', 'Open note page');
+        pageButton.innerHTML = '<i class="bi bi-file-earmark-richtext"></i>';
+        pageButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(this.getNotePageURL(), '_blank', 'noopener,noreferrer');
+        };
+
+        return pageButton;
+    }
+
     // createDeleteButton builds an admin-only delete action for this note.
     private createDeleteButton(): HTMLButtonElement {
         const deleteButton = document.createElement('button');
@@ -425,6 +443,14 @@ export class Note implements cards.Card {
         rawURL.searchParams.set('id', this.id);
         rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
         return rawURL.toString();
+    }
+
+    // getNotePageURL builds the standalone rendered note URL.
+    private getNotePageURL(): string {
+        const pageURL = new URL('/note', window.location.origin);
+        pageURL.searchParams.set('id', this.id);
+        pageURL.searchParams.set('namespace', query.GetSelectedNamespace());
+        return pageURL.toString();
     }
 
     // setCopyButtonState updates the copy button to a temporary copied state.

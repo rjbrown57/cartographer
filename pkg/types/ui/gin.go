@@ -106,6 +106,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 
 	// HTML Endpoints
 	g.GET("/", indexFunc(o.SiteName))
+	g.GET("/note", notePageFunc(o.SiteName))
 	return g
 }
 

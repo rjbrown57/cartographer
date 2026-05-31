@@ -191,6 +191,7 @@ export class Note {
         };
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
+        actions.appendChild(this.createPageButton());
         actions.appendChild(this.createRawButton());
         actions.appendChild(this.createDeleteButton());
         return actions;
@@ -281,6 +282,20 @@ export class Note {
         };
         return rawButton;
     }
+    createPageButton() {
+        const pageButton = document.createElement('button');
+        pageButton.type = 'button';
+        pageButton.className = 'note-action-button';
+        pageButton.title = 'Open note page';
+        pageButton.setAttribute('aria-label', 'Open note page');
+        pageButton.innerHTML = '<i class="bi bi-file-earmark-richtext"></i>';
+        pageButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(this.getNotePageURL(), '_blank', 'noopener,noreferrer');
+        };
+        return pageButton;
+    }
     createDeleteButton() {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
@@ -300,6 +315,12 @@ export class Note {
         rawURL.searchParams.set('id', this.id);
         rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
         return rawURL.toString();
+    }
+    getNotePageURL() {
+        const pageURL = new URL('/note', window.location.origin);
+        pageURL.searchParams.set('id', this.id);
+        pageURL.searchParams.set('namespace', query.GetSelectedNamespace());
+        return pageURL.toString();
     }
     setCopyButtonState(copyButton, copied) {
         if (!copied) {
