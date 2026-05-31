@@ -579,10 +579,14 @@ function SetupAdminPanel() {
     const unavailable = document.getElementById('adminUnavailable');
     const logout = document.getElementById('adminLogout');
     const form = document.getElementById('templateForm');
+    const formTitle = document.getElementById('templateFormTitle');
+    const idInput = document.getElementById('templateID');
     const nameInput = document.getElementById('templateName');
     const descriptionInput = document.getElementById('templateDescription');
     const tagsInput = document.getElementById('templateTags');
     const bodyInput = document.getElementById('templateBody');
+    const submit = document.getElementById('templateSubmit');
+    const cancelEdit = document.getElementById('templateCancelEdit');
     const status = document.getElementById('templateFormStatus');
     const list = document.getElementById('adminTemplateList');
     if (!panel || !toggle || !body || !loginForm || !form || !list) {
@@ -608,6 +612,71 @@ function SetupAdminPanel() {
         body.classList.toggle('is-hidden', !adminSession.admin);
         logout?.classList.toggle('is-hidden', !adminSession.admin);
     };
+    const resetTemplateForm = () => {
+        form.reset();
+        if (idInput) {
+            idInput.value = '';
+        }
+        if (formTitle) {
+            formTitle.textContent = 'New template';
+        }
+        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Save template'));
+        cancelEdit?.classList.add('is-hidden');
+    };
+    const editTemplate = (template) => {
+        if (idInput) {
+            idInput.value = template.id;
+        }
+        if (nameInput) {
+            nameInput.value = template.name;
+        }
+        if (descriptionInput) {
+            descriptionInput.value = template.description || '';
+        }
+        if (tagsInput) {
+            tagsInput.value = (template.tags || []).join(', ');
+        }
+        if (bodyInput) {
+            bodyInput.value = template.body;
+        }
+        if (formTitle) {
+            formTitle.textContent = 'Edit template';
+        }
+        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
+        cancelEdit?.classList.remove('is-hidden');
+        nameInput?.focus();
+    };
+    const deleteTemplate = async (template) => {
+        if (!window.confirm(`Delete template "${template.name}"?`)) {
+            return;
+        }
+        if (status) {
+            status.textContent = 'Deleting template...';
+            status.className = 'note-form-status text-secondary';
+        }
+        try {
+            const response = await fetch(`${TemplatesEndpoint}/${encodeURIComponent(template.id)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+            resetTemplateForm();
+            TemplateData = [];
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
+            if (status) {
+                status.textContent = 'Template deleted.';
+                status.className = 'note-form-status text-success';
+            }
+        }
+        catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to delete template.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    };
     const setAdminOpen = async (open) => {
         panel.classList.toggle('is-hidden', !open);
         document.body.classList.toggle('modal-open', open);
@@ -617,7 +686,7 @@ function SetupAdminPanel() {
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
-                await RenderTemplateList(list);
+                await RenderTemplateList(list, editTemplate, deleteTemplate);
                 nameInput?.focus();
             }
             else if (adminSession.configured) {
@@ -662,9 +731,11 @@ function SetupAdminPanel() {
                 throw new Error(`Login failed: ${response.status} ${response.statusText}`);
             }
             adminSession = await response.json();
-            tokenInput.value = '';
+            if (tokenInput) {
+                tokenInput.value = '';
+            }
             renderAdminSession();
-            await RenderTemplateList(list);
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
             nameInput?.focus();
             if (loginStatus) {
                 loginStatus.textContent = '';
@@ -681,8 +752,13 @@ function SetupAdminPanel() {
     logout?.addEventListener('click', async () => {
         await fetch(AdminSessionEndpoint, { method: 'DELETE' });
         adminSession = { admin: false, configured: true };
+        resetTemplateForm();
         renderAdminSession();
         tokenInput?.focus();
+    });
+    cancelEdit?.addEventListener('click', () => {
+        resetTemplateForm();
+        nameInput?.focus();
     });
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -706,6 +782,7 @@ function SetupAdminPanel() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    id: idInput?.value || undefined,
                     name,
                     description: descriptionInput?.value.trim() || '',
                     body,
@@ -715,9 +792,9 @@ function SetupAdminPanel() {
             if (!response.ok) {
                 throw new Error(`Save failed: ${response.status} ${response.statusText}`);
             }
-            form.reset();
+            resetTemplateForm();
             TemplateData = [];
-            await RenderTemplateList(list);
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
             if (status) {
                 status.textContent = 'Template saved.';
                 status.className = 'note-form-status text-success';
@@ -750,7 +827,7 @@ async function LoadTemplates() {
     }
     return TemplateData;
 }
-async function RenderTemplateList(container) {
+async function RenderTemplateList(container, onEdit, onDelete) {
     const templates = await LoadTemplates();
     container.innerHTML = '';
     if (templates.length === 0) {
@@ -763,9 +840,35 @@ async function RenderTemplateList(container) {
     templates.forEach((template) => {
         const card = document.createElement('article');
         card.className = 'admin-template-card';
+        const header = document.createElement('div');
+        header.className = 'admin-template-card__header';
         const title = document.createElement('h3');
         title.textContent = template.name;
-        card.appendChild(title);
+        header.appendChild(title);
+        const actions = document.createElement('div');
+        actions.className = 'admin-template-card__actions';
+        const edit = document.createElement('button');
+        edit.className = 'btn btn-sm btn-outline-secondary';
+        edit.type = 'button';
+        edit.title = 'Edit template';
+        edit.setAttribute('aria-label', `Edit ${template.name}`);
+        edit.innerHTML = '<i class="bi bi-pencil"></i>';
+        edit.addEventListener('click', () => onEdit?.(template));
+        actions.appendChild(edit);
+        const remove = document.createElement('button');
+        remove.className = 'btn btn-sm btn-outline-danger';
+        remove.type = 'button';
+        remove.title = 'Delete template';
+        remove.setAttribute('aria-label', `Delete ${template.name}`);
+        remove.innerHTML = '<i class="bi bi-trash"></i>';
+        remove.addEventListener('click', () => {
+            void onDelete?.(template);
+        });
+        actions.appendChild(remove);
+        if (onEdit || onDelete) {
+            header.appendChild(actions);
+        }
+        card.appendChild(header);
         if (template.description) {
             const description = document.createElement('p');
             description.textContent = template.description;

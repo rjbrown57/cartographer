@@ -43,6 +43,30 @@ func TestTemplateRoundTrip(t *testing.T) {
 	}
 }
 
+// TestTemplateToNotePreservesExistingID verifies template edits reuse existing ids.
+func TestTemplateToNotePreservesExistingID(t *testing.T) {
+	template := markdownTemplate{
+		ID:   "incident-review",
+		Name: "Incident Review",
+		Body: "## Summary",
+	}
+
+	note, err := templateToNote(template)
+	if err != nil {
+		t.Fatalf("templateToNote() error = %v", err)
+	}
+	if got := note.GetId(); got != "template/incident-review" {
+		t.Fatalf("expected existing template id to be preserved, got %q", got)
+	}
+}
+
+// TestTemplateNoteIDRejectsInvalidID verifies delete ids stay under template storage.
+func TestTemplateNoteIDRejectsInvalidID(t *testing.T) {
+	if _, err := templateNoteID("../bad"); err == nil {
+		t.Fatal("expected invalid template id to fail")
+	}
+}
+
 // TestFilterReservedNamespaces hides internal admin storage from normal namespace UI.
 func TestFilterReservedNamespaces(t *testing.T) {
 	got := filterReservedNamespaces([]string{"default", adminNamespace, "platform"})

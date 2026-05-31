@@ -99,6 +99,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.DELETE("/v1/admin/session", deleteAdminSessionFunc())
 	g.GET("/v1/admin/templates", getTemplatesFunc(carto))
 	g.POST("/v1/admin/templates", requireAdmin(auth), postTemplatesFunc(carto))
+	g.DELETE("/v1/admin/templates/:id", requireAdmin(auth), deleteTemplatesFunc(carto))
 	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints

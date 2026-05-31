@@ -762,10 +762,14 @@ function SetupAdminPanel(): void {
     const unavailable = document.getElementById('adminUnavailable') as HTMLElement | null;
     const logout = document.getElementById('adminLogout') as HTMLButtonElement | null;
     const form = document.getElementById('templateForm') as HTMLFormElement | null;
+    const formTitle = document.getElementById('templateFormTitle') as HTMLElement | null;
+    const idInput = document.getElementById('templateID') as HTMLInputElement | null;
     const nameInput = document.getElementById('templateName') as HTMLInputElement | null;
     const descriptionInput = document.getElementById('templateDescription') as HTMLInputElement | null;
     const tagsInput = document.getElementById('templateTags') as HTMLInputElement | null;
     const bodyInput = document.getElementById('templateBody') as HTMLTextAreaElement | null;
+    const submit = document.getElementById('templateSubmit') as HTMLButtonElement | null;
+    const cancelEdit = document.getElementById('templateCancelEdit') as HTMLButtonElement | null;
     const status = document.getElementById('templateFormStatus') as HTMLElement | null;
     const list = document.getElementById('adminTemplateList') as HTMLElement | null;
 
@@ -797,6 +801,79 @@ function SetupAdminPanel(): void {
         logout?.classList.toggle('is-hidden', !adminSession.admin);
     };
 
+    // resetTemplateForm clears edit state and returns the form to create mode.
+    const resetTemplateForm = () => {
+        form.reset();
+        if (idInput) {
+            idInput.value = '';
+        }
+        if (formTitle) {
+            formTitle.textContent = 'New template';
+        }
+        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Save template'));
+        cancelEdit?.classList.add('is-hidden');
+    };
+
+    // editTemplate loads a template into the admin form for resubmission.
+    const editTemplate = (template: MarkdownTemplate) => {
+        if (idInput) {
+            idInput.value = template.id;
+        }
+        if (nameInput) {
+            nameInput.value = template.name;
+        }
+        if (descriptionInput) {
+            descriptionInput.value = template.description || '';
+        }
+        if (tagsInput) {
+            tagsInput.value = (template.tags || []).join(', ');
+        }
+        if (bodyInput) {
+            bodyInput.value = template.body;
+        }
+        if (formTitle) {
+            formTitle.textContent = 'Edit template';
+        }
+        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
+        cancelEdit?.classList.remove('is-hidden');
+        nameInput?.focus();
+    };
+
+    // deleteTemplate removes a template and refreshes all template views.
+    const deleteTemplate = async (template: MarkdownTemplate) => {
+        if (!window.confirm(`Delete template "${template.name}"?`)) {
+            return;
+        }
+
+        if (status) {
+            status.textContent = 'Deleting template...';
+            status.className = 'note-form-status text-secondary';
+        }
+
+        try {
+            const response = await fetch(`${TemplatesEndpoint}/${encodeURIComponent(template.id)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+
+            resetTemplateForm();
+            TemplateData = [];
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
+            if (status) {
+                status.textContent = 'Template deleted.';
+                status.className = 'note-form-status text-success';
+            }
+        } catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to delete template.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    };
+
     // setAdminOpen toggles the modal-like admin panel.
     const setAdminOpen = async (open: boolean) => {
         panel.classList.toggle('is-hidden', !open);
@@ -807,7 +884,7 @@ function SetupAdminPanel(): void {
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
-                await RenderTemplateList(list);
+                await RenderTemplateList(list, editTemplate, deleteTemplate);
                 nameInput?.focus();
             } else if (adminSession.configured) {
                 tokenInput?.focus();
@@ -858,9 +935,11 @@ function SetupAdminPanel(): void {
             }
 
             adminSession = await response.json() as AdminSessionResponse;
-            tokenInput!.value = '';
+            if (tokenInput) {
+                tokenInput.value = '';
+            }
             renderAdminSession();
-            await RenderTemplateList(list);
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
             nameInput?.focus();
             if (loginStatus) {
                 loginStatus.textContent = '';
@@ -877,8 +956,14 @@ function SetupAdminPanel(): void {
     logout?.addEventListener('click', async () => {
         await fetch(AdminSessionEndpoint, { method: 'DELETE' });
         adminSession = { admin: false, configured: true };
+        resetTemplateForm();
         renderAdminSession();
         tokenInput?.focus();
+    });
+
+    cancelEdit?.addEventListener('click', () => {
+        resetTemplateForm();
+        nameInput?.focus();
     });
 
     form.addEventListener('submit', async (event) => {
@@ -905,6 +990,7 @@ function SetupAdminPanel(): void {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    id: idInput?.value || undefined,
                     name,
                     description: descriptionInput?.value.trim() || '',
                     body,
@@ -915,9 +1001,9 @@ function SetupAdminPanel(): void {
                 throw new Error(`Save failed: ${response.status} ${response.statusText}`);
             }
 
-            form.reset();
+            resetTemplateForm();
             TemplateData = [];
-            await RenderTemplateList(list);
+            await RenderTemplateList(list, editTemplate, deleteTemplate);
             if (status) {
                 status.textContent = 'Template saved.';
                 status.className = 'note-form-status text-success';
@@ -954,7 +1040,11 @@ async function LoadTemplates(): Promise<MarkdownTemplate[]> {
 }
 
 // RenderTemplateList redraws the admin template list.
-async function RenderTemplateList(container: HTMLElement): Promise<void> {
+async function RenderTemplateList(
+    container: HTMLElement,
+    onEdit?: (template: MarkdownTemplate) => void,
+    onDelete?: (template: MarkdownTemplate) => void,
+): Promise<void> {
     const templates = await LoadTemplates();
     container.innerHTML = '';
 
@@ -970,9 +1060,40 @@ async function RenderTemplateList(container: HTMLElement): Promise<void> {
         const card = document.createElement('article');
         card.className = 'admin-template-card';
 
+        const header = document.createElement('div');
+        header.className = 'admin-template-card__header';
+
         const title = document.createElement('h3');
         title.textContent = template.name;
-        card.appendChild(title);
+        header.appendChild(title);
+
+        const actions = document.createElement('div');
+        actions.className = 'admin-template-card__actions';
+
+        const edit = document.createElement('button');
+        edit.className = 'btn btn-sm btn-outline-secondary';
+        edit.type = 'button';
+        edit.title = 'Edit template';
+        edit.setAttribute('aria-label', `Edit ${template.name}`);
+        edit.innerHTML = '<i class="bi bi-pencil"></i>';
+        edit.addEventListener('click', () => onEdit?.(template));
+        actions.appendChild(edit);
+
+        const remove = document.createElement('button');
+        remove.className = 'btn btn-sm btn-outline-danger';
+        remove.type = 'button';
+        remove.title = 'Delete template';
+        remove.setAttribute('aria-label', `Delete ${template.name}`);
+        remove.innerHTML = '<i class="bi bi-trash"></i>';
+        remove.addEventListener('click', () => {
+            void onDelete?.(template);
+        });
+        actions.appendChild(remove);
+
+        if (onEdit || onDelete) {
+            header.appendChild(actions);
+        }
+        card.appendChild(header);
 
         if (template.description) {
             const description = document.createElement('p');
