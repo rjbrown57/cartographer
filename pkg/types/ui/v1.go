@@ -378,6 +378,13 @@ func indexFunc(name string) gin.HandlerFunc {
 	}
 }
 
+// notePageFunc serves the standalone note reader shell.
+func notePageFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "note.html", gin.H{"sitename": name})
+	}
+}
+
 // AboutHandler godoc
 // @Summary Get application information
 // @Description Retrieve information about the Cartographer application including version, commit, and build date
