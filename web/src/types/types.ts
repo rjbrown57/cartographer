@@ -18,6 +18,7 @@ const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const TemplatesEndpoint = '/v1/admin/templates';
 const AdminSessionEndpoint = '/v1/admin/session';
+const AdminNamespacesEndpoint = '/v1/admin/namespaces';
 const NamespaceListId = 'namespaceList'
 const NamespaceFinderId = 'namespaceFinder'
 const MaxVisibleNamespaceTabs = 8;
@@ -78,6 +79,11 @@ type NoteEditEvent = CustomEvent<{
     metadata?: NoteMetadata;
 }>;
 
+type NoteDeleteEvent = CustomEvent<{
+    id: string;
+    title: string;
+}>;
+
 type NoteComposeEvent = CustomEvent<{
     namespace?: string;
     focusNamespace?: boolean;
@@ -96,6 +102,7 @@ export class Cartographer {
         this.SearchBar = new SearchBar(this.Cards);
         SetupAdminPanel();
         SetupNoteSubmission();
+        this.SetupNoteDeletion();
         this.Initialize();
     }
 
@@ -148,6 +155,54 @@ export class Cartographer {
 
         RenderNavMetadata(this.Cards);
         this.renderCards();
+    }
+
+    // SetupNoteDeletion wires admin note deletion events from card actions.
+    private SetupNoteDeletion(): void {
+        document.addEventListener('cartographer:delete-note', (event) => {
+            void this.DeleteNote(event as NoteDeleteEvent);
+        });
+    }
+
+    // DeleteNote removes a note through the admin-protected delete endpoint.
+    private async DeleteNote(event: NoteDeleteEvent): Promise<void> {
+        const detail = event.detail;
+        if (!detail?.id) {
+            return;
+        }
+        if (!window.confirm(`Delete note "${detail.title || detail.id}"?`)) {
+            return;
+        }
+
+        const endpoint = new URL(NotesEndpoint, window.location.origin);
+        endpoint.searchParams.set('id', detail.id);
+        endpoint.searchParams.set('namespace', query.GetSelectedNamespace());
+
+        try {
+            const response = await fetch(endpoint.toString(), { method: 'DELETE' });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+
+            cache.invalidateCache();
+            const cardIndex = this.Cards.findIndex((card) => card instanceof Note && card.id === detail.id);
+            const deletedCard = this.Cards[cardIndex];
+            if (deletedCard instanceof Note) {
+                deletedCard.minimize();
+            }
+            if (cardIndex >= 0) {
+                this.Cards.splice(cardIndex, 1);
+            }
+            CartographerData.notes = CartographerData.notes.filter((note) => {
+                const noteID = note.id || note.url || note.title;
+                return noteID !== detail.id;
+            });
+            RenderNavMetadata(this.Cards);
+            this.renderCards();
+        } catch (err) {
+            console.error(err);
+            window.alert('Unable to delete note.');
+        }
     }
 
     // SwitchNamespace updates namespace state and refreshes cards without a full page reload.
@@ -772,12 +827,17 @@ function SetupAdminPanel(): void {
     const cancelEdit = document.getElementById('templateCancelEdit') as HTMLButtonElement | null;
     const status = document.getElementById('templateFormStatus') as HTMLElement | null;
     const list = document.getElementById('adminTemplateList') as HTMLElement | null;
+    const namespaceList = document.getElementById('adminNamespaceList') as HTMLElement | null;
+    const namespaceStatus = document.getElementById('adminNamespaceStatus') as HTMLElement | null;
+    const tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-admin-tab]'));
+    const tabPanels = Array.from(document.querySelectorAll<HTMLElement>('[data-admin-panel]'));
 
-    if (!panel || !toggle || !body || !loginForm || !form || !list) {
+    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList) {
         return;
     }
 
     let adminSession: AdminSessionResponse = { admin: false, configured: false };
+    let activeAdminTab = 'templates';
 
     // loadAdminSession fetches the browser's current admin session state.
     const loadAdminSession = async () => {
@@ -795,10 +855,30 @@ function SetupAdminPanel(): void {
 
     // renderAdminSession toggles login, unavailable, and admin management states.
     const renderAdminSession = () => {
+        document.body.classList.toggle('is-admin', adminSession.admin);
         unavailable?.classList.toggle('is-hidden', adminSession.configured);
         loginForm.classList.toggle('is-hidden', !adminSession.configured || adminSession.admin);
         body.classList.toggle('is-hidden', !adminSession.admin);
         logout?.classList.toggle('is-hidden', !adminSession.admin);
+    };
+
+    // setAdminTab swaps the active admin section without leaving the modal.
+    const setAdminTab = (tabName: string) => {
+        activeAdminTab = tabName;
+        tabButtons.forEach((button) => {
+            const isActive = button.dataset.adminTab === activeAdminTab;
+            button.setAttribute('aria-selected', String(isActive));
+            button.tabIndex = isActive ? 0 : -1;
+        });
+        tabPanels.forEach((adminPanel) => {
+            adminPanel.classList.toggle('is-hidden', adminPanel.dataset.adminPanel !== activeAdminTab);
+        });
+    };
+
+    // renderAdminPanels refreshes the current admin management views.
+    const renderAdminPanels = async () => {
+        await RenderTemplateList(list, editTemplate, deleteTemplate);
+        await RenderAdminNamespaceList(namespaceList, deleteNamespace);
     };
 
     // resetTemplateForm clears edit state and returns the form to create mode.
@@ -874,6 +954,46 @@ function SetupAdminPanel(): void {
         }
     };
 
+    // deleteNamespace removes every note in a namespace and refreshes the app shell.
+    const deleteNamespace = async (namespace: string) => {
+        if (!window.confirm(`Delete namespace "${namespace}" and all notes inside it?`)) {
+            return;
+        }
+
+        if (namespaceStatus) {
+            namespaceStatus.textContent = 'Deleting namespace...';
+            namespaceStatus.className = 'note-form-status text-secondary';
+        }
+
+        try {
+            const response = await fetch(`${AdminNamespacesEndpoint}/${encodeURIComponent(namespace)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+
+            cache.invalidateCache();
+            await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+            await SetupNamespaceSelector();
+            if (namespaceStatus) {
+                namespaceStatus.textContent = 'Namespace deleted.';
+                namespaceStatus.className = 'note-form-status text-success';
+            }
+
+            if (namespace === query.GetSelectedNamespace()) {
+                query.SetSelectedNamespace('default');
+                window.location.assign(GetNamespaceURL('default').toString());
+            }
+        } catch (err) {
+            console.error(err);
+            if (namespaceStatus) {
+                namespaceStatus.textContent = 'Unable to delete namespace.';
+                namespaceStatus.className = 'note-form-status text-danger';
+            }
+        }
+    };
+
     // setAdminOpen toggles the modal-like admin panel.
     const setAdminOpen = async (open: boolean) => {
         panel.classList.toggle('is-hidden', !open);
@@ -884,8 +1004,11 @@ function SetupAdminPanel(): void {
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
-                await RenderTemplateList(list, editTemplate, deleteTemplate);
-                nameInput?.focus();
+                await renderAdminPanels();
+                setAdminTab(activeAdminTab);
+                if (activeAdminTab === 'templates') {
+                    nameInput?.focus();
+                }
             } else if (adminSession.configured) {
                 tokenInput?.focus();
             }
@@ -915,6 +1038,12 @@ function SetupAdminPanel(): void {
         }
     });
 
+    tabButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setAdminTab(button.dataset.adminTab || 'templates');
+        });
+    });
+
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (loginStatus) {
@@ -939,8 +1068,11 @@ function SetupAdminPanel(): void {
                 tokenInput.value = '';
             }
             renderAdminSession();
-            await RenderTemplateList(list, editTemplate, deleteTemplate);
-            nameInput?.focus();
+            await renderAdminPanels();
+            setAdminTab(activeAdminTab);
+            if (activeAdminTab === 'templates') {
+                nameInput?.focus();
+            }
             if (loginStatus) {
                 loginStatus.textContent = '';
             }
@@ -965,6 +1097,9 @@ function SetupAdminPanel(): void {
         resetTemplateForm();
         nameInput?.focus();
     });
+
+    void loadAdminSession().then(renderAdminSession);
+    setAdminTab(activeAdminTab);
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -1110,6 +1245,53 @@ async function RenderTemplateList(
             tagWrap.appendChild(chip);
         });
         card.appendChild(tagWrap);
+        container.appendChild(card);
+    });
+}
+
+// RenderAdminNamespaceList redraws the admin namespace deletion panel.
+async function RenderAdminNamespaceList(
+    container: HTMLElement,
+    onDelete: (namespace: string) => void,
+): Promise<void> {
+    const namespaces = await GetNamespaces();
+    container.innerHTML = '';
+
+    if (namespaces.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'admin-template-empty';
+        empty.textContent = 'No namespaces available.';
+        container.appendChild(empty);
+        return;
+    }
+
+    namespaces.forEach((namespace) => {
+        const card = document.createElement('article');
+        card.className = 'admin-template-card';
+
+        const header = document.createElement('div');
+        header.className = 'admin-template-card__header';
+
+        const title = document.createElement('h3');
+        title.textContent = namespace;
+        header.appendChild(title);
+
+        const actions = document.createElement('div');
+        actions.className = 'admin-template-card__actions';
+
+        const remove = document.createElement('button');
+        remove.className = 'btn btn-sm btn-outline-danger';
+        remove.type = 'button';
+        remove.title = 'Delete namespace';
+        remove.setAttribute('aria-label', `Delete namespace ${namespace}`);
+        remove.innerHTML = '<i class="bi bi-trash"></i>';
+        remove.addEventListener('click', () => {
+            onDelete(namespace);
+        });
+        actions.appendChild(remove);
+
+        header.appendChild(actions);
+        card.appendChild(header);
         container.appendChild(card);
     });
 }

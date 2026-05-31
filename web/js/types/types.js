@@ -13,6 +13,7 @@ const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const TemplatesEndpoint = '/v1/admin/templates';
 const AdminSessionEndpoint = '/v1/admin/session';
+const AdminNamespacesEndpoint = '/v1/admin/namespaces';
 const NamespaceListId = 'namespaceList';
 const NamespaceFinderId = 'namespaceFinder';
 const MaxVisibleNamespaceTabs = 8;
@@ -26,6 +27,7 @@ export class Cartographer {
         this.SearchBar = new SearchBar(this.Cards);
         SetupAdminPanel();
         SetupNoteSubmission();
+        this.SetupNoteDeletion();
         this.Initialize();
     }
     async Initialize() {
@@ -59,6 +61,48 @@ export class Cartographer {
         });
         RenderNavMetadata(this.Cards);
         this.renderCards();
+    }
+    SetupNoteDeletion() {
+        document.addEventListener('cartographer:delete-note', (event) => {
+            void this.DeleteNote(event);
+        });
+    }
+    async DeleteNote(event) {
+        const detail = event.detail;
+        if (!detail?.id) {
+            return;
+        }
+        if (!window.confirm(`Delete note "${detail.title || detail.id}"?`)) {
+            return;
+        }
+        const endpoint = new URL(NotesEndpoint, window.location.origin);
+        endpoint.searchParams.set('id', detail.id);
+        endpoint.searchParams.set('namespace', query.GetSelectedNamespace());
+        try {
+            const response = await fetch(endpoint.toString(), { method: 'DELETE' });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+            cache.invalidateCache();
+            const cardIndex = this.Cards.findIndex((card) => card instanceof Note && card.id === detail.id);
+            const deletedCard = this.Cards[cardIndex];
+            if (deletedCard instanceof Note) {
+                deletedCard.minimize();
+            }
+            if (cardIndex >= 0) {
+                this.Cards.splice(cardIndex, 1);
+            }
+            CartographerData.notes = CartographerData.notes.filter((note) => {
+                const noteID = note.id || note.url || note.title;
+                return noteID !== detail.id;
+            });
+            RenderNavMetadata(this.Cards);
+            this.renderCards();
+        }
+        catch (err) {
+            console.error(err);
+            window.alert('Unable to delete note.');
+        }
     }
     async SwitchNamespace(namespace, nextURL) {
         try {
@@ -589,10 +633,15 @@ function SetupAdminPanel() {
     const cancelEdit = document.getElementById('templateCancelEdit');
     const status = document.getElementById('templateFormStatus');
     const list = document.getElementById('adminTemplateList');
-    if (!panel || !toggle || !body || !loginForm || !form || !list) {
+    const namespaceList = document.getElementById('adminNamespaceList');
+    const namespaceStatus = document.getElementById('adminNamespaceStatus');
+    const tabButtons = Array.from(document.querySelectorAll('[data-admin-tab]'));
+    const tabPanels = Array.from(document.querySelectorAll('[data-admin-panel]'));
+    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList) {
         return;
     }
     let adminSession = { admin: false, configured: false };
+    let activeAdminTab = 'templates';
     const loadAdminSession = async () => {
         try {
             const response = await fetch(AdminSessionEndpoint, EncodingHeader);
@@ -607,10 +656,26 @@ function SetupAdminPanel() {
         }
     };
     const renderAdminSession = () => {
+        document.body.classList.toggle('is-admin', adminSession.admin);
         unavailable?.classList.toggle('is-hidden', adminSession.configured);
         loginForm.classList.toggle('is-hidden', !adminSession.configured || adminSession.admin);
         body.classList.toggle('is-hidden', !adminSession.admin);
         logout?.classList.toggle('is-hidden', !adminSession.admin);
+    };
+    const setAdminTab = (tabName) => {
+        activeAdminTab = tabName;
+        tabButtons.forEach((button) => {
+            const isActive = button.dataset.adminTab === activeAdminTab;
+            button.setAttribute('aria-selected', String(isActive));
+            button.tabIndex = isActive ? 0 : -1;
+        });
+        tabPanels.forEach((adminPanel) => {
+            adminPanel.classList.toggle('is-hidden', adminPanel.dataset.adminPanel !== activeAdminTab);
+        });
+    };
+    const renderAdminPanels = async () => {
+        await RenderTemplateList(list, editTemplate, deleteTemplate);
+        await RenderAdminNamespaceList(namespaceList, deleteNamespace);
     };
     const resetTemplateForm = () => {
         form.reset();
@@ -677,6 +742,41 @@ function SetupAdminPanel() {
             }
         }
     };
+    const deleteNamespace = async (namespace) => {
+        if (!window.confirm(`Delete namespace "${namespace}" and all notes inside it?`)) {
+            return;
+        }
+        if (namespaceStatus) {
+            namespaceStatus.textContent = 'Deleting namespace...';
+            namespaceStatus.className = 'note-form-status text-secondary';
+        }
+        try {
+            const response = await fetch(`${AdminNamespacesEndpoint}/${encodeURIComponent(namespace)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+            cache.invalidateCache();
+            await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+            await SetupNamespaceSelector();
+            if (namespaceStatus) {
+                namespaceStatus.textContent = 'Namespace deleted.';
+                namespaceStatus.className = 'note-form-status text-success';
+            }
+            if (namespace === query.GetSelectedNamespace()) {
+                query.SetSelectedNamespace('default');
+                window.location.assign(GetNamespaceURL('default').toString());
+            }
+        }
+        catch (err) {
+            console.error(err);
+            if (namespaceStatus) {
+                namespaceStatus.textContent = 'Unable to delete namespace.';
+                namespaceStatus.className = 'note-form-status text-danger';
+            }
+        }
+    };
     const setAdminOpen = async (open) => {
         panel.classList.toggle('is-hidden', !open);
         document.body.classList.toggle('modal-open', open);
@@ -686,8 +786,11 @@ function SetupAdminPanel() {
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
-                await RenderTemplateList(list, editTemplate, deleteTemplate);
-                nameInput?.focus();
+                await renderAdminPanels();
+                setAdminTab(activeAdminTab);
+                if (activeAdminTab === 'templates') {
+                    nameInput?.focus();
+                }
             }
             else if (adminSession.configured) {
                 tokenInput?.focus();
@@ -713,6 +816,11 @@ function SetupAdminPanel() {
             toggle.focus();
         }
     });
+    tabButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setAdminTab(button.dataset.adminTab || 'templates');
+        });
+    });
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (loginStatus) {
@@ -735,8 +843,11 @@ function SetupAdminPanel() {
                 tokenInput.value = '';
             }
             renderAdminSession();
-            await RenderTemplateList(list, editTemplate, deleteTemplate);
-            nameInput?.focus();
+            await renderAdminPanels();
+            setAdminTab(activeAdminTab);
+            if (activeAdminTab === 'templates') {
+                nameInput?.focus();
+            }
             if (loginStatus) {
                 loginStatus.textContent = '';
             }
@@ -760,6 +871,8 @@ function SetupAdminPanel() {
         resetTemplateForm();
         nameInput?.focus();
     });
+    void loadAdminSession().then(renderAdminSession);
+    setAdminTab(activeAdminTab);
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const name = nameInput?.value.trim() || '';
@@ -883,6 +996,41 @@ async function RenderTemplateList(container, onEdit, onDelete) {
             tagWrap.appendChild(chip);
         });
         card.appendChild(tagWrap);
+        container.appendChild(card);
+    });
+}
+async function RenderAdminNamespaceList(container, onDelete) {
+    const namespaces = await GetNamespaces();
+    container.innerHTML = '';
+    if (namespaces.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'admin-template-empty';
+        empty.textContent = 'No namespaces available.';
+        container.appendChild(empty);
+        return;
+    }
+    namespaces.forEach((namespace) => {
+        const card = document.createElement('article');
+        card.className = 'admin-template-card';
+        const header = document.createElement('div');
+        header.className = 'admin-template-card__header';
+        const title = document.createElement('h3');
+        title.textContent = namespace;
+        header.appendChild(title);
+        const actions = document.createElement('div');
+        actions.className = 'admin-template-card__actions';
+        const remove = document.createElement('button');
+        remove.className = 'btn btn-sm btn-outline-danger';
+        remove.type = 'button';
+        remove.title = 'Delete namespace';
+        remove.setAttribute('aria-label', `Delete namespace ${namespace}`);
+        remove.innerHTML = '<i class="bi bi-trash"></i>';
+        remove.addEventListener('click', () => {
+            onDelete(namespace);
+        });
+        actions.appendChild(remove);
+        header.appendChild(actions);
+        card.appendChild(header);
         container.appendChild(card);
     });
 }

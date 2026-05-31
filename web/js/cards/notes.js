@@ -192,6 +192,7 @@ export class Note {
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
         actions.appendChild(this.createRawButton());
+        actions.appendChild(this.createDeleteButton());
         return actions;
     }
     copyTextToClipboard(text, onSuccess) {
@@ -225,6 +226,14 @@ export class Note {
                 tags: this.tags,
                 data: this.data,
                 metadata: this.metadata,
+            },
+        }));
+    }
+    dispatchDeleteEvent() {
+        document.dispatchEvent(new CustomEvent('cartographer:delete-note', {
+            detail: {
+                id: this.id,
+                title: this.title,
             },
         }));
     }
@@ -271,6 +280,20 @@ export class Note {
             window.open(this.getRawQueryURL(), '_blank', 'noopener,noreferrer');
         };
         return rawButton;
+    }
+    createDeleteButton() {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'note-action-button note-action-button--danger admin-only';
+        deleteButton.title = 'Delete note';
+        deleteButton.setAttribute('aria-label', 'Delete note');
+        deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
+        deleteButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchDeleteEvent();
+        };
+        return deleteButton;
     }
     getRawQueryURL() {
         const rawURL = new URL(query.GetEndpoint, window.location.origin);

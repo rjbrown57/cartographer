@@ -25,6 +25,11 @@ type NoteEditDetail = {
     metadata?: NoteMetadata;
 };
 
+type NoteDeleteDetail = {
+    id: string;
+    title: string;
+};
+
 type NoteTypeDetail = {
     className: string;
     icon: string;
@@ -285,6 +290,7 @@ export class Note implements cards.Card {
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
         actions.appendChild(this.createRawButton());
+        actions.appendChild(this.createDeleteButton());
         return actions;
     }
 
@@ -327,6 +333,16 @@ export class Note implements cards.Card {
                 metadata: this.metadata,
             },
         } satisfies CustomEventInit<NoteEditDetail>));
+    }
+
+    // dispatchDeleteEvent asks the app shell to delete this note.
+    private dispatchDeleteEvent(): void {
+        document.dispatchEvent(new CustomEvent('cartographer:delete-note', {
+            detail: {
+                id: this.id,
+                title: this.title,
+            },
+        } satisfies CustomEventInit<NoteDeleteDetail>));
     }
 
     // createDataContainer creates the data container with copy action.
@@ -384,6 +400,23 @@ export class Note implements cards.Card {
         };
 
         return rawButton;
+    }
+
+    // createDeleteButton builds an admin-only delete action for this note.
+    private createDeleteButton(): HTMLButtonElement {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'note-action-button note-action-button--danger admin-only';
+        deleteButton.title = 'Delete note';
+        deleteButton.setAttribute('aria-label', 'Delete note');
+        deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
+        deleteButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchDeleteEvent();
+        };
+
+        return deleteButton;
     }
 
     // getRawQueryURL builds the v1/get query URL for this exact card.
