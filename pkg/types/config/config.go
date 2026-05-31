@@ -18,9 +18,14 @@ type ServerConfig struct {
 }
 
 type WebConfig struct {
-	Address  string `yaml:"address,omitempty"`
-	Port     int    `yaml:"port,omitempty"`
-	SiteName string `yaml:"siteName,omitempty"`
+	Address  string     `yaml:"address,omitempty"`
+	Port     int        `yaml:"port,omitempty"`
+	SiteName string     `yaml:"siteName,omitempty"`
+	Auth     AuthConfig `yaml:"auth,omitempty"`
+}
+
+type AuthConfig struct {
+	AdminToken string `yaml:"adminToken,omitempty"`
 }
 
 type CartographerConfig struct {

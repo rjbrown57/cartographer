@@ -12,6 +12,7 @@ let TemplateData = [];
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
 const TemplatesEndpoint = '/v1/admin/templates';
+const AdminSessionEndpoint = '/v1/admin/session';
 const NamespaceListId = 'namespaceList';
 const NamespaceFinderId = 'namespaceFinder';
 const MaxVisibleNamespaceTabs = 8;
@@ -571,6 +572,12 @@ function SetupAdminPanel() {
     const panel = document.getElementById('adminPanel');
     const toggle = document.getElementById('adminPanelToggle');
     const close = document.getElementById('adminPanelClose');
+    const body = document.getElementById('adminPanelBody');
+    const loginForm = document.getElementById('adminLoginForm');
+    const tokenInput = document.getElementById('adminToken');
+    const loginStatus = document.getElementById('adminLoginStatus');
+    const unavailable = document.getElementById('adminUnavailable');
+    const logout = document.getElementById('adminLogout');
     const form = document.getElementById('templateForm');
     const nameInput = document.getElementById('templateName');
     const descriptionInput = document.getElementById('templateDescription');
@@ -578,17 +585,44 @@ function SetupAdminPanel() {
     const bodyInput = document.getElementById('templateBody');
     const status = document.getElementById('templateFormStatus');
     const list = document.getElementById('adminTemplateList');
-    if (!panel || !toggle || !form || !list) {
+    if (!panel || !toggle || !body || !loginForm || !form || !list) {
         return;
     }
+    let adminSession = { admin: false, configured: false };
+    const loadAdminSession = async () => {
+        try {
+            const response = await fetch(AdminSessionEndpoint, EncodingHeader);
+            if (!response.ok) {
+                throw new Error(`Session check failed: ${response.status} ${response.statusText}`);
+            }
+            adminSession = await response.json();
+        }
+        catch (err) {
+            console.error(err);
+            adminSession = { admin: false, configured: false };
+        }
+    };
+    const renderAdminSession = () => {
+        unavailable?.classList.toggle('is-hidden', adminSession.configured);
+        loginForm.classList.toggle('is-hidden', !adminSession.configured || adminSession.admin);
+        body.classList.toggle('is-hidden', !adminSession.admin);
+        logout?.classList.toggle('is-hidden', !adminSession.admin);
+    };
     const setAdminOpen = async (open) => {
         panel.classList.toggle('is-hidden', !open);
         document.body.classList.toggle('modal-open', open);
         toggle.setAttribute('aria-expanded', String(open));
         toggle.classList.toggle('nav-action--active', open);
         if (open) {
-            await RenderTemplateList(list);
-            nameInput?.focus();
+            await loadAdminSession();
+            renderAdminSession();
+            if (adminSession.admin) {
+                await RenderTemplateList(list);
+                nameInput?.focus();
+            }
+            else if (adminSession.configured) {
+                tokenInput?.focus();
+            }
         }
     };
     toggle.addEventListener('click', () => {
@@ -609,6 +643,46 @@ function SetupAdminPanel() {
             void setAdminOpen(false);
             toggle.focus();
         }
+    });
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (loginStatus) {
+            loginStatus.textContent = 'Checking token...';
+            loginStatus.className = 'note-form-status text-secondary';
+        }
+        try {
+            const response = await fetch(AdminSessionEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: tokenInput?.value || '' }),
+            });
+            if (!response.ok) {
+                throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+            }
+            adminSession = await response.json();
+            tokenInput.value = '';
+            renderAdminSession();
+            await RenderTemplateList(list);
+            nameInput?.focus();
+            if (loginStatus) {
+                loginStatus.textContent = '';
+            }
+        }
+        catch (err) {
+            console.error(err);
+            if (loginStatus) {
+                loginStatus.textContent = 'Unable to unlock admin.';
+                loginStatus.className = 'note-form-status text-danger';
+            }
+        }
+    });
+    logout?.addEventListener('click', async () => {
+        await fetch(AdminSessionEndpoint, { method: 'DELETE' });
+        adminSession = { admin: false, configured: true };
+        renderAdminSession();
+        tokenInput?.focus();
     });
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

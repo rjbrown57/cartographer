@@ -50,6 +50,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	gin.SetMode(gin.ReleaseMode)
 
 	g := gin.New()
+	auth := newAdminAuthenticator(o)
 
 	g.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Skip: GetSkipper(),
@@ -93,8 +94,11 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/v1/get/namespaces", getNamespacesFunc(carto))
 	g.GET("/v1/get/tags/:tag", getByTagsFunc(carto))
 	g.POST("/v1/notes", postNotesFunc(carto))
+	g.GET("/v1/admin/session", getAdminSessionFunc(auth))
+	g.POST("/v1/admin/session", postAdminSessionFunc(auth))
+	g.DELETE("/v1/admin/session", deleteAdminSessionFunc())
 	g.GET("/v1/admin/templates", getTemplatesFunc(carto))
-	g.POST("/v1/admin/templates", postTemplatesFunc(carto))
+	g.POST("/v1/admin/templates", requireAdmin(auth), postTemplatesFunc(carto))
 	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints
