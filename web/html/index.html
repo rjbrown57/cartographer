@@ -897,6 +897,19 @@
 			padding: 0.75rem;
 		}
 
+		.admin-template-card__header {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 0.75rem;
+		}
+
+		.admin-template-card__actions {
+			display: flex;
+			gap: 0.35rem;
+			flex-shrink: 0;
+		}
+
 		.admin-template-card h3 {
 			font-size: 0.95rem;
 			margin: 0 0 0.3rem;
@@ -1345,8 +1358,9 @@
 						<div id="adminTemplateList" class="admin-template-list"></div>
 					</section>
 					<section>
-						<h2 class="h6 mb-3">New template</h2>
+						<h2 id="templateFormTitle" class="h6 mb-3">New template</h2>
 						<form id="templateForm" class="note-form-grid">
+							<input id="templateID" type="hidden">
 							<div>
 								<label for="templateName" class="form-label">Name</label>
 								<input id="templateName" class="form-control" type="text" autocomplete="off" required>
@@ -1364,10 +1378,11 @@
 								<textarea id="templateBody" class="form-control" rows="10" required></textarea>
 							</div>
 							<div class="d-flex align-items-center gap-3">
-								<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
+								<button id="templateSubmit" class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
 									<i class="bi bi-save"></i>
 									<span>Save template</span>
 								</button>
+								<button id="templateCancelEdit" class="btn btn-outline-secondary is-hidden" type="button">Cancel edit</button>
 								<span id="templateFormStatus" class="note-form-status"></span>
 							</div>
 						</form>

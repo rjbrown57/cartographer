@@ -97,6 +97,27 @@ func postTemplatesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
+// deleteTemplatesFunc removes a reusable markdown template from admin storage.
+func deleteTemplatesFunc(carto *client.CartographerClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := templateNoteID(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": err.Error()})
+			return
+		}
+
+		if _, err := carto.Client.Delete(carto.Ctx, &proto.CartographerDeleteRequest{
+			Ids:       []string{id},
+			Namespace: adminNamespace,
+		}); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Unable to delete template"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "Template deleted"})
+	}
+}
+
 // listMarkdownTemplates reads template notes from the reserved admin namespace.
 func listMarkdownTemplates(ctx context.Context, carto *client.CartographerClient) ([]markdownTemplate, error) {
 	resp, err := carto.Client.Get(ctx, &proto.CartographerGetRequest{
@@ -136,12 +157,12 @@ func validateMarkdownTemplate(template markdownTemplate) error {
 
 // templateToNote converts an admin template payload into an internal note record.
 func templateToNote(template markdownTemplate) (*proto.Note, error) {
-	id := strings.TrimSpace(template.ID)
-	if id == "" {
+	id, err := templateNoteID(template.ID)
+	if err != nil {
+		if strings.TrimSpace(template.ID) != "" {
+			return nil, err
+		}
 		id = templateID(template.Name)
-	}
-	if !strings.HasPrefix(id, templateKeyPrefix) {
-		id = templateKeyPrefix + id
 	}
 
 	return proto.NewNoteBuilder().
@@ -191,6 +212,21 @@ func templateID(name string) string {
 		slug = "template"
 	}
 	return templateKeyPrefix + slug + "-" + uuid.NewString()
+}
+
+// templateNoteID normalizes a public template id into its reserved note id.
+func templateNoteID(id string) (string, error) {
+	cleaned := strings.TrimSpace(id)
+	if cleaned == "" {
+		return "", fmt.Errorf("template id is required")
+	}
+	if strings.HasPrefix(cleaned, templateKeyPrefix) {
+		cleaned = strings.TrimPrefix(cleaned, templateKeyPrefix)
+	}
+	if strings.Contains(cleaned, "/") {
+		return "", fmt.Errorf("template id is invalid")
+	}
+	return templateKeyPrefix + cleaned, nil
 }
 
 // cleanTemplateTags trims empty template tag defaults.
