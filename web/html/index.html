@@ -748,11 +748,11 @@
 		}
 
 		.admin-only {
-			display: none;
+			display: none !important;
 		}
 
 		body.is-admin .admin-only {
-			display: inline-flex;
+			display: inline-flex !important;
 		}
 
 		.note-markdown {
@@ -1339,7 +1339,7 @@
 					<input id="searchBar" type="text" class="form-control search-input" placeholder="Search notes and tags...">
 				</div>
 			</div>
-			<button id="noteComposerToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="noteComposer" type="button">
+			<button id="noteComposerToggle" class="btn nav-action admin-only d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="noteComposer" type="button">
 				<i class="bi bi-journal-plus"></i>
 				<span class="visually-hidden">Add note</span>
 			</button>

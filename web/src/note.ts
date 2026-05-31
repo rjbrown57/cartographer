@@ -135,6 +135,11 @@ async function wireNoteActions(shell: HTMLElement, note: NoteData, namespace: st
     const editButton = document.getElementById('editNote') as HTMLButtonElement | null;
     const deleteButton = document.getElementById('deleteNote') as HTMLButtonElement | null;
 
+    const session = await loadAdminSession();
+    if (!session.admin) {
+        return;
+    }
+
     if (editButton) {
         editButton.classList.remove('is-hidden');
         editButton.onclick = () => {
@@ -142,8 +147,7 @@ async function wireNoteActions(shell: HTMLElement, note: NoteData, namespace: st
         };
     }
 
-    const session = await loadAdminSession();
-    if (!session.admin || !deleteButton) {
+    if (!deleteButton) {
         return;
     }
 

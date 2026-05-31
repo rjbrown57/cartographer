@@ -88,14 +88,17 @@ function renderNote(shell, note, namespace) {
 async function wireNoteActions(shell, note, namespace) {
     const editButton = document.getElementById('editNote');
     const deleteButton = document.getElementById('deleteNote');
+    const session = await loadAdminSession();
+    if (!session.admin) {
+        return;
+    }
     if (editButton) {
         editButton.classList.remove('is-hidden');
         editButton.onclick = () => {
             renderEditForm(shell, note, namespace);
         };
     }
-    const session = await loadAdminSession();
-    if (!session.admin || !deleteButton) {
+    if (!deleteButton) {
         return;
     }
     deleteButton.classList.remove('is-hidden');

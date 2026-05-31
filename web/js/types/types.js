@@ -1088,7 +1088,11 @@ function NamespaceMatches(namespace, term) {
     }
     return false;
 }
+function IsAdminSessionActive() {
+    return document.body.classList.contains('is-admin');
+}
 function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCreate) {
+    const allowCreate = IsAdminSessionActive();
     const closeFinder = () => {
         finder.classList.add('is-hidden');
         finder.innerHTML = '';
@@ -1100,7 +1104,7 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'namespace-finder__input';
-    input.placeholder = mode === 'create' ? 'new-namespace' : 'Find or create namespace';
+    input.placeholder = mode === 'create' ? 'new-namespace' : allowCreate ? 'Find or create namespace' : 'Find namespace';
     input.autocomplete = 'off';
     input.setAttribute('aria-label', mode === 'create' ? 'New namespace name' : 'Find namespace');
     const closeButton = document.createElement('button');
@@ -1127,7 +1131,7 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
             .slice(0, 12);
         const exactMatch = availableNamespaces.includes(term);
         list.innerHTML = '';
-        if (term && IsValidNamespace(term) && !exactMatch) {
+        if (allowCreate && term && IsValidNamespace(term) && !exactMatch) {
             const createItem = document.createElement('button');
             createItem.type = 'button';
             createItem.className = 'namespace-finder__item namespace-finder__item--create';
@@ -1180,7 +1184,7 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
             await selectNamespace(term);
             return;
         }
-        if (IsValidNamespace(term)) {
+        if (allowCreate && IsValidNamespace(term)) {
             createNamespace(term);
         }
     });
@@ -1192,7 +1196,7 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
     else {
         const empty = document.createElement('p');
         empty.className = 'namespace-finder__empty';
-        empty.textContent = 'Type a namespace name to add its first note.';
+        empty.textContent = allowCreate ? 'Type a namespace name to add its first note.' : 'Sign in as admin to create namespaces.';
         list.appendChild(empty);
     }
     requestAnimationFrame(() => input.focus());
@@ -1311,7 +1315,7 @@ async function SetupNamespaceSelector(onSwitch) {
     if (namespaceFinder) {
         const createButton = document.createElement('button');
         createButton.type = 'button';
-        createButton.className = 'namespace-tab namespace-tab--utility namespace-tab--create';
+        createButton.className = 'namespace-tab namespace-tab--utility namespace-tab--create admin-only';
         createButton.setAttribute('aria-label', 'Add note to namespace');
         createButton.innerHTML = '<i class="bi bi-plus-lg" aria-hidden="true"></i>';
         createButton.addEventListener('click', () => {
