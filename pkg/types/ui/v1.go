@@ -126,6 +126,10 @@ func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
 			return
 		}
+		if ns == adminNamespace {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Reserved namespace"})
+			return
+		}
 
 		note, err := proto.NewNoteBuilder().
 			WithId(nr.ID).
@@ -219,9 +223,22 @@ func getNamespacesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
+		pr.Response.Msg = filterReservedNamespaces(pr.GetResponse().GetMsg())
 
 		c.JSON(http.StatusOK, pr)
 	}
+}
+
+// filterReservedNamespaces removes internal namespaces from user-facing namespace lists.
+func filterReservedNamespaces(namespaces []string) []string {
+	filtered := make([]string, 0, len(namespaces))
+	for _, namespace := range namespaces {
+		if namespace == adminNamespace {
+			continue
+		}
+		filtered = append(filtered, namespace)
+	}
+	return filtered
 }
 
 // GetByTagsHandler godoc

@@ -8,8 +8,10 @@ const EncodingHeader = {
     }
 };
 let CartographerData;
+let TemplateData = [];
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
+const TemplatesEndpoint = '/v1/admin/templates';
 const NamespaceListId = 'namespaceList';
 const NamespaceFinderId = 'namespaceFinder';
 const MaxVisibleNamespaceTabs = 8;
@@ -21,6 +23,7 @@ export class Cartographer {
     renderVersion = 0;
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
+        SetupAdminPanel();
         SetupNoteSubmission();
         this.Initialize();
     }
@@ -163,6 +166,7 @@ function SetupNoteSubmission() {
     const namespaceInput = document.getElementById('noteNamespace');
     const namespaceOptions = document.getElementById('noteNamespaceOptions');
     const bodyInput = document.getElementById('noteBody');
+    const templateSelect = document.getElementById('noteTemplateSelect');
     const dataDetails = document.getElementById('noteDataDetails');
     const dataInput = document.getElementById('noteData');
     const tagsInput = document.getElementById('noteTags');
@@ -225,6 +229,41 @@ function SetupNoteSubmission() {
         const hasData = data && Object.keys(data).length > 0;
         dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
         dataDetails?.toggleAttribute('open', Boolean(hasData));
+    };
+    const populateTemplateSelect = async () => {
+        if (!templateSelect) {
+            return;
+        }
+        const templates = await LoadTemplates();
+        templateSelect.innerHTML = '';
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'Template';
+        templateSelect.appendChild(emptyOption);
+        templates.forEach((template) => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            templateSelect.appendChild(option);
+        });
+    };
+    const applyTemplateToComposer = (templateID) => {
+        const template = TemplateData.find((candidate) => candidate.id === templateID);
+        if (!template || !bodyInput) {
+            return;
+        }
+        const existingBody = bodyInput.value.trim();
+        bodyInput.value = existingBody
+            ? `${existingBody}\n\n${template.body}`
+            : template.body;
+        const currentTags = new Set(parseTags());
+        (template.tags || []).forEach((tag) => currentTags.add(tag));
+        if (tagsInput) {
+            tagsInput.value = Array.from(currentTags).join(', ');
+        }
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
     };
     const syncTagPreview = () => {
         if (!tagsPreview) {
@@ -348,6 +387,10 @@ function SetupNoteSubmission() {
     };
     bodyInput?.addEventListener('input', updatePreview);
     tagsInput?.addEventListener('input', syncTagPreview);
+    templateSelect?.addEventListener('change', () => {
+        applyTemplateToComposer(templateSelect.value);
+        templateSelect.value = '';
+    });
     writeTab?.addEventListener('click', () => setEditorMode('write'));
     previewTab?.addEventListener('click', () => setEditorMode('preview'));
     toggle?.addEventListener('click', () => {
@@ -355,6 +398,7 @@ function SetupNoteSubmission() {
         if (!isOpen) {
             form.reset();
             setCreateMode(query.GetSelectedNamespace());
+            void populateTemplateSelect();
         }
         setComposerOpen(!isOpen);
     });
@@ -427,12 +471,14 @@ function SetupNoteSubmission() {
         syncTagPreview();
         updatePreview();
         setEditorMode('write');
+        void populateTemplateSelect();
         setComposerOpen(true);
     }));
     document.addEventListener('cartographer:add-note', ((event) => {
         const detail = event.detail;
         form.reset();
         setCreateMode(detail?.namespace || query.GetSelectedNamespace());
+        void populateTemplateSelect();
         setComposerOpen(true, Boolean(detail?.focusNamespace));
     }));
     form.addEventListener('submit', async (event) => {
@@ -520,6 +566,153 @@ function SetupNoteSubmission() {
             }
         }
     });
+}
+function SetupAdminPanel() {
+    const panel = document.getElementById('adminPanel');
+    const toggle = document.getElementById('adminPanelToggle');
+    const close = document.getElementById('adminPanelClose');
+    const form = document.getElementById('templateForm');
+    const nameInput = document.getElementById('templateName');
+    const descriptionInput = document.getElementById('templateDescription');
+    const tagsInput = document.getElementById('templateTags');
+    const bodyInput = document.getElementById('templateBody');
+    const status = document.getElementById('templateFormStatus');
+    const list = document.getElementById('adminTemplateList');
+    if (!panel || !toggle || !form || !list) {
+        return;
+    }
+    const setAdminOpen = async (open) => {
+        panel.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.classList.toggle('nav-action--active', open);
+        if (open) {
+            await RenderTemplateList(list);
+            nameInput?.focus();
+        }
+    };
+    toggle.addEventListener('click', () => {
+        void setAdminOpen(panel.classList.contains('is-hidden'));
+    });
+    close?.addEventListener('click', () => {
+        void setAdminOpen(false);
+        toggle.focus();
+    });
+    panel.addEventListener('click', (event) => {
+        if (event.target === panel) {
+            void setAdminOpen(false);
+            toggle.focus();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !panel.classList.contains('is-hidden')) {
+            void setAdminOpen(false);
+            toggle.focus();
+        }
+    });
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const name = nameInput?.value.trim() || '';
+        const body = bodyInput?.value.trim() || '';
+        if (!name || !body) {
+            if (status) {
+                status.textContent = 'Name and markdown are required.';
+                status.className = 'note-form-status text-danger';
+            }
+            return;
+        }
+        if (status) {
+            status.textContent = 'Saving template...';
+            status.className = 'note-form-status text-secondary';
+        }
+        try {
+            const response = await fetch(TemplatesEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    description: descriptionInput?.value.trim() || '',
+                    body,
+                    tags: ParseCommaList(tagsInput?.value || ''),
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
+            }
+            form.reset();
+            TemplateData = [];
+            await RenderTemplateList(list);
+            if (status) {
+                status.textContent = 'Template saved.';
+                status.className = 'note-form-status text-success';
+            }
+        }
+        catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to save template.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    });
+}
+async function LoadTemplates() {
+    if (TemplateData.length > 0) {
+        return TemplateData;
+    }
+    try {
+        const response = await fetch(TemplatesEndpoint, EncodingHeader);
+        if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        TemplateData = Array.isArray(data.templates) ? data.templates : [];
+    }
+    catch (err) {
+        console.error(err);
+        TemplateData = [];
+    }
+    return TemplateData;
+}
+async function RenderTemplateList(container) {
+    const templates = await LoadTemplates();
+    container.innerHTML = '';
+    if (templates.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'admin-template-empty';
+        empty.textContent = 'No templates yet.';
+        container.appendChild(empty);
+        return;
+    }
+    templates.forEach((template) => {
+        const card = document.createElement('article');
+        card.className = 'admin-template-card';
+        const title = document.createElement('h3');
+        title.textContent = template.name;
+        card.appendChild(title);
+        if (template.description) {
+            const description = document.createElement('p');
+            description.textContent = template.description;
+            card.appendChild(description);
+        }
+        const tagWrap = document.createElement('div');
+        tagWrap.className = 'note-tag-preview';
+        (template.tags || []).forEach((tag) => {
+            const chip = document.createElement('span');
+            chip.className = 'note-tag-chip';
+            chip.textContent = tag;
+            tagWrap.appendChild(chip);
+        });
+        card.appendChild(tagWrap);
+        container.appendChild(card);
+    });
+}
+function ParseCommaList(value) {
+    return value.split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '');
 }
 function GetNamespacesEndpoint() {
     return NamespaceEndpoint;

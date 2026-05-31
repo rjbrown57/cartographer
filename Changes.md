@@ -20,6 +20,9 @@ This branch moves Cartographer from a link-oriented viewer toward a note-oriente
 ## Web UI
 
 - Adds a live note composer for creating and editing notes.
+- Adds an admin panel shell for operational controls.
+- Adds markdown template creation and listing in the admin panel.
+- Adds template selection to the note composer so template markdown can be inserted into new notes.
 - Moves note creation into a modal-style overlay instead of rendering the form inline with cards.
 - Supports editing existing notes and re-submitting them to the backend.
 - Adds optional structured JSON data input to the composer.
@@ -75,6 +78,9 @@ This branch moves Cartographer from a link-oriented viewer toward a note-oriente
 ## Backend And API
 
 - Adds `/v1/notes` support for live note submission from the web UI.
+- Adds `/v1/admin/templates` endpoints for reusable markdown templates.
+- Stores admin templates in a reserved internal backend namespace.
+- Hides the reserved admin namespace from normal namespace selection and blocks normal note submission into it.
 - Extends note create/update payloads to include structured data and metadata.
 - Updates server add behavior to apply metadata defaults.
 - Updates cache and search indexing behavior for namespace-qualified note IDs.

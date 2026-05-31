@@ -12,9 +12,11 @@ const EncodingHeader = {
 }
 
 let CartographerData: CartoResponse;
+let TemplateData: MarkdownTemplate[] = [];
 
 const NamespaceEndpoint = query.GetEndpoint + '/namespaces';
 const NotesEndpoint = '/v1/notes';
+const TemplatesEndpoint = '/v1/admin/templates';
 const NamespaceListId = 'namespaceList'
 const NamespaceFinderId = 'namespaceFinder'
 const MaxVisibleNamespaceTabs = 8;
@@ -43,6 +45,23 @@ export type NoteData = {
     version?: number;
 }
 
+export type MarkdownTemplate = {
+    id: string;
+    name: string;
+    description?: string;
+    body: string;
+    tags?: string[];
+    source?: string;
+    author?: string;
+    created_at?: TimestampValue;
+    updated_at?: TimestampValue;
+    version?: number;
+}
+
+export type TemplateResponse = {
+    templates: MarkdownTemplate[];
+}
+
 type NoteEditEvent = CustomEvent<{
     id: string;
     title: string;
@@ -69,6 +88,7 @@ export class Cartographer {
     // Initialize data, build cards, and wire up UI controls.
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
+        SetupAdminPanel();
         SetupNoteSubmission();
         this.Initialize();
     }
@@ -265,6 +285,7 @@ function SetupNoteSubmission(): void {
     const namespaceInput = document.getElementById('noteNamespace') as HTMLInputElement | null;
     const namespaceOptions = document.getElementById('noteNamespaceOptions') as HTMLDataListElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
+    const templateSelect = document.getElementById('noteTemplateSelect') as HTMLSelectElement | null;
     const dataDetails = document.getElementById('noteDataDetails') as HTMLDetailsElement | null;
     const dataInput = document.getElementById('noteData') as HTMLTextAreaElement | null;
     const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
@@ -338,6 +359,51 @@ function SetupNoteSubmission(): void {
         const hasData = data && Object.keys(data).length > 0;
         dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
         dataDetails?.toggleAttribute('open', Boolean(hasData));
+    };
+
+    // populateTemplateSelect loads reusable markdown templates into the composer.
+    const populateTemplateSelect = async () => {
+        if (!templateSelect) {
+            return;
+        }
+
+        const templates = await LoadTemplates();
+        templateSelect.innerHTML = '';
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'Template';
+        templateSelect.appendChild(emptyOption);
+
+        templates.forEach((template) => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            templateSelect.appendChild(option);
+        });
+    };
+
+    // applyTemplateToComposer inserts a reusable template into the note draft.
+    const applyTemplateToComposer = (templateID: string) => {
+        const template = TemplateData.find((candidate) => candidate.id === templateID);
+        if (!template || !bodyInput) {
+            return;
+        }
+
+        const existingBody = bodyInput.value.trim();
+        bodyInput.value = existingBody
+            ? `${existingBody}\n\n${template.body}`
+            : template.body;
+
+        const currentTags = new Set(parseTags());
+        (template.tags || []).forEach((tag) => currentTags.add(tag));
+        if (tagsInput) {
+            tagsInput.value = Array.from(currentTags).join(', ');
+        }
+
+        syncTagPreview();
+        updatePreview();
+        setEditorMode('write');
     };
 
     // syncTagPreview renders live chips from the current tag input.
@@ -480,6 +546,10 @@ function SetupNoteSubmission(): void {
 
     bodyInput?.addEventListener('input', updatePreview);
     tagsInput?.addEventListener('input', syncTagPreview);
+    templateSelect?.addEventListener('change', () => {
+        applyTemplateToComposer(templateSelect.value);
+        templateSelect.value = '';
+    });
     writeTab?.addEventListener('click', () => setEditorMode('write'));
     previewTab?.addEventListener('click', () => setEditorMode('preview'));
 
@@ -488,6 +558,7 @@ function SetupNoteSubmission(): void {
         if (!isOpen) {
             form.reset();
             setCreateMode(query.GetSelectedNamespace());
+            void populateTemplateSelect();
         }
         setComposerOpen(!isOpen);
     });
@@ -566,6 +637,7 @@ function SetupNoteSubmission(): void {
         syncTagPreview();
         updatePreview();
         setEditorMode('write');
+        void populateTemplateSelect();
         setComposerOpen(true);
     }) as EventListener);
 
@@ -573,6 +645,7 @@ function SetupNoteSubmission(): void {
         const detail = (event as NoteComposeEvent).detail;
         form.reset();
         setCreateMode(detail?.namespace || query.GetSelectedNamespace());
+        void populateTemplateSelect();
         setComposerOpen(true, Boolean(detail?.focusNamespace));
     }) as EventListener);
 
@@ -669,6 +742,177 @@ function SetupNoteSubmission(): void {
             }
         }
     });
+}
+
+// SetupAdminPanel wires the admin template panel to the backend endpoints.
+function SetupAdminPanel(): void {
+    const panel = document.getElementById('adminPanel') as HTMLElement | null;
+    const toggle = document.getElementById('adminPanelToggle') as HTMLButtonElement | null;
+    const close = document.getElementById('adminPanelClose') as HTMLButtonElement | null;
+    const form = document.getElementById('templateForm') as HTMLFormElement | null;
+    const nameInput = document.getElementById('templateName') as HTMLInputElement | null;
+    const descriptionInput = document.getElementById('templateDescription') as HTMLInputElement | null;
+    const tagsInput = document.getElementById('templateTags') as HTMLInputElement | null;
+    const bodyInput = document.getElementById('templateBody') as HTMLTextAreaElement | null;
+    const status = document.getElementById('templateFormStatus') as HTMLElement | null;
+    const list = document.getElementById('adminTemplateList') as HTMLElement | null;
+
+    if (!panel || !toggle || !form || !list) {
+        return;
+    }
+
+    // setAdminOpen toggles the modal-like admin panel.
+    const setAdminOpen = async (open: boolean) => {
+        panel.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.classList.toggle('nav-action--active', open);
+        if (open) {
+            await RenderTemplateList(list);
+            nameInput?.focus();
+        }
+    };
+
+    toggle.addEventListener('click', () => {
+        void setAdminOpen(panel.classList.contains('is-hidden'));
+    });
+
+    close?.addEventListener('click', () => {
+        void setAdminOpen(false);
+        toggle.focus();
+    });
+
+    panel.addEventListener('click', (event) => {
+        if (event.target === panel) {
+            void setAdminOpen(false);
+            toggle.focus();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !panel.classList.contains('is-hidden')) {
+            void setAdminOpen(false);
+            toggle.focus();
+        }
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const name = nameInput?.value.trim() || '';
+        const body = bodyInput?.value.trim() || '';
+        if (!name || !body) {
+            if (status) {
+                status.textContent = 'Name and markdown are required.';
+                status.className = 'note-form-status text-danger';
+            }
+            return;
+        }
+
+        if (status) {
+            status.textContent = 'Saving template...';
+            status.className = 'note-form-status text-secondary';
+        }
+
+        try {
+            const response = await fetch(TemplatesEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    description: descriptionInput?.value.trim() || '',
+                    body,
+                    tags: ParseCommaList(tagsInput?.value || ''),
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
+            }
+
+            form.reset();
+            TemplateData = [];
+            await RenderTemplateList(list);
+            if (status) {
+                status.textContent = 'Template saved.';
+                status.className = 'note-form-status text-success';
+            }
+        } catch (err) {
+            console.error(err);
+            if (status) {
+                status.textContent = 'Unable to save template.';
+                status.className = 'note-form-status text-danger';
+            }
+        }
+    });
+}
+
+// LoadTemplates fetches markdown templates, using a small in-memory cache.
+async function LoadTemplates(): Promise<MarkdownTemplate[]> {
+    if (TemplateData.length > 0) {
+        return TemplateData;
+    }
+
+    try {
+        const response = await fetch(TemplatesEndpoint, EncodingHeader);
+        if (!response.ok) {
+            throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json() as TemplateResponse;
+        TemplateData = Array.isArray(data.templates) ? data.templates : [];
+    } catch (err) {
+        console.error(err);
+        TemplateData = [];
+    }
+
+    return TemplateData;
+}
+
+// RenderTemplateList redraws the admin template list.
+async function RenderTemplateList(container: HTMLElement): Promise<void> {
+    const templates = await LoadTemplates();
+    container.innerHTML = '';
+
+    if (templates.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'admin-template-empty';
+        empty.textContent = 'No templates yet.';
+        container.appendChild(empty);
+        return;
+    }
+
+    templates.forEach((template) => {
+        const card = document.createElement('article');
+        card.className = 'admin-template-card';
+
+        const title = document.createElement('h3');
+        title.textContent = template.name;
+        card.appendChild(title);
+
+        if (template.description) {
+            const description = document.createElement('p');
+            description.textContent = template.description;
+            card.appendChild(description);
+        }
+
+        const tagWrap = document.createElement('div');
+        tagWrap.className = 'note-tag-preview';
+        (template.tags || []).forEach((tag) => {
+            const chip = document.createElement('span');
+            chip.className = 'note-tag-chip';
+            chip.textContent = tag;
+            tagWrap.appendChild(chip);
+        });
+        card.appendChild(tagWrap);
+        container.appendChild(card);
+    });
+}
+
+// ParseCommaList returns trimmed comma-separated values.
+function ParseCommaList(value: string): string[] {
+    return value.split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '');
 }
 
 // GetNamespacesEndpoint builds the endpoint used to fetch currently active namespace names.
