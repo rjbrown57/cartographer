@@ -851,6 +851,18 @@
 			padding: 1rem;
 		}
 
+		.admin-panel {
+			position: fixed;
+			inset: 0;
+			z-index: 1060;
+			background: rgba(15, 23, 42, 0.46);
+			backdrop-filter: blur(6px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+		}
+
 		.note-composer__panel {
 			background: rgba(248, 250, 252, 0.98);
 			border: 1px solid var(--card-border);
@@ -861,6 +873,47 @@
 			padding: 1rem;
 			width: min(960px, 100%);
 			animation: overlayPop 0.22s ease;
+		}
+
+		.admin-panel__body {
+			display: grid;
+			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+
+		.admin-template-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			max-height: 560px;
+			overflow-y: auto;
+		}
+
+		.admin-template-card {
+			background: #ffffff;
+			border: 1px solid #cbd5e1;
+			border-radius: 8px;
+			padding: 0.75rem;
+		}
+
+		.admin-template-card h3 {
+			font-size: 0.95rem;
+			margin: 0 0 0.3rem;
+		}
+
+		.admin-template-card p {
+			color: #64748b;
+			font-size: 0.84rem;
+			margin: 0 0 0.5rem;
+		}
+
+		.admin-template-empty {
+			border: 1px dashed #cbd5e1;
+			border-radius: 8px;
+			color: #64748b;
+			font-size: 0.9rem;
+			padding: 1rem;
 		}
 
 		.note-composer__header {
@@ -923,6 +976,10 @@
 			box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
 		}
 
+		.note-template-select {
+			max-width: 16rem;
+		}
+
 		.note-preview-pane {
 			background: #ffffff;
 			border: 1px solid #cbd5e1;
@@ -957,6 +1014,12 @@
 			background: #fee2e2;
 			border-color: #fecaca;
 			color: #991b1b;
+		}
+
+		.admin-template-card .note-tag-chip:hover {
+			background: #f8fafc;
+			border-color: #cbd5e1;
+			color: #334155;
 		}
 
 		.note-data-details {
@@ -1194,6 +1257,12 @@
 		.is-hidden {
 			display: none !important;
 		}
+
+		@media (max-width: 900px) {
+			.admin-panel__body {
+				grid-template-columns: 1fr;
+			}
+		}
 	</style>
 	<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
@@ -1217,6 +1286,10 @@
 				<i class="bi bi-journal-plus"></i>
 				<span class="visually-hidden">Add note</span>
 			</button>
+			<button id="adminPanelToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="adminPanel" type="button">
+				<i class="bi bi-sliders"></i>
+				<span class="visually-hidden">Admin</span>
+			</button>
 			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
 				<i class="bi bi-braces-asterisk"></i>
 			</a>
@@ -1238,6 +1311,53 @@
 		</div>
 	</nav>
 	<main class="app-container container-fluid">
+		<section id="adminPanel" class="admin-panel is-hidden" aria-labelledby="adminPanelTitle">
+			<div class="note-composer__panel" role="dialog" aria-modal="true">
+				<div class="note-composer__header">
+					<div id="adminPanelTitle" class="d-flex align-items-center gap-2">
+						<i class="bi bi-sliders"></i>
+						<span>Admin</span>
+					</div>
+					<button id="adminPanelClose" class="note-composer__close" type="button" aria-label="Close admin panel">
+						<i class="bi bi-x-lg"></i>
+					</button>
+				</div>
+				<div class="admin-panel__body">
+					<section>
+						<h2 class="h6 mb-3">Templates</h2>
+						<div id="adminTemplateList" class="admin-template-list"></div>
+					</section>
+					<section>
+						<h2 class="h6 mb-3">New template</h2>
+						<form id="templateForm" class="note-form-grid">
+							<div>
+								<label for="templateName" class="form-label">Name</label>
+								<input id="templateName" class="form-control" type="text" autocomplete="off" required>
+							</div>
+							<div>
+								<label for="templateDescription" class="form-label">Description</label>
+								<input id="templateDescription" class="form-control" type="text" autocomplete="off">
+							</div>
+							<div>
+								<label for="templateTags" class="form-label">Default tags</label>
+								<input id="templateTags" class="form-control" type="text" autocomplete="off" placeholder="incident, review">
+							</div>
+							<div>
+								<label for="templateBody" class="form-label">Markdown</label>
+								<textarea id="templateBody" class="form-control" rows="10" required></textarea>
+							</div>
+							<div class="d-flex align-items-center gap-3">
+								<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
+									<i class="bi bi-save"></i>
+									<span>Save template</span>
+								</button>
+								<span id="templateFormStatus" class="note-form-status"></span>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+		</section>
 		<section id="noteComposer" class="note-composer is-hidden" aria-labelledby="noteComposerTitle">
 			<div class="note-composer__panel" role="dialog" aria-modal="true">
 				<div class="note-composer__header">
@@ -1271,15 +1391,20 @@
 						<div class="col-12">
 							<div class="d-flex align-items-center justify-content-between gap-2 mb-2">
 								<label for="noteBody" class="form-label mb-0">Markdown</label>
-								<div class="note-editor-tabs" role="group" aria-label="Markdown editor mode">
-									<button id="noteWriteTab" class="note-editor-tab note-editor-tab--active" type="button" aria-pressed="true">
-										<i class="bi bi-pencil"></i>
-										<span>Write</span>
-									</button>
-									<button id="notePreviewTab" class="note-editor-tab" type="button" aria-pressed="false">
-										<i class="bi bi-eye"></i>
-										<span>Preview</span>
-									</button>
+								<div class="d-flex align-items-center gap-2">
+									<select id="noteTemplateSelect" class="form-select form-select-sm note-template-select" aria-label="Apply note template">
+										<option value="">Template</option>
+									</select>
+									<div class="note-editor-tabs" role="group" aria-label="Markdown editor mode">
+										<button id="noteWriteTab" class="note-editor-tab note-editor-tab--active" type="button" aria-pressed="true">
+											<i class="bi bi-pencil"></i>
+											<span>Write</span>
+										</button>
+										<button id="notePreviewTab" class="note-editor-tab" type="button" aria-pressed="false">
+											<i class="bi bi-eye"></i>
+											<span>Preview</span>
+										</button>
+									</div>
 								</div>
 							</div>
 							<textarea id="noteBody" class="form-control" rows="8" required></textarea>

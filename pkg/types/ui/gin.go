@@ -93,6 +93,8 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/v1/get/namespaces", getNamespacesFunc(carto))
 	g.GET("/v1/get/tags/:tag", getByTagsFunc(carto))
 	g.POST("/v1/notes", postNotesFunc(carto))
+	g.GET("/v1/admin/templates", getTemplatesFunc(carto))
+	g.POST("/v1/admin/templates", postTemplatesFunc(carto))
 	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints
