@@ -34,6 +34,7 @@
 			align-items: center;
 			display: flex;
 			justify-content: space-between;
+			gap: 1rem;
 			margin-bottom: 1rem;
 		}
 
@@ -49,6 +50,37 @@
 			border-radius: 12px;
 			box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
 			padding: clamp(1rem, 3vw, 2rem);
+		}
+
+		.note-actions {
+			align-items: center;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			justify-content: flex-end;
+			margin-bottom: 1rem;
+		}
+
+		.note-action {
+			align-items: center;
+			background: #ffffff;
+			border: 1px solid var(--border);
+			border-radius: 999px;
+			color: #475569;
+			display: inline-flex;
+			font-weight: 700;
+			gap: 0.4rem;
+			padding: 0.4rem 0.7rem;
+		}
+
+		.note-action:hover {
+			background: #eef2ff;
+			color: var(--accent);
+		}
+
+		.note-action--danger:hover {
+			background: #fee2e2;
+			color: #b91c1c;
 		}
 
 		.note-kicker {
@@ -128,6 +160,21 @@
 			padding: 1.5rem;
 		}
 
+		.note-edit-form {
+			display: grid;
+			gap: 0.9rem;
+		}
+
+		.note-edit-form textarea {
+			min-height: 320px;
+			resize: vertical;
+		}
+
+		.note-form-status {
+			color: var(--muted);
+			font-size: 0.88rem;
+		}
+
 		.is-hidden {
 			display: none !important;
 		}
@@ -140,7 +187,20 @@
 	<main class="note-page">
 		<nav class="note-nav">
 			<a href="/"><i class="bi bi-compass"></i> {{ .sitename }}</a>
-			<a id="rawLink" href="#" target="_blank" rel="noopener noreferrer" class="is-hidden">raw</a>
+			<div class="d-flex align-items-center gap-2">
+				<button id="editNote" class="note-action is-hidden" type="button">
+					<i class="bi bi-pencil-square"></i>
+					<span>edit</span>
+				</button>
+				<button id="deleteNote" class="note-action note-action--danger is-hidden" type="button">
+					<i class="bi bi-trash"></i>
+					<span>delete</span>
+				</button>
+				<a id="rawLink" href="#" target="_blank" rel="noopener noreferrer" class="note-action is-hidden">
+					<i class="bi bi-code-slash"></i>
+					<span>raw</span>
+				</a>
+			</div>
 		</nav>
 		<article id="noteShell" class="note-shell" aria-live="polite">
 			<div class="note-empty">Loading note...</div>

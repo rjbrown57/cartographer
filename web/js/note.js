@@ -1,5 +1,7 @@
 import { RenderMarkdown } from './cards/notes.js';
 const GetEndpoint = '/v1/get';
+const NotesEndpoint = '/v1/notes';
+const AdminSessionEndpoint = '/v1/admin/session';
 async function main() {
     const shell = document.getElementById('noteShell');
     if (!shell) {
@@ -32,6 +34,7 @@ async function main() {
         }
         renderNote(shell, note, namespace);
         wireRawLink(id, namespace);
+        wireNoteActions(shell, note, namespace);
     }
     catch (err) {
         console.error(err);
@@ -82,6 +85,152 @@ function renderNote(shell, note, namespace) {
     markdown.innerHTML = RenderMarkdown(note.body || note.url || '');
     shell.appendChild(markdown);
 }
+async function wireNoteActions(shell, note, namespace) {
+    const editButton = document.getElementById('editNote');
+    const deleteButton = document.getElementById('deleteNote');
+    if (editButton) {
+        editButton.classList.remove('is-hidden');
+        editButton.onclick = () => {
+            renderEditForm(shell, note, namespace);
+        };
+    }
+    const session = await loadAdminSession();
+    if (!session.admin || !deleteButton) {
+        return;
+    }
+    deleteButton.classList.remove('is-hidden');
+    deleteButton.onclick = async () => {
+        if (!window.confirm(`Delete note "${note.title || note.id}"?`)) {
+            return;
+        }
+        try {
+            const endpoint = new URL(NotesEndpoint, window.location.origin);
+            endpoint.searchParams.set('id', note.id);
+            endpoint.searchParams.set('namespace', namespace);
+            const response = await fetch(endpoint.toString(), { method: 'DELETE' });
+            if (!response.ok) {
+                throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+            }
+            invalidateAppCache();
+            window.location.assign(getNamespaceURL(namespace));
+        }
+        catch (err) {
+            console.error(err);
+            window.alert('Unable to delete note.');
+        }
+    };
+}
+function renderEditForm(shell, note, namespace) {
+    shell.replaceChildren();
+    const form = document.createElement('form');
+    form.className = 'note-edit-form';
+    const titleInput = createInput('Title', note.title || '');
+    const urlInput = createInput('URL', note.url || '');
+    const tagsInput = createInput('Tags', (note.tags || []).join(', '));
+    const bodyInput = document.createElement('textarea');
+    bodyInput.className = 'form-control';
+    bodyInput.value = note.body || '';
+    bodyInput.required = true;
+    const bodyWrap = document.createElement('label');
+    bodyWrap.className = 'form-label';
+    bodyWrap.textContent = 'Markdown';
+    bodyWrap.appendChild(bodyInput);
+    const status = document.createElement('span');
+    status.className = 'note-form-status';
+    const actions = document.createElement('div');
+    actions.className = 'd-flex align-items-center gap-2 flex-wrap';
+    const save = document.createElement('button');
+    save.className = 'btn btn-primary d-inline-flex align-items-center gap-2';
+    save.type = 'submit';
+    save.innerHTML = '<i class="bi bi-save"></i> Save changes';
+    const cancel = document.createElement('button');
+    cancel.className = 'btn btn-outline-secondary';
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.onclick = () => {
+        renderNote(shell, note, namespace);
+        void wireNoteActions(shell, note, namespace);
+    };
+    actions.appendChild(save);
+    actions.appendChild(cancel);
+    actions.appendChild(status);
+    form.appendChild(titleInput.label);
+    form.appendChild(urlInput.label);
+    form.appendChild(tagsInput.label);
+    form.appendChild(bodyWrap);
+    form.appendChild(actions);
+    form.onsubmit = async (event) => {
+        event.preventDefault();
+        const title = titleInput.input.value.trim();
+        const body = bodyInput.value.trim();
+        if (!title || !body) {
+            status.textContent = 'Title and markdown body are required.';
+            return;
+        }
+        status.textContent = 'Saving changes...';
+        try {
+            const response = await fetch(NotesEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: note.id,
+                    title,
+                    body,
+                    url: urlInput.input.value.trim(),
+                    tags: parseCommaList(tagsInput.input.value),
+                    data: note.data || undefined,
+                    namespace,
+                    source: note.source || undefined,
+                    author: note.author || undefined,
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
+            }
+            invalidateAppCache();
+            window.location.reload();
+        }
+        catch (err) {
+            console.error(err);
+            status.textContent = 'Unable to save note.';
+        }
+    };
+    shell.appendChild(form);
+    titleInput.input.focus();
+}
+function createInput(labelText, value) {
+    const label = document.createElement('label');
+    label.className = 'form-label';
+    label.textContent = labelText;
+    const input = document.createElement('input');
+    input.className = 'form-control';
+    input.type = 'text';
+    input.value = value;
+    if (labelText === 'Title') {
+        input.required = true;
+    }
+    label.appendChild(input);
+    return { label, input };
+}
+async function loadAdminSession() {
+    try {
+        const response = await fetch(AdminSessionEndpoint, {
+            headers: {
+                'Accept-Encoding': 'gzip',
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`Session check failed: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    }
+    catch (err) {
+        console.error(err);
+        return { admin: false, configured: false };
+    }
+}
 function renderError(shell, message) {
     shell.replaceChildren();
     const error = document.createElement('div');
@@ -99,6 +248,21 @@ function wireRawLink(id, namespace) {
     rawURL.searchParams.set('namespace', namespace);
     rawLink.href = rawURL.toString();
     rawLink.classList.remove('is-hidden');
+}
+function parseCommaList(value) {
+    return value.split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '');
+}
+function getNamespaceURL(namespace) {
+    const url = new URL('/', window.location.origin);
+    if (namespace !== 'default') {
+        url.searchParams.set('namespace', namespace);
+    }
+    return url.toString();
+}
+function invalidateAppCache() {
+    localStorage.removeItem('cartographer_cache');
 }
 function formatTimestamp(value) {
     if (!value) {
