@@ -112,7 +112,7 @@ type noteCreateRequest struct {
 	Version     int64             `json:"version"`
 }
 
-// postNotesFunc accepts a live note submission and forwards it through the add path.
+// postNotesFunc accepts an admin note submission and forwards it through the add path.
 func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var nr noteCreateRequest

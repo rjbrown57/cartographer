@@ -93,7 +93,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 	g.GET("/v1/get/tags", getTagsFunc(carto))
 	g.GET("/v1/get/namespaces", getNamespacesFunc(carto))
 	g.GET("/v1/get/tags/:tag", getByTagsFunc(carto))
-	g.POST("/v1/notes", postNotesFunc(carto))
+	g.POST("/v1/notes", requireAdmin(auth), postNotesFunc(carto))
 	g.DELETE("/v1/notes", requireAdmin(auth), deleteNotesFunc(carto))
 	g.DELETE("/v1/admin/namespaces/:namespace", requireAdmin(auth), deleteNamespacesFunc(carto))
 	g.GET("/v1/admin/session", getAdminSessionFunc(auth))
