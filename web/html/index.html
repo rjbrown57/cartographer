@@ -736,10 +736,23 @@
 			color: var(--accent-dark);
 		}
 
+		.note-action-button--danger:hover {
+			background: #fee2e2;
+			color: #b91c1c;
+		}
+
 		.note-action-button--success,
 		.note-action-button--success:hover {
 			background: #ecfdf5;
 			color: #15803d;
+		}
+
+		.admin-only {
+			display: none;
+		}
+
+		body.is-admin .admin-only {
+			display: inline-flex;
 		}
 
 		.note-markdown {
@@ -876,10 +889,41 @@
 		}
 
 		.admin-panel__body {
+			margin-top: 1rem;
+		}
+
+		.admin-tabs {
+			background: #e2e8f0;
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			display: inline-flex;
+			gap: 0.25rem;
+			padding: 0.25rem;
+		}
+
+		.admin-tab {
+			background: transparent;
+			border: 0;
+			border-radius: 8px;
+			color: #475569;
+			font-weight: 700;
+			padding: 0.45rem 0.8rem;
+		}
+
+		.admin-tab[aria-selected="true"] {
+			background: #ffffff;
+			box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+			color: var(--accent-dark);
+		}
+
+		.admin-tab-panel {
+			margin-top: 1rem;
+		}
+
+		.admin-template-layout {
 			display: grid;
 			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
 			gap: 1rem;
-			margin-top: 1rem;
 		}
 
 		.admin-template-list {
@@ -1272,7 +1316,7 @@
 		}
 
 		@media (max-width: 900px) {
-			.admin-panel__body {
+			.admin-template-layout {
 				grid-template-columns: 1fr;
 			}
 		}
@@ -1353,39 +1397,52 @@
 				</form>
 				<div id="adminUnavailable" class="admin-template-empty is-hidden">Admin auth is not configured.</div>
 				<div id="adminPanelBody" class="admin-panel__body is-hidden">
-					<section>
-						<h2 class="h6 mb-3">Templates</h2>
-						<div id="adminTemplateList" class="admin-template-list"></div>
+					<div class="admin-tabs" role="tablist" aria-label="Admin sections">
+						<button id="adminTemplatesTab" class="admin-tab" type="button" role="tab" aria-selected="true" aria-controls="adminTemplatesPanel" data-admin-tab="templates">templates</button>
+						<button id="adminNamespacesTab" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="adminNamespacesPanel" data-admin-tab="namespaces">namespaces</button>
+					</div>
+					<section id="adminTemplatesPanel" class="admin-tab-panel" role="tabpanel" aria-labelledby="adminTemplatesTab" data-admin-panel="templates">
+						<div class="admin-template-layout">
+							<section>
+								<h2 class="h6 mb-3">Templates</h2>
+								<div id="adminTemplateList" class="admin-template-list"></div>
+							</section>
+							<section>
+								<h2 id="templateFormTitle" class="h6 mb-3">New template</h2>
+								<form id="templateForm" class="note-form-grid">
+									<input id="templateID" type="hidden">
+									<div>
+										<label for="templateName" class="form-label">Name</label>
+										<input id="templateName" class="form-control" type="text" autocomplete="off" required>
+									</div>
+									<div>
+										<label for="templateDescription" class="form-label">Description</label>
+										<input id="templateDescription" class="form-control" type="text" autocomplete="off">
+									</div>
+									<div>
+										<label for="templateTags" class="form-label">Default tags</label>
+										<input id="templateTags" class="form-control" type="text" autocomplete="off" placeholder="incident, review">
+									</div>
+									<div>
+										<label for="templateBody" class="form-label">Markdown</label>
+										<textarea id="templateBody" class="form-control" rows="10" required></textarea>
+									</div>
+									<div class="d-flex align-items-center gap-3">
+										<button id="templateSubmit" class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
+											<i class="bi bi-save"></i>
+											<span>Save template</span>
+										</button>
+										<button id="templateCancelEdit" class="btn btn-outline-secondary is-hidden" type="button">Cancel edit</button>
+										<span id="templateFormStatus" class="note-form-status"></span>
+									</div>
+								</form>
+							</section>
+						</div>
 					</section>
-					<section>
-						<h2 id="templateFormTitle" class="h6 mb-3">New template</h2>
-						<form id="templateForm" class="note-form-grid">
-							<input id="templateID" type="hidden">
-							<div>
-								<label for="templateName" class="form-label">Name</label>
-								<input id="templateName" class="form-control" type="text" autocomplete="off" required>
-							</div>
-							<div>
-								<label for="templateDescription" class="form-label">Description</label>
-								<input id="templateDescription" class="form-control" type="text" autocomplete="off">
-							</div>
-							<div>
-								<label for="templateTags" class="form-label">Default tags</label>
-								<input id="templateTags" class="form-control" type="text" autocomplete="off" placeholder="incident, review">
-							</div>
-							<div>
-								<label for="templateBody" class="form-label">Markdown</label>
-								<textarea id="templateBody" class="form-control" rows="10" required></textarea>
-							</div>
-							<div class="d-flex align-items-center gap-3">
-								<button id="templateSubmit" class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
-									<i class="bi bi-save"></i>
-									<span>Save template</span>
-								</button>
-								<button id="templateCancelEdit" class="btn btn-outline-secondary is-hidden" type="button">Cancel edit</button>
-								<span id="templateFormStatus" class="note-form-status"></span>
-							</div>
-						</form>
+					<section id="adminNamespacesPanel" class="admin-tab-panel is-hidden" role="tabpanel" aria-labelledby="adminNamespacesTab" data-admin-panel="namespaces">
+						<h2 class="h6 mb-3">Namespaces</h2>
+						<div id="adminNamespaceList" class="admin-template-list"></div>
+						<span id="adminNamespaceStatus" class="note-form-status"></span>
 					</section>
 				</div>
 			</div>
