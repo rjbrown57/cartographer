@@ -3,12 +3,15 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"maps"
+	"slices"
 	"time"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/auto"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/metrics"
+	gproto "google.golang.org/protobuf/proto"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -84,6 +87,11 @@ func (c *CartographerServer) applyNoteMetadata(note *proto.Note, ns string) {
 		if note.GetAuthor() == "" {
 			note.Author = existing.GetAuthor()
 		}
+		if noteContentEqual(existing, note) {
+			note.UpdatedAt = existing.GetUpdatedAt()
+			note.Version = existing.GetVersion()
+			return
+		}
 		if note.GetVersion() == 0 {
 			note.Version = existing.GetVersion() + 1
 		}
@@ -102,4 +110,15 @@ func (c *CartographerServer) applyNoteMetadata(note *proto.Note, ns string) {
 	if note.GetSource() == "" {
 		note.Source = "cartographer"
 	}
+}
+
+// noteContentEqual compares the durable user-authored fields for two notes.
+func noteContentEqual(existing, incoming *proto.Note) bool {
+	return existing.GetId() == incoming.GetId() &&
+		existing.GetTitle() == incoming.GetTitle() &&
+		existing.GetBody() == incoming.GetBody() &&
+		existing.GetUrl() == incoming.GetUrl() &&
+		slices.Equal(existing.GetTags(), incoming.GetTags()) &&
+		maps.Equal(existing.GetAnnotations(), incoming.GetAnnotations()) &&
+		gproto.Equal(existing.GetData(), incoming.GetData())
 }
