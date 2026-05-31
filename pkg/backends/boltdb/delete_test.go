@@ -84,3 +84,20 @@ func TestDelete(t *testing.T) {
 		}
 	}
 }
+
+func TestDeleteRemovesEmptyNamespaceBucket(t *testing.T) {
+	db := PrepareTestDB(t)
+
+	resp := db.Delete(&proto.CartographerDeleteRequest{
+		Ids:       []string{"test1", "test2a", "test2b"},
+		Namespace: "default",
+	})
+	if len(resp.Errors) > 0 {
+		t.Fatalf("Expected no errors, got %s", resp.Errors)
+	}
+
+	namespaces := db.GetNamespaces()
+	if _, ok := namespaces.Data["default"]; ok {
+		t.Fatal("expected empty namespace bucket to be removed")
+	}
+}

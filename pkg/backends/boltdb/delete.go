@@ -41,6 +41,17 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 			resp.Ids = append(resp.Ids, id)
 		}
 
+		if namespaceBucket != nil {
+			cursor := namespaceBucket.Cursor()
+			key, _ := cursor.First()
+			if key == nil {
+				if err := dataStoreBucket.DeleteBucket([]byte(r.Namespace)); err != nil {
+					log.Errorf("Error deleting empty namespace bucket from BoltDB: %s", err)
+					resp.Errors = append(resp.Errors, fmt.Sprintf("error deleting empty namespace bucket from BoltDB: %s", err))
+				}
+			}
+		}
+
 		return nil
 	})
 

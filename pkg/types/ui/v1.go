@@ -165,6 +165,86 @@ func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	}
 }
 
+// deleteNotesFunc accepts an admin note deletion and forwards it through the delete path.
+func deleteNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Missing note id"})
+			return
+		}
+
+		ns, err := proto.GetNamespace(c.Query("namespace"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
+		if ns == adminNamespace {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Reserved namespace"})
+			return
+		}
+
+		pr, err := carto.Client.Delete(carto.Ctx, &proto.CartographerDeleteRequest{
+			Ids:       []string{id},
+			Namespace: ns,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, pr)
+	}
+}
+
+// deleteNamespacesFunc deletes every note in a user namespace.
+func deleteNamespacesFunc(carto *client.CartographerClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ns, err := proto.GetNamespace(c.Param("namespace"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid namespace"})
+			return
+		}
+		if ns == adminNamespace {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Reserved namespace"})
+			return
+		}
+
+		getResp, err := carto.Client.Get(carto.Ctx, &proto.CartographerGetRequest{
+			Request: &proto.CartographerRequest{
+				Namespace: ns,
+			},
+			Type: proto.RequestType_REQUEST_TYPE_DATA,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Unable to read namespace"})
+			return
+		}
+
+		ids := make([]string, 0, len(getResp.GetResponse().GetNotes()))
+		for _, note := range getResp.GetResponse().GetNotes() {
+			if note.GetKey() != "" {
+				ids = append(ids, note.GetKey())
+			}
+		}
+		if len(ids) == 0 {
+			c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "namespace": ns, "deleted": 0})
+			return
+		}
+
+		deleteResp, err := carto.Client.Delete(carto.Ctx, &proto.CartographerDeleteRequest{
+			Ids:       ids,
+			Namespace: ns,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Unable to delete namespace"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "namespace": ns, "deleted": len(deleteResp.GetIds())})
+	}
+}
+
 // GetTagsHandler godoc
 // @Summary Get all tags
 // @Description Retrieve a list of all available tags

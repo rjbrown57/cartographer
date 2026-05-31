@@ -204,6 +204,18 @@ func TestNSCacheDeleteFromCache(t *testing.T) {
 	}
 }
 
+// TestNSCacheDeleteFromCacheRemovesEmptyNamespace verifies empty namespaces disappear.
+func TestNSCacheDeleteFromCacheRemovesEmptyNamespace(t *testing.T) {
+	cache := NSCache{}
+
+	cache.AddToCache("default", &proto.Note{Id: "l1", Tags: []string{"k8s"}})
+	cache.DeleteFromCache("default", "l1")
+
+	if _, ok := cache["default"]; ok {
+		t.Fatal("expected empty namespace to be removed")
+	}
+}
+
 // TestNSCacheDeleteFromCacheMissing verifies delete operations are safe for missing namespaces and keys.
 func TestNSCacheDeleteFromCacheMissing(t *testing.T) {
 	cache := NSCache{}

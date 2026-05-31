@@ -171,5 +171,8 @@ func (n *NSCache) DeleteFromCache(ns string, key string) {
 	delete(cn.NoteCache, key)
 
 	cn.removeNoteFromTagCache(note)
+	if len(cn.NoteCache) == 0 {
+		delete(*n, ns)
+	}
 	cn.mu.Unlock()
 }
