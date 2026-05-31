@@ -127,3 +127,92 @@ func TestAdd(t *testing.T) {
 		})
 	}
 }
+
+// TestAddPreservesVersionForUnchangedContent verifies re-ingest does not create a revision.
+func TestAddPreservesVersionForUnchangedContent(t *testing.T) {
+	namespace := "add-version-test"
+	id := "unchanged-note"
+	t.Cleanup(func() {
+		_, _ = testServer.Delete(context.Background(), &proto.CartographerDeleteRequest{
+			Namespace: namespace,
+			Ids:       []string{id},
+		})
+	})
+
+	addNote := func(body string) *proto.Note {
+		return &proto.Note{
+			Id:    id,
+			Title: "Stable note",
+			Body:  body,
+			Url:   "https://example.com/stable",
+			Tags:  []string{"stable", "version"},
+		}
+	}
+
+	if _, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{addNote("unchanged body")},
+		},
+	}); err != nil {
+		t.Fatalf("expected initial add to succeed: %v", err)
+	}
+
+	initial := cachedTestNote(t, namespace, id)
+	initialUpdatedAt := initial.GetUpdatedAt().AsTime()
+	if got := initial.GetVersion(); got != 1 {
+		t.Fatalf("expected initial version 1, got %d", got)
+	}
+
+	if _, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{addNote("unchanged body")},
+		},
+	}); err != nil {
+		t.Fatalf("expected unchanged add to succeed: %v", err)
+	}
+
+	unchanged := cachedTestNote(t, namespace, id)
+	if got := unchanged.GetVersion(); got != 1 {
+		t.Fatalf("expected unchanged note to preserve version 1, got %d", got)
+	}
+	if got := unchanged.GetUpdatedAt().AsTime(); !got.Equal(initialUpdatedAt) {
+		t.Fatalf("expected unchanged note to preserve updated_at %s, got %s", initialUpdatedAt, got)
+	}
+
+	if _, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{addNote("changed body")},
+		},
+	}); err != nil {
+		t.Fatalf("expected changed add to succeed: %v", err)
+	}
+
+	changed := cachedTestNote(t, namespace, id)
+	if got := changed.GetVersion(); got != 2 {
+		t.Fatalf("expected changed note to increment to version 2, got %d", got)
+	}
+}
+
+// cachedTestNote returns a note from the test server cache.
+func cachedTestNote(t *testing.T, namespace, id string) *proto.Note {
+	t.Helper()
+
+	testServer.mu.RLock()
+	cachedNS, ok := testServer.nsCache[namespace]
+	testServer.mu.RUnlock()
+	if !ok {
+		t.Fatalf("expected namespace %q to exist in cache", namespace)
+	}
+
+	cachedNS.mu.RLock()
+	note, ok := cachedNS.NoteCache[id]
+	cachedNS.mu.RUnlock()
+	if !ok {
+		t.Fatalf("expected note %q to exist in namespace cache", id)
+	}
+
+	return note
+}
