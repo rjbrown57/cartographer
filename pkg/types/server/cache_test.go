@@ -62,11 +62,15 @@ func TestCacheOperations(t *testing.T) {
 
 			testServer.mu.RLock()
 			cachedNS, ok := testServer.nsCache[tc.namespace]
-			if !ok {
+			if !ok && tc.expectInCache {
 				testServer.mu.RUnlock()
 				t.Fatalf("expected namespace %q in cache", tc.namespace)
 			}
-			cachedLink, exists := cachedNS.NoteCache[tc.key]
+			var cachedLink *proto.Note
+			exists := false
+			if ok {
+				cachedLink, exists = cachedNS.NoteCache[tc.key]
+			}
 			testServer.mu.RUnlock()
 
 			if tc.expectInCache {
