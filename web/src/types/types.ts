@@ -820,6 +820,9 @@ function SetupAdminPanel(): void {
     const loginStatus = document.getElementById('adminLoginStatus') as HTMLElement | null;
     const unavailable = document.getElementById('adminUnavailable') as HTMLElement | null;
     const logout = document.getElementById('adminLogout') as HTMLButtonElement | null;
+    const templateComposer = document.getElementById('templateComposer') as HTMLElement | null;
+    const templateComposerClose = document.getElementById('templateComposerClose') as HTMLButtonElement | null;
+    const newTemplateButton = document.getElementById('newTemplateButton') as HTMLButtonElement | null;
     const form = document.getElementById('templateForm') as HTMLFormElement | null;
     const formTitle = document.getElementById('templateFormTitle') as HTMLElement | null;
     const idInput = document.getElementById('templateID') as HTMLInputElement | null;
@@ -827,6 +830,9 @@ function SetupAdminPanel(): void {
     const descriptionInput = document.getElementById('templateDescription') as HTMLInputElement | null;
     const tagsInput = document.getElementById('templateTags') as HTMLInputElement | null;
     const bodyInput = document.getElementById('templateBody') as HTMLTextAreaElement | null;
+    const writeTab = document.getElementById('templateWriteTab') as HTMLButtonElement | null;
+    const previewTab = document.getElementById('templatePreviewTab') as HTMLButtonElement | null;
+    const previewPane = document.getElementById('templatePreview') as HTMLElement | null;
     const submit = document.getElementById('templateSubmit') as HTMLButtonElement | null;
     const cancelEdit = document.getElementById('templateCancelEdit') as HTMLButtonElement | null;
     const status = document.getElementById('templateFormStatus') as HTMLElement | null;
@@ -842,6 +848,7 @@ function SetupAdminPanel(): void {
 
     let adminSession: AdminSessionResponse = { admin: false, configured: false };
     let activeAdminTab = 'templates';
+    let templateEditorMode: 'write' | 'preview' = 'write';
 
     // renderCacheTools refreshes the public browser cache summary.
     const renderCacheTools = () => {
@@ -922,7 +929,30 @@ function SetupAdminPanel(): void {
         await RenderAdminNamespaceList(namespaceList, deleteNamespace);
     };
 
-    // resetTemplateForm clears edit state and returns the form to create mode.
+    // updateTemplatePreview renders the authoring preview from the template markdown.
+    const updateTemplatePreview = () => {
+        if (!previewPane) {
+            return;
+        }
+        previewPane.innerHTML = RenderMarkdown(bodyInput?.value || '');
+    };
+
+    // setTemplateEditorMode swaps the authoring surface between write and preview.
+    const setTemplateEditorMode = (mode: 'write' | 'preview') => {
+        templateEditorMode = mode;
+        const isPreview = mode === 'preview';
+        bodyInput?.classList.toggle('is-hidden', isPreview);
+        previewPane?.classList.toggle('is-hidden', !isPreview);
+        writeTab?.classList.toggle('note-editor-tab--active', !isPreview);
+        previewTab?.classList.toggle('note-editor-tab--active', isPreview);
+        writeTab?.setAttribute('aria-pressed', String(!isPreview));
+        previewTab?.setAttribute('aria-pressed', String(isPreview));
+        if (isPreview) {
+            updateTemplatePreview();
+        }
+    };
+
+    // resetTemplateForm clears edit state and returns the composer to create mode.
     const resetTemplateForm = () => {
         form.reset();
         if (idInput) {
@@ -931,33 +961,53 @@ function SetupAdminPanel(): void {
         if (formTitle) {
             formTitle.textContent = 'New template';
         }
+        if (status) {
+            status.textContent = '';
+            status.className = 'note-form-status';
+        }
         submit?.querySelector('span')?.replaceChildren(document.createTextNode('Save template'));
-        cancelEdit?.classList.add('is-hidden');
+        setTemplateEditorMode('write');
+    };
+
+    // setTemplateComposerOpen toggles the large template authoring modal.
+    const setTemplateComposerOpen = (open: boolean) => {
+        templateComposer?.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open || !panel.classList.contains('is-hidden'));
+        if (open) {
+            nameInput?.focus();
+        }
+    };
+
+    // openTemplateComposer prepares the authoring modal for a new or existing template.
+    const openTemplateComposer = (template?: MarkdownTemplate) => {
+        resetTemplateForm();
+        if (template) {
+            if (idInput) {
+                idInput.value = template.id;
+            }
+            if (nameInput) {
+                nameInput.value = template.name;
+            }
+            if (descriptionInput) {
+                descriptionInput.value = template.description || '';
+            }
+            if (tagsInput) {
+                tagsInput.value = (template.tags || []).join(', ');
+            }
+            if (bodyInput) {
+                bodyInput.value = template.body;
+            }
+            if (formTitle) {
+                formTitle.textContent = 'Edit template';
+            }
+            submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
+        }
+        setTemplateComposerOpen(true);
     };
 
     // editTemplate loads a template into the admin form for resubmission.
     const editTemplate = (template: MarkdownTemplate) => {
-        if (idInput) {
-            idInput.value = template.id;
-        }
-        if (nameInput) {
-            nameInput.value = template.name;
-        }
-        if (descriptionInput) {
-            descriptionInput.value = template.description || '';
-        }
-        if (tagsInput) {
-            tagsInput.value = (template.tags || []).join(', ');
-        }
-        if (bodyInput) {
-            bodyInput.value = template.body;
-        }
-        if (formTitle) {
-            formTitle.textContent = 'Edit template';
-        }
-        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
-        cancelEdit?.classList.remove('is-hidden');
-        nameInput?.focus();
+        openTemplateComposer(template);
     };
 
     // deleteTemplate removes a template and refreshes all template views.
@@ -1049,7 +1099,7 @@ function SetupAdminPanel(): void {
                 await renderAdminPanels();
                 setAdminTab(activeAdminTab);
                 if (activeAdminTab === 'templates') {
-                    nameInput?.focus();
+                    newTemplateButton?.focus();
                 }
             } else if (adminSession.configured) {
                 tokenInput?.focus();
@@ -1075,6 +1125,10 @@ function SetupAdminPanel(): void {
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !panel.classList.contains('is-hidden')) {
+            if (templateComposer && !templateComposer.classList.contains('is-hidden')) {
+                setTemplateComposerOpen(false);
+                return;
+            }
             void setAdminOpen(false);
             toggle.focus();
         }
@@ -1088,6 +1142,34 @@ function SetupAdminPanel(): void {
 
     clearCacheButton?.addEventListener('click', () => {
         clearCacheTools();
+    });
+
+    newTemplateButton?.addEventListener('click', () => {
+        openTemplateComposer();
+    });
+
+    templateComposerClose?.addEventListener('click', () => {
+        setTemplateComposerOpen(false);
+    });
+
+    templateComposer?.addEventListener('click', (event) => {
+        if (event.target === templateComposer) {
+            setTemplateComposerOpen(false);
+        }
+    });
+
+    writeTab?.addEventListener('click', () => {
+        setTemplateEditorMode('write');
+    });
+
+    previewTab?.addEventListener('click', () => {
+        setTemplateEditorMode('preview');
+    });
+
+    bodyInput?.addEventListener('input', () => {
+        if (templateEditorMode === 'preview') {
+            updateTemplatePreview();
+        }
     });
 
     loginForm.addEventListener('submit', async (event) => {
@@ -1117,7 +1199,7 @@ function SetupAdminPanel(): void {
             await renderAdminPanels();
             setAdminTab(activeAdminTab);
             if (activeAdminTab === 'templates') {
-                nameInput?.focus();
+                newTemplateButton?.focus();
             }
             if (loginStatus) {
                 loginStatus.textContent = '';
@@ -1140,8 +1222,7 @@ function SetupAdminPanel(): void {
     });
 
     cancelEdit?.addEventListener('click', () => {
-        resetTemplateForm();
-        nameInput?.focus();
+        setTemplateComposerOpen(false);
     });
 
     void loadAdminSession().then(renderAdminSession);
@@ -1186,6 +1267,7 @@ function SetupAdminPanel(): void {
             resetTemplateForm();
             TemplateData = [];
             await RenderTemplateList(list, editTemplate, deleteTemplate);
+            setTemplateComposerOpen(false);
             if (status) {
                 status.textContent = 'Template saved.';
                 status.className = 'note-form-status text-success';

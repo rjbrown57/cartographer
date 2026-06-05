@@ -626,6 +626,9 @@ function SetupAdminPanel() {
     const loginStatus = document.getElementById('adminLoginStatus');
     const unavailable = document.getElementById('adminUnavailable');
     const logout = document.getElementById('adminLogout');
+    const templateComposer = document.getElementById('templateComposer');
+    const templateComposerClose = document.getElementById('templateComposerClose');
+    const newTemplateButton = document.getElementById('newTemplateButton');
     const form = document.getElementById('templateForm');
     const formTitle = document.getElementById('templateFormTitle');
     const idInput = document.getElementById('templateID');
@@ -633,6 +636,9 @@ function SetupAdminPanel() {
     const descriptionInput = document.getElementById('templateDescription');
     const tagsInput = document.getElementById('templateTags');
     const bodyInput = document.getElementById('templateBody');
+    const writeTab = document.getElementById('templateWriteTab');
+    const previewTab = document.getElementById('templatePreviewTab');
+    const previewPane = document.getElementById('templatePreview');
     const submit = document.getElementById('templateSubmit');
     const cancelEdit = document.getElementById('templateCancelEdit');
     const status = document.getElementById('templateFormStatus');
@@ -646,6 +652,7 @@ function SetupAdminPanel() {
     }
     let adminSession = { admin: false, configured: false };
     let activeAdminTab = 'templates';
+    let templateEditorMode = 'write';
     const renderCacheTools = () => {
         const cacheKeys = cache.getCacheKeys();
         if (cacheSummary) {
@@ -711,6 +718,25 @@ function SetupAdminPanel() {
         await RenderTemplateList(list, editTemplate, deleteTemplate);
         await RenderAdminNamespaceList(namespaceList, deleteNamespace);
     };
+    const updateTemplatePreview = () => {
+        if (!previewPane) {
+            return;
+        }
+        previewPane.innerHTML = RenderMarkdown(bodyInput?.value || '');
+    };
+    const setTemplateEditorMode = (mode) => {
+        templateEditorMode = mode;
+        const isPreview = mode === 'preview';
+        bodyInput?.classList.toggle('is-hidden', isPreview);
+        previewPane?.classList.toggle('is-hidden', !isPreview);
+        writeTab?.classList.toggle('note-editor-tab--active', !isPreview);
+        previewTab?.classList.toggle('note-editor-tab--active', isPreview);
+        writeTab?.setAttribute('aria-pressed', String(!isPreview));
+        previewTab?.setAttribute('aria-pressed', String(isPreview));
+        if (isPreview) {
+            updateTemplatePreview();
+        }
+    };
     const resetTemplateForm = () => {
         form.reset();
         if (idInput) {
@@ -719,31 +745,47 @@ function SetupAdminPanel() {
         if (formTitle) {
             formTitle.textContent = 'New template';
         }
+        if (status) {
+            status.textContent = '';
+            status.className = 'note-form-status';
+        }
         submit?.querySelector('span')?.replaceChildren(document.createTextNode('Save template'));
-        cancelEdit?.classList.add('is-hidden');
+        setTemplateEditorMode('write');
+    };
+    const setTemplateComposerOpen = (open) => {
+        templateComposer?.classList.toggle('is-hidden', !open);
+        document.body.classList.toggle('modal-open', open || !panel.classList.contains('is-hidden'));
+        if (open) {
+            nameInput?.focus();
+        }
+    };
+    const openTemplateComposer = (template) => {
+        resetTemplateForm();
+        if (template) {
+            if (idInput) {
+                idInput.value = template.id;
+            }
+            if (nameInput) {
+                nameInput.value = template.name;
+            }
+            if (descriptionInput) {
+                descriptionInput.value = template.description || '';
+            }
+            if (tagsInput) {
+                tagsInput.value = (template.tags || []).join(', ');
+            }
+            if (bodyInput) {
+                bodyInput.value = template.body;
+            }
+            if (formTitle) {
+                formTitle.textContent = 'Edit template';
+            }
+            submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
+        }
+        setTemplateComposerOpen(true);
     };
     const editTemplate = (template) => {
-        if (idInput) {
-            idInput.value = template.id;
-        }
-        if (nameInput) {
-            nameInput.value = template.name;
-        }
-        if (descriptionInput) {
-            descriptionInput.value = template.description || '';
-        }
-        if (tagsInput) {
-            tagsInput.value = (template.tags || []).join(', ');
-        }
-        if (bodyInput) {
-            bodyInput.value = template.body;
-        }
-        if (formTitle) {
-            formTitle.textContent = 'Edit template';
-        }
-        submit?.querySelector('span')?.replaceChildren(document.createTextNode('Update template'));
-        cancelEdit?.classList.remove('is-hidden');
-        nameInput?.focus();
+        openTemplateComposer(template);
     };
     const deleteTemplate = async (template) => {
         if (!window.confirm(`Delete template "${template.name}"?`)) {
@@ -824,7 +866,7 @@ function SetupAdminPanel() {
                 await renderAdminPanels();
                 setAdminTab(activeAdminTab);
                 if (activeAdminTab === 'templates') {
-                    nameInput?.focus();
+                    newTemplateButton?.focus();
                 }
             }
             else if (adminSession.configured) {
@@ -847,6 +889,10 @@ function SetupAdminPanel() {
     });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !panel.classList.contains('is-hidden')) {
+            if (templateComposer && !templateComposer.classList.contains('is-hidden')) {
+                setTemplateComposerOpen(false);
+                return;
+            }
             void setAdminOpen(false);
             toggle.focus();
         }
@@ -858,6 +904,28 @@ function SetupAdminPanel() {
     });
     clearCacheButton?.addEventListener('click', () => {
         clearCacheTools();
+    });
+    newTemplateButton?.addEventListener('click', () => {
+        openTemplateComposer();
+    });
+    templateComposerClose?.addEventListener('click', () => {
+        setTemplateComposerOpen(false);
+    });
+    templateComposer?.addEventListener('click', (event) => {
+        if (event.target === templateComposer) {
+            setTemplateComposerOpen(false);
+        }
+    });
+    writeTab?.addEventListener('click', () => {
+        setTemplateEditorMode('write');
+    });
+    previewTab?.addEventListener('click', () => {
+        setTemplateEditorMode('preview');
+    });
+    bodyInput?.addEventListener('input', () => {
+        if (templateEditorMode === 'preview') {
+            updateTemplatePreview();
+        }
     });
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -884,7 +952,7 @@ function SetupAdminPanel() {
             await renderAdminPanels();
             setAdminTab(activeAdminTab);
             if (activeAdminTab === 'templates') {
-                nameInput?.focus();
+                newTemplateButton?.focus();
             }
             if (loginStatus) {
                 loginStatus.textContent = '';
@@ -906,8 +974,7 @@ function SetupAdminPanel() {
         tokenInput?.focus();
     });
     cancelEdit?.addEventListener('click', () => {
-        resetTemplateForm();
-        nameInput?.focus();
+        setTemplateComposerOpen(false);
     });
     void loadAdminSession().then(renderAdminSession);
     renderCacheTools();
@@ -947,6 +1014,7 @@ function SetupAdminPanel() {
             resetTemplateForm();
             TemplateData = [];
             await RenderTemplateList(list, editTemplate, deleteTemplate);
+            setTemplateComposerOpen(false);
             if (status) {
                 status.textContent = 'Template saved.';
                 status.className = 'note-form-status text-success';
