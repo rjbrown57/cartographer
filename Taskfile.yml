@@ -45,8 +45,10 @@ tasks:
     - cartographer client add -f {{.dataPath}}
   serve:
     desc: "start cartographer"
+    env:
+      CARTOGRAPHER_ADMIN_TOKEN: admin
     cmds:
-    - cartographer serve -c example
+    - ./cartographer serve -c example
   pprof:
     desc: "start cartographer + Pprof"
     cmds:
