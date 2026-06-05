@@ -153,6 +153,43 @@
 			padding: 0;
 		}
 
+		.note-data-section {
+			background: #f8fafc;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			margin-top: 1.5rem;
+			padding: 1rem;
+		}
+
+		.note-data-header {
+			align-items: center;
+			display: flex;
+			gap: 0.75rem;
+			justify-content: space-between;
+			margin-bottom: 0.75rem;
+		}
+
+		.note-data-title {
+			color: var(--muted);
+			font-size: 0.8rem;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			margin: 0;
+			text-transform: uppercase;
+		}
+
+		.note-data-content {
+			background: #0f172a;
+			border-radius: 8px;
+			color: #e2e8f0;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+			font-size: 0.82rem;
+			margin: 0;
+			max-height: 460px;
+			overflow: auto;
+			padding: 1rem;
+		}
+
 		.note-empty {
 			border: 1px dashed var(--border);
 			border-radius: 12px;
@@ -168,6 +205,12 @@
 		.note-edit-form textarea {
 			min-height: 320px;
 			resize: vertical;
+		}
+
+		.note-edit-form .note-data-textarea {
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+			font-size: 0.84rem;
+			min-height: 180px;
 		}
 
 		.note-form-status {

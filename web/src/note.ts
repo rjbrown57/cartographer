@@ -82,6 +82,7 @@ async function main(): Promise<void> {
 // renderNote writes the standalone note article.
 function renderNote(shell: HTMLElement, note: NoteData, namespace: string): void {
     const title = note.title || note.url || note.id;
+    const dataText = formatData(note.data);
     document.title = title;
     shell.replaceChildren();
 
@@ -128,6 +129,10 @@ function renderNote(shell: HTMLElement, note: NoteData, namespace: string): void
     markdown.className = 'note-markdown';
     markdown.innerHTML = RenderMarkdown(note.body || note.url || '');
     shell.appendChild(markdown);
+
+    if (dataText) {
+        shell.appendChild(createDataSection(dataText));
+    }
 }
 
 // wireNoteActions connects edit and admin delete controls for the standalone page.
@@ -190,11 +195,20 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
     bodyInput.className = 'form-control';
     bodyInput.value = note.body || '';
     bodyInput.required = true;
+    const dataInput = document.createElement('textarea');
+    dataInput.className = 'form-control note-data-textarea';
+    dataInput.value = formatData(note.data);
+    dataInput.spellcheck = false;
 
     const bodyWrap = document.createElement('label');
     bodyWrap.className = 'form-label';
     bodyWrap.textContent = 'Markdown';
     bodyWrap.appendChild(bodyInput);
+
+    const dataWrap = document.createElement('label');
+    dataWrap.className = 'form-label';
+    dataWrap.textContent = 'Structured data';
+    dataWrap.appendChild(dataInput);
 
     const status = document.createElement('span');
     status.className = 'note-form-status';
@@ -224,6 +238,7 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
     form.appendChild(urlInput.label);
     form.appendChild(tagsInput.label);
     form.appendChild(bodyWrap);
+    form.appendChild(dataWrap);
     form.appendChild(actions);
 
     form.onsubmit = async (event) => {
@@ -233,6 +248,10 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
         const body = bodyInput.value.trim();
         if (!title || !body) {
             status.textContent = 'Title and markdown body are required.';
+            return;
+        }
+        const structuredData = parseDataValue(dataInput.value, status);
+        if (structuredData === false) {
             return;
         }
 
@@ -249,7 +268,7 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
                     body,
                     url: urlInput.input.value.trim(),
                     tags: parseCommaList(tagsInput.input.value),
-                    data: note.data || undefined,
+                    data: structuredData || undefined,
                     namespace,
                     source: note.source || undefined,
                     author: note.author || undefined,
@@ -287,6 +306,65 @@ function createInput(labelText: string, value: string): { label: HTMLLabelElemen
 
     label.appendChild(input);
     return { label, input };
+}
+
+// createDataSection builds the standalone structured data display.
+function createDataSection(dataText: string): HTMLElement {
+    const section = document.createElement('section');
+    section.className = 'note-data-section';
+
+    const header = document.createElement('div');
+    header.className = 'note-data-header';
+
+    const title = document.createElement('h2');
+    title.className = 'note-data-title';
+    title.textContent = 'Data';
+    header.appendChild(title);
+
+    const copyButton = document.createElement('button');
+    copyButton.className = 'note-action';
+    copyButton.type = 'button';
+    copyButton.innerHTML = '<i class="bi bi-clipboard"></i><span>copy</span>';
+    copyButton.onclick = () => {
+        copyTextToClipboard(dataText, () => {
+            copyButton.innerHTML = '<i class="bi bi-check2"></i><span>copied</span>';
+            window.setTimeout(() => {
+                copyButton.innerHTML = '<i class="bi bi-clipboard"></i><span>copy</span>';
+            }, 1600);
+        });
+    };
+    header.appendChild(copyButton);
+    section.appendChild(header);
+
+    const pre = document.createElement('pre');
+    pre.className = 'note-data-content';
+    pre.textContent = dataText;
+    section.appendChild(pre);
+
+    return section;
+}
+
+// copyTextToClipboard writes text through the Clipboard API with a textarea fallback.
+function copyTextToClipboard(text: string, onSuccess: () => void): void {
+    const fallbackCopy = () => {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        onSuccess();
+    };
+
+    if (!navigator.clipboard?.writeText) {
+        fallbackCopy();
+        return;
+    }
+
+    navigator.clipboard.writeText(text).then(onSuccess).catch(err => {
+        console.error('Failed to copy: ', err);
+        fallbackCopy();
+    });
 }
 
 // loadAdminSession returns whether the current browser is admin-authenticated.
@@ -335,6 +413,35 @@ function parseCommaList(value: string): string[] {
     return value.split(',')
         .map((item) => item.trim())
         .filter((item) => item !== '');
+}
+
+// parseDataValue validates the optional structured data editor value.
+function parseDataValue(value: string, status: HTMLElement): Record<string, any> | null | false {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+            throw new Error('Data must be a JSON object.');
+        }
+        return parsed as Record<string, any>;
+    } catch (err) {
+        console.error(err);
+        status.textContent = 'Data must be valid JSON object syntax.';
+        return false;
+    }
+}
+
+// formatData converts non-empty structured data into stable JSON text.
+function formatData(data?: Record<string, any>): string {
+    if (!data || Object.keys(data).length === 0) {
+        return '';
+    }
+
+    return JSON.stringify(data, null, 2);
 }
 
 // getNamespaceURL builds the main app URL for a namespace.
