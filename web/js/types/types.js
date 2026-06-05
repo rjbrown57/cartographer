@@ -617,6 +617,10 @@ function SetupAdminPanel() {
     const toggle = document.getElementById('adminPanelToggle');
     const close = document.getElementById('adminPanelClose');
     const body = document.getElementById('adminPanelBody');
+    const cacheSummary = document.getElementById('cacheSummary');
+    const cacheKeyList = document.getElementById('cacheKeyList');
+    const clearCacheButton = document.getElementById('clearCacheButton');
+    const cacheToolsStatus = document.getElementById('cacheToolsStatus');
     const loginForm = document.getElementById('adminLoginForm');
     const tokenInput = document.getElementById('adminToken');
     const loginStatus = document.getElementById('adminLoginStatus');
@@ -642,6 +646,36 @@ function SetupAdminPanel() {
     }
     let adminSession = { admin: false, configured: false };
     let activeAdminTab = 'templates';
+    const renderCacheTools = () => {
+        const cacheKeys = cache.getCacheKeys();
+        if (cacheSummary) {
+            const entryLabel = cacheKeys.length === 1 ? 'entry' : 'entries';
+            cacheSummary.textContent = `${cacheKeys.length} cached ${entryLabel}`;
+        }
+        if (!cacheKeyList) {
+            return;
+        }
+        cacheKeyList.replaceChildren();
+        if (cacheKeys.length === 0) {
+            const item = document.createElement('li');
+            item.textContent = 'No cached queries.';
+            cacheKeyList.appendChild(item);
+            return;
+        }
+        cacheKeys.forEach((key) => {
+            const item = document.createElement('li');
+            item.textContent = key;
+            cacheKeyList.appendChild(item);
+        });
+    };
+    const clearCacheTools = () => {
+        cache.invalidateCache();
+        renderCacheTools();
+        if (cacheToolsStatus) {
+            cacheToolsStatus.textContent = 'Cache cleared.';
+            cacheToolsStatus.className = 'note-form-status text-success';
+        }
+    };
     const loadAdminSession = async () => {
         try {
             const response = await fetch(AdminSessionEndpoint, EncodingHeader);
@@ -783,6 +817,7 @@ function SetupAdminPanel() {
         toggle.setAttribute('aria-expanded', String(open));
         toggle.classList.toggle('nav-action--active', open);
         if (open) {
+            renderCacheTools();
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
@@ -820,6 +855,9 @@ function SetupAdminPanel() {
         button.addEventListener('click', () => {
             setAdminTab(button.dataset.adminTab || 'templates');
         });
+    });
+    clearCacheButton?.addEventListener('click', () => {
+        clearCacheTools();
     });
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -872,6 +910,7 @@ function SetupAdminPanel() {
         nameInput?.focus();
     });
     void loadAdminSession().then(renderAdminSession);
+    renderCacheTools();
     setAdminTab(activeAdminTab);
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

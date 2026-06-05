@@ -811,6 +811,10 @@ function SetupAdminPanel(): void {
     const toggle = document.getElementById('adminPanelToggle') as HTMLButtonElement | null;
     const close = document.getElementById('adminPanelClose') as HTMLButtonElement | null;
     const body = document.getElementById('adminPanelBody') as HTMLElement | null;
+    const cacheSummary = document.getElementById('cacheSummary') as HTMLElement | null;
+    const cacheKeyList = document.getElementById('cacheKeyList') as HTMLUListElement | null;
+    const clearCacheButton = document.getElementById('clearCacheButton') as HTMLButtonElement | null;
+    const cacheToolsStatus = document.getElementById('cacheToolsStatus') as HTMLElement | null;
     const loginForm = document.getElementById('adminLoginForm') as HTMLFormElement | null;
     const tokenInput = document.getElementById('adminToken') as HTMLInputElement | null;
     const loginStatus = document.getElementById('adminLoginStatus') as HTMLElement | null;
@@ -838,6 +842,43 @@ function SetupAdminPanel(): void {
 
     let adminSession: AdminSessionResponse = { admin: false, configured: false };
     let activeAdminTab = 'templates';
+
+    // renderCacheTools refreshes the public browser cache summary.
+    const renderCacheTools = () => {
+        const cacheKeys = cache.getCacheKeys();
+        if (cacheSummary) {
+            const entryLabel = cacheKeys.length === 1 ? 'entry' : 'entries';
+            cacheSummary.textContent = `${cacheKeys.length} cached ${entryLabel}`;
+        }
+
+        if (!cacheKeyList) {
+            return;
+        }
+
+        cacheKeyList.replaceChildren();
+        if (cacheKeys.length === 0) {
+            const item = document.createElement('li');
+            item.textContent = 'No cached queries.';
+            cacheKeyList.appendChild(item);
+            return;
+        }
+
+        cacheKeys.forEach((key) => {
+            const item = document.createElement('li');
+            item.textContent = key;
+            cacheKeyList.appendChild(item);
+        });
+    };
+
+    // clearCacheTools invalidates the public browser data cache.
+    const clearCacheTools = () => {
+        cache.invalidateCache();
+        renderCacheTools();
+        if (cacheToolsStatus) {
+            cacheToolsStatus.textContent = 'Cache cleared.';
+            cacheToolsStatus.className = 'note-form-status text-success';
+        }
+    };
 
     // loadAdminSession fetches the browser's current admin session state.
     const loadAdminSession = async () => {
@@ -1001,6 +1042,7 @@ function SetupAdminPanel(): void {
         toggle.setAttribute('aria-expanded', String(open));
         toggle.classList.toggle('nav-action--active', open);
         if (open) {
+            renderCacheTools();
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
@@ -1042,6 +1084,10 @@ function SetupAdminPanel(): void {
         button.addEventListener('click', () => {
             setAdminTab(button.dataset.adminTab || 'templates');
         });
+    });
+
+    clearCacheButton?.addEventListener('click', () => {
+        clearCacheTools();
     });
 
     loginForm.addEventListener('submit', async (event) => {
@@ -1099,6 +1145,7 @@ function SetupAdminPanel(): void {
     });
 
     void loadAdminSession().then(renderAdminSession);
+    renderCacheTools();
     setAdminTab(activeAdminTab);
 
     form.addEventListener('submit', async (event) => {
