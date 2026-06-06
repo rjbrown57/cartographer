@@ -1,0 +1,34 @@
+services:
+  cartographer:
+    image: ghcr.io/rjbrown57/cartographer:latest
+    container_name: cartographer
+    command: ["serve", "--config", "/app/config"]
+    ports:
+      - "18080:8080"  # gRPC server
+    expose:
+      - "8081"  # Web UI, proxied by Caddy
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    environment:
+      - CARTOGRAPHER_ADMIN_TOKEN=${CARTOGRAPHER_ADMIN_TOKEN:-admin}
+      - GIN_MODE=release
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cartographer", "client", "ping", "--address", "127.0.0.1", "--port", "8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: cartographer-proxy
+    depends_on:
+      - cartographer
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+    restart: unless-stopped

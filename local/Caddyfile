@@ -1,0 +1,4 @@
+cartographer.localhost {
+	tls /etc/caddy/certs/cartographer.localhost.pem /etc/caddy/certs/cartographer.localhost-key.pem
+	reverse_proxy cartographer:8081
+}

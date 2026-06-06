@@ -7,3 +7,6 @@ links.yaml
 web/node_modules/
 /basic_explorer
 /k8sExplorer
+local/data/
+local/backups/
+local/certs/
