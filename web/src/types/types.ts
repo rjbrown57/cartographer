@@ -347,6 +347,7 @@ function SetupNoteSubmission(): void {
     const namespaceOptions = document.getElementById('noteNamespaceOptions') as HTMLDataListElement | null;
     const bodyInput = document.getElementById('noteBody') as HTMLTextAreaElement | null;
     const templateSelect = document.getElementById('noteTemplateSelect') as HTMLSelectElement | null;
+    const dataAdd = document.getElementById('noteDataAdd') as HTMLButtonElement | null;
     const dataDetails = document.getElementById('noteDataDetails') as HTMLDetailsElement | null;
     const dataInput = document.getElementById('noteData') as HTMLTextAreaElement | null;
     const tagsInput = document.getElementById('noteTags') as HTMLInputElement | null;
@@ -411,6 +412,14 @@ function SetupNoteSubmission(): void {
         return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
     };
 
+    // setDataEnabled controls whether the optional structured data editor is shown.
+    const setDataEnabled = (enabled: boolean) => {
+        dataAdd?.classList.toggle('is-hidden', enabled);
+        dataDetails?.classList.toggle('is-hidden', !enabled);
+        dataDetails?.toggleAttribute('open', enabled);
+        dataAdd?.setAttribute('aria-expanded', String(enabled));
+    };
+
     // setDataValue writes optional structured data into the composer.
     const setDataValue = (data?: Record<string, any>) => {
         if (!dataInput) {
@@ -419,7 +428,7 @@ function SetupNoteSubmission(): void {
 
         const hasData = data && Object.keys(data).length > 0;
         dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
-        dataDetails?.toggleAttribute('open', Boolean(hasData));
+        setDataEnabled(Boolean(hasData));
     };
 
     // populateTemplateSelect loads reusable markdown templates into the composer.
@@ -607,6 +616,10 @@ function SetupNoteSubmission(): void {
 
     bodyInput?.addEventListener('input', updatePreview);
     tagsInput?.addEventListener('input', syncTagPreview);
+    dataAdd?.addEventListener('click', () => {
+        setDataEnabled(true);
+        dataInput?.focus();
+    });
     templateSelect?.addEventListener('change', () => {
         applyTemplateToComposer(templateSelect.value);
         templateSelect.value = '';

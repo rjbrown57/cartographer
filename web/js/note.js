@@ -138,9 +138,10 @@ function renderEditForm(shell, note, namespace) {
     bodyInput.className = 'form-control';
     bodyInput.value = note.body || '';
     bodyInput.required = true;
+    const existingData = formatData(note.data);
     const dataInput = document.createElement('textarea');
     dataInput.className = 'form-control note-data-textarea';
-    dataInput.value = formatData(note.data);
+    dataInput.value = existingData;
     dataInput.spellcheck = false;
     const bodyWrap = document.createElement('label');
     bodyWrap.className = 'form-label';
@@ -150,6 +151,10 @@ function renderEditForm(shell, note, namespace) {
     dataWrap.className = 'form-label';
     dataWrap.textContent = 'Structured data';
     dataWrap.appendChild(dataInput);
+    const addData = document.createElement('button');
+    addData.className = 'btn btn-outline-secondary btn-sm note-data-add d-inline-flex align-items-center gap-2';
+    addData.type = 'button';
+    addData.innerHTML = '<i class="bi bi-plus-lg"></i> Structured data';
     const status = document.createElement('span');
     status.className = 'note-form-status';
     const actions = document.createElement('div');
@@ -169,10 +174,21 @@ function renderEditForm(shell, note, namespace) {
     actions.appendChild(save);
     actions.appendChild(cancel);
     actions.appendChild(status);
+    const setDataEditorVisible = (visible) => {
+        addData.classList.toggle('is-hidden', visible);
+        dataWrap.classList.toggle('is-hidden', !visible);
+        addData.setAttribute('aria-expanded', String(visible));
+    };
+    addData.onclick = () => {
+        setDataEditorVisible(true);
+        dataInput.focus();
+    };
+    setDataEditorVisible(Boolean(existingData));
     form.appendChild(titleInput.label);
     form.appendChild(urlInput.label);
     form.appendChild(tagsInput.label);
     form.appendChild(bodyWrap);
+    form.appendChild(addData);
     form.appendChild(dataWrap);
     form.appendChild(actions);
     form.onsubmit = async (event) => {

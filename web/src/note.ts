@@ -195,9 +195,10 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
     bodyInput.className = 'form-control';
     bodyInput.value = note.body || '';
     bodyInput.required = true;
+    const existingData = formatData(note.data);
     const dataInput = document.createElement('textarea');
     dataInput.className = 'form-control note-data-textarea';
-    dataInput.value = formatData(note.data);
+    dataInput.value = existingData;
     dataInput.spellcheck = false;
 
     const bodyWrap = document.createElement('label');
@@ -209,6 +210,11 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
     dataWrap.className = 'form-label';
     dataWrap.textContent = 'Structured data';
     dataWrap.appendChild(dataInput);
+
+    const addData = document.createElement('button');
+    addData.className = 'btn btn-outline-secondary btn-sm note-data-add d-inline-flex align-items-center gap-2';
+    addData.type = 'button';
+    addData.innerHTML = '<i class="bi bi-plus-lg"></i> Structured data';
 
     const status = document.createElement('span');
     status.className = 'note-form-status';
@@ -234,10 +240,25 @@ function renderEditForm(shell: HTMLElement, note: NoteData, namespace: string): 
     actions.appendChild(cancel);
     actions.appendChild(status);
 
+    // setDataEditorVisible shows the optional structured data editor on demand.
+    const setDataEditorVisible = (visible: boolean) => {
+        addData.classList.toggle('is-hidden', visible);
+        dataWrap.classList.toggle('is-hidden', !visible);
+        addData.setAttribute('aria-expanded', String(visible));
+    };
+
+    addData.onclick = () => {
+        setDataEditorVisible(true);
+        dataInput.focus();
+    };
+
+    setDataEditorVisible(Boolean(existingData));
+
     form.appendChild(titleInput.label);
     form.appendChild(urlInput.label);
     form.appendChild(tagsInput.label);
     form.appendChild(bodyWrap);
+    form.appendChild(addData);
     form.appendChild(dataWrap);
     form.appendChild(actions);
 

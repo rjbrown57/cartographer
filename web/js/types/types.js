@@ -212,6 +212,7 @@ function SetupNoteSubmission() {
     const namespaceOptions = document.getElementById('noteNamespaceOptions');
     const bodyInput = document.getElementById('noteBody');
     const templateSelect = document.getElementById('noteTemplateSelect');
+    const dataAdd = document.getElementById('noteDataAdd');
     const dataDetails = document.getElementById('noteDataDetails');
     const dataInput = document.getElementById('noteData');
     const tagsInput = document.getElementById('noteTags');
@@ -267,13 +268,19 @@ function SetupNoteSubmission() {
         }
         return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
     };
+    const setDataEnabled = (enabled) => {
+        dataAdd?.classList.toggle('is-hidden', enabled);
+        dataDetails?.classList.toggle('is-hidden', !enabled);
+        dataDetails?.toggleAttribute('open', enabled);
+        dataAdd?.setAttribute('aria-expanded', String(enabled));
+    };
     const setDataValue = (data) => {
         if (!dataInput) {
             return;
         }
         const hasData = data && Object.keys(data).length > 0;
         dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
-        dataDetails?.toggleAttribute('open', Boolean(hasData));
+        setDataEnabled(Boolean(hasData));
     };
     const populateTemplateSelect = async () => {
         if (!templateSelect) {
@@ -432,6 +439,10 @@ function SetupNoteSubmission() {
     };
     bodyInput?.addEventListener('input', updatePreview);
     tagsInput?.addEventListener('input', syncTagPreview);
+    dataAdd?.addEventListener('click', () => {
+        setDataEnabled(true);
+        dataInput?.focus();
+    });
     templateSelect?.addEventListener('change', () => {
         applyTemplateToComposer(templateSelect.value);
         templateSelect.value = '';

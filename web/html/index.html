@@ -1186,6 +1186,12 @@
 			list-style-position: inside;
 		}
 
+		.note-data-add {
+			border-style: dashed;
+			color: #334155;
+			font-weight: 700;
+		}
+
 		.note-data-textarea {
 			margin-top: 0.55rem;
 			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -1671,7 +1677,11 @@
 							<input id="noteAuthor" class="form-control" type="text" autocomplete="off">
 						</div>
 						<div class="col-12">
-							<details id="noteDataDetails" class="note-data-details">
+							<button id="noteDataAdd" class="btn btn-outline-secondary btn-sm note-data-add d-inline-flex align-items-center gap-2" type="button" aria-controls="noteDataDetails">
+								<i class="bi bi-plus-lg"></i>
+								<span>Structured data</span>
+							</button>
+							<details id="noteDataDetails" class="note-data-details is-hidden">
 								<summary class="note-data-summary">Structured data</summary>
 								<textarea id="noteData" class="form-control note-data-textarea" rows="6" autocomplete="off" spellcheck="false" placeholder='{"key": "value"}'></textarea>
 							</details>
