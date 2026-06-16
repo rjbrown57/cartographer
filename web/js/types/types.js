@@ -19,12 +19,30 @@ const NamespaceFinderId = 'namespaceFinder';
 const MaxVisibleNamespaceTabs = 8;
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
+const CardStyleStorageKey = 'cartographer_card_style';
+const LegacyCardDensityStorageKey = 'cartographer_cards_condensed';
+const CardStyleOptions = [
+    {
+        id: 'comfortable',
+        label: 'Comfortable',
+        icon: 'bi bi-card-text',
+        summary: 'Body preview shown in each card.',
+    },
+    {
+        id: 'condensed',
+        label: 'Condensed',
+        icon: 'bi bi-view-stacked',
+        summary: 'Body hidden until a card is opened.',
+        bodyClass: 'card-style-condensed',
+    },
+];
 export class Cartographer {
     Cards = [];
     SearchBar;
     renderVersion = 0;
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
+        SetupCardStyleControls();
         SetupAdminPanel();
         SetupNoteSubmission();
         this.SetupNoteDeletion();
@@ -187,6 +205,59 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+function SetupCardStyleControls() {
+    const optionsContainer = document.getElementById('cardStyleOptions');
+    const summary = document.getElementById('cardStyleSummary');
+    if (!optionsContainer) {
+        return;
+    }
+    const styleByID = new Map(CardStyleOptions.map(style => [style.id, style]));
+    const getInitialCardStyle = () => {
+        const storedStyle = localStorage.getItem(CardStyleStorageKey);
+        if (storedStyle && styleByID.has(storedStyle)) {
+            return storedStyle;
+        }
+        const legacyCondensed = localStorage.getItem(LegacyCardDensityStorageKey);
+        if (legacyCondensed === 'true') {
+            localStorage.setItem(CardStyleStorageKey, 'condensed');
+            localStorage.removeItem(LegacyCardDensityStorageKey);
+            return 'condensed';
+        }
+        return 'comfortable';
+    };
+    const applyCardStyle = (styleID) => {
+        const selectedStyle = styleByID.get(styleID) || CardStyleOptions[0];
+        CardStyleOptions.forEach(style => {
+            if (style.bodyClass) {
+                document.body.classList.toggle(style.bodyClass, style.id === selectedStyle.id);
+            }
+        });
+        if (summary) {
+            summary.textContent = selectedStyle.summary;
+        }
+        optionsContainer.querySelectorAll('[data-card-style]').forEach(button => {
+            const isSelected = button.dataset.cardStyle === selectedStyle.id;
+            button.classList.toggle('btn-primary', isSelected);
+            button.classList.toggle('btn-outline-secondary', !isSelected);
+            button.setAttribute('aria-pressed', String(isSelected));
+        });
+        localStorage.setItem(CardStyleStorageKey, selectedStyle.id);
+    };
+    optionsContainer.replaceChildren();
+    CardStyleOptions.forEach(style => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2 card-style-option';
+        button.dataset.cardStyle = style.id;
+        button.setAttribute('aria-pressed', 'false');
+        button.innerHTML = `<i class="${style.icon}"></i><span>${style.label}</span>`;
+        button.addEventListener('click', () => {
+            applyCardStyle(style.id);
+        });
+        optionsContainer.appendChild(button);
+    });
+    applyCardStyle(getInitialCardStyle());
 }
 function GetTopTagsCollapsed() {
     return localStorage.getItem(TopTagsCollapsedStorageKey) === 'true';
