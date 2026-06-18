@@ -10,8 +10,9 @@ CERT_DIR := $(LOCAL_DIR)/certs
 TLS_CERT := $(CERT_DIR)/cartographer.localhost.pem
 TLS_KEY := $(CERT_DIR)/cartographer.localhost-key.pem
 ADMIN_TOKEN ?= admin
+CARTOGRAPHER_BIN ?= $(REPO_DIR)/cartographer
 
-.PHONY: help setup deps resolve-deps certs docker-up docker-down docker-logs backup restore list-backups status reset-data
+.PHONY: help setup deps resolve-deps certs docker-up docker-down docker-logs mcp mcp-config backup restore list-backups status reset-data
 
 help:
 	@printf '%s\n' 'Cartographer local Docker Compose runtime'
@@ -24,6 +25,8 @@ help:
 	@printf '%s\n' '  docker-up    run Cartographer behind the local HTTPS proxy'
 	@printf '%s\n' '  docker-down  stop the local Docker Compose stack'
 	@printf '%s\n' '  docker-logs  follow local Docker Compose logs for all services'
+	@printf '%s\n' '  mcp          run the local MCP stdio binary against the local stack'
+	@printf '%s\n' '  mcp-config   print MCP client config for the local binary'
 	@printf '%s\n' '  status       show local config, db, backup, and cert locations'
 	@printf '%s\n' '  backup       copy the BoltDB file into local/backups'
 	@printf '%s\n' '  list-backups show available local database backups'
@@ -91,6 +94,24 @@ docker-down:
 
 docker-logs:
 	cd "$(LOCAL_DIR)" && docker compose logs -f
+
+mcp:
+	@if [ ! -x "$(CARTOGRAPHER_BIN)" ]; then \
+		printf 'Cartographer binary not found: %s\n' "$(CARTOGRAPHER_BIN)"; \
+		printf 'Build it from the repository root with: go build -o cartographer .\n'; \
+		exit 2; \
+	fi
+	"$(CARTOGRAPHER_BIN)" mcp --address 127.0.0.1 --port 18080
+
+mcp-config:
+	@printf '%s\n' '{'
+	@printf '%s\n' '  "mcpServers": {'
+	@printf '%s\n' '    "cartographer": {'
+	@printf '      "command": "%s",\n' "$(CARTOGRAPHER_BIN)"
+	@printf '%s\n' '      "args": ["mcp", "--address", "127.0.0.1", "--port", "18080"]'
+	@printf '%s\n' '    }'
+	@printf '%s\n' '  }'
+	@printf '%s\n' '}'
 
 backup: setup
 	@if [ -f "$(DB_PATH)" ]; then \

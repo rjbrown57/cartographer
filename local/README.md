@@ -18,7 +18,7 @@ Docker Compose uses the published `ghcr.io/rjbrown57/cartographer:latest` image,
 
 ## MCP
 
-Cartographer includes an MCP stdio server that lets tools such as Codex query and update a running Cartographer instance. The local Docker Compose stack publishes the Cartographer gRPC server on host port `18080`, so MCP clients should point at `127.0.0.1:18080`.
+Cartographer includes an MCP stdio server that lets tools such as Codex query and update a running Cartographer instance. Run the local Docker Compose stack first; it starts the web UI, the backing gRPC server, and the persistent local database that MCP talks to.
 
 Start the local stack first:
 
@@ -26,7 +26,32 @@ Start the local stack first:
 make -C local docker-up
 ```
 
-Then run the MCP server from a local Cartographer binary:
+For MCP clients, use the local Cartographer binary as the stdio MCP server. It connects to the gRPC server published by the local Compose stack on `127.0.0.1:18080`:
+
+```bash
+make -C local mcp-config
+```
+
+This prints:
+
+```json
+{
+  "mcpServers": {
+    "cartographer": {
+      "command": "/absolute/path/to/cartographer/cartographer",
+      "args": ["mcp", "--address", "127.0.0.1", "--port", "18080"]
+    }
+  }
+}
+```
+
+You can also run the MCP stdio server directly for manual testing:
+
+```bash
+make -C local mcp
+```
+
+This target runs:
 
 ```bash
 ./cartographer mcp --address 127.0.0.1 --port 18080
@@ -36,19 +61,6 @@ If you do not have a local binary yet, build one from the repository root:
 
 ```bash
 go build -o cartographer .
-```
-
-Example MCP client configuration:
-
-```json
-{
-  "mcpServers": {
-    "cartographer": {
-      "command": "/absolute/path/to/cartographer",
-      "args": ["mcp", "--address", "127.0.0.1", "--port", "18080"]
-    }
-  }
-}
 ```
 
 The MCP server exposes tools to list namespaces, search notes, fetch an exact note, and add a note. `cartographer_add_note` writes to the live local database in `local/data/cartographer.db`, so use it with the same care as the web UI.
