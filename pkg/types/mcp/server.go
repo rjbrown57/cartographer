@@ -22,10 +22,11 @@ const reservedAdminNamespace = "cartographer-admin"
 type CartographerClient interface {
 	Get(ctx context.Context, in *proto.CartographerGetRequest, opts ...grpc.CallOption) (*proto.CartographerGetResponse, error)
 	Add(ctx context.Context, in *proto.CartographerAddRequest, opts ...grpc.CallOption) (*proto.CartographerAddResponse, error)
+	Delete(ctx context.Context, in *proto.CartographerDeleteRequest, opts ...grpc.CallOption) (*proto.CartographerDeleteResponse, error)
 }
 
-// Server handles MCP JSON-RPC requests over stdio-compatible streams.
-type Server struct {
+// MCPServer handles MCP JSON-RPC requests over stdio-compatible streams.
+type MCPServer struct {
 	client CartographerClient
 	ctx    context.Context
 	in     io.Reader
@@ -99,6 +100,11 @@ type addNoteArgs struct {
 	Version   int64          `json:"version"`
 }
 
+type deleteNotesArgs struct {
+	Namespace string   `json:"namespace"`
+	IDs       []string `json:"ids"`
+}
+
 type namespaceArgs struct{}
 
 type mcpNote struct {
@@ -125,13 +131,20 @@ type namespacesPayload struct {
 	Namespaces []string `json:"namespaces"`
 }
 
-// NewServer builds an MCP server around a live Cartographer client and streams.
-func NewServer(ctx context.Context, client CartographerClient, in io.Reader, out io.Writer) *Server {
+type deletePayload struct {
+	Namespace  string   `json:"namespace"`
+	Count      int      `json:"count"`
+	DeletedIDs []string `json:"deleted_ids"`
+	Errors     []string `json:"errors,omitempty"`
+}
+
+// NewMCPServer builds an MCP server around a live Cartographer client and streams.
+func NewMCPServer(ctx context.Context, client CartographerClient, in io.Reader, out io.Writer) *MCPServer {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	return &Server{
+	return &MCPServer{
 		client: client,
 		ctx:    ctx,
 		in:     in,
@@ -139,8 +152,13 @@ func NewServer(ctx context.Context, client CartographerClient, in io.Reader, out
 	}
 }
 
+// NewServer preserves the original constructor name for command wiring.
+func NewServer(ctx context.Context, client CartographerClient, in io.Reader, out io.Writer) *MCPServer {
+	return NewMCPServer(ctx, client, in, out)
+}
+
 // Serve reads JSON-RPC messages until EOF and writes MCP responses.
-func (s *Server) Serve() error {
+func (s *MCPServer) Serve() error {
 	decoder := json.NewDecoder(s.in)
 	encoder := json.NewEncoder(s.out)
 
@@ -164,7 +182,7 @@ func (s *Server) Serve() error {
 }
 
 // handle routes one MCP JSON-RPC request.
-func (s *Server) handle(req rpcRequest) (rpcResponse, bool) {
+func (s *MCPServer) handle(req rpcRequest) (rpcResponse, bool) {
 	if len(req.ID) == 0 {
 		return rpcResponse{}, false
 	}
@@ -181,7 +199,7 @@ func (s *Server) handle(req rpcRequest) (rpcResponse, bool) {
 			"capabilities": map[string]any{
 				"tools": map[string]any{},
 			},
-			"serverInfo": map[string]any{
+			"MCPServerInfo": map[string]any{
 				"name":    "cartographer",
 				"version": "dev",
 			},
@@ -211,7 +229,7 @@ func (s *Server) handle(req rpcRequest) (rpcResponse, bool) {
 }
 
 // callTool dispatches a tools/call request to a Cartographer query.
-func (s *Server) callTool(params json.RawMessage) (toolResult, error) {
+func (s *MCPServer) callTool(params json.RawMessage) (toolResult, error) {
 	var call toolCallParams
 	if err := json.Unmarshal(params, &call); err != nil {
 		return toolResult{}, fmt.Errorf("invalid tool call params: %w", err)
@@ -236,6 +254,12 @@ func (s *Server) callTool(params json.RawMessage) (toolResult, error) {
 			return toolResult{}, err
 		}
 		return s.addNote(args)
+	case "cartographer_delete_notes":
+		var args deleteNotesArgs
+		if err := decodeArgs(call.Arguments, &args); err != nil {
+			return toolResult{}, err
+		}
+		return s.deleteNotes(args)
 	case "cartographer_list_namespaces":
 		var args namespaceArgs
 		if err := decodeArgs(call.Arguments, &args); err != nil {
@@ -248,7 +272,7 @@ func (s *Server) callTool(params json.RawMessage) (toolResult, error) {
 }
 
 // searchNotes runs a namespace-scoped tag and term query against Cartographer.
-func (s *Server) searchNotes(args searchArgs) (toolResult, error) {
+func (s *MCPServer) searchNotes(args searchArgs) (toolResult, error) {
 	namespace, err := proto.GetNamespace(args.Namespace)
 	if err != nil {
 		return toolResult{}, err
@@ -278,7 +302,7 @@ func (s *Server) searchNotes(args searchArgs) (toolResult, error) {
 }
 
 // getNote fetches one note by exact ID from a namespace.
-func (s *Server) getNote(args getNoteArgs) (toolResult, error) {
+func (s *MCPServer) getNote(args getNoteArgs) (toolResult, error) {
 	if strings.TrimSpace(args.ID) == "" {
 		return toolResult{}, errors.New("id is required")
 	}
@@ -305,7 +329,7 @@ func (s *Server) getNote(args getNoteArgs) (toolResult, error) {
 }
 
 // addNote creates a new note through the live Cartographer add path.
-func (s *Server) addNote(args addNoteArgs) (toolResult, error) {
+func (s *MCPServer) addNote(args addNoteArgs) (toolResult, error) {
 	namespace, err := proto.GetNamespace(args.Namespace)
 	if err != nil {
 		return toolResult{}, err
@@ -353,8 +377,40 @@ func (s *Server) addNote(args addNoteArgs) (toolResult, error) {
 	return notesResult(namespace, resp.GetResponse().GetNotes(), 1)
 }
 
+// deleteNotes deletes one or more notes by exact ID from a live Cartographer namespace.
+func (s *MCPServer) deleteNotes(args deleteNotesArgs) (toolResult, error) {
+	namespace, err := proto.GetNamespace(args.Namespace)
+	if err != nil {
+		return toolResult{}, err
+	}
+	if namespace == reservedAdminNamespace {
+		return toolResult{}, errors.New("reserved namespace")
+	}
+
+	ids := cleanStrings(args.IDs)
+	if len(ids) == 0 {
+		return toolResult{}, errors.New("at least one id is required")
+	}
+
+	resp, err := s.client.Delete(s.ctx, &proto.CartographerDeleteRequest{
+		Ids:       ids,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return toolResult{}, err
+	}
+
+	payload := deletePayload{
+		Namespace:  namespace,
+		Count:      len(resp.GetIds()),
+		DeletedIDs: resp.GetIds(),
+		Errors:     resp.GetErrors(),
+	}
+	return jsonToolResult(payload)
+}
+
 // listNamespaces returns the namespaces currently known to Cartographer.
-func (s *Server) listNamespaces() (toolResult, error) {
+func (s *MCPServer) listNamespaces() (toolResult, error) {
 	req := &proto.CartographerGetRequest{
 		Request: &proto.CartographerRequest{},
 		Type:    proto.RequestType_REQUEST_TYPE_NAMESPACE,
@@ -401,12 +457,20 @@ func tools() []tool {
 				"url":        stringSchema("Optional URL associated with the note."),
 				"tags":       arraySchema("Tags to attach to the note."),
 				"data":       flexibleObjectSchema("Optional structured JSON object to attach to the note."),
-				"created_at": stringSchema("Optional RFC3339 creation timestamp. Defaults to server time for new notes."),
-				"updated_at": stringSchema("Optional RFC3339 update timestamp. Defaults to server time."),
+				"created_at": stringSchema("Optional RFC3339 creation timestamp. Defaults to MCPServer time for new notes."),
+				"updated_at": stringSchema("Optional RFC3339 update timestamp. Defaults to MCPServer time."),
 				"source":     stringSchema("Optional source label for where the note came from."),
 				"author":     stringSchema("Optional author or actor associated with the note."),
 				"version":    integerSchema("Optional note version. Defaults to 1 for new notes and increments on update."),
 			}, []string{}),
+		},
+		{
+			Name:        "cartographer_delete_notes",
+			Description: "Delete one or more notes by exact ID from a live Cartographer namespace. This writes to the backing Cartographer instance.",
+			InputSchema: objectSchema(map[string]any{
+				"namespace": stringSchema("Namespace to delete from. Defaults to default."),
+				"ids":       arraySchema("Exact note IDs to delete."),
+			}, []string{"ids"}),
 		},
 		{
 			Name:        "cartographer_list_namespaces",

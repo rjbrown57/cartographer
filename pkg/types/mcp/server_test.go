@@ -13,10 +13,12 @@ import (
 )
 
 type fakeCartographerClient struct {
-	lastRequest *proto.CartographerGetRequest
-	lastAdd     *proto.CartographerAddRequest
-	response    *proto.CartographerGetResponse
-	addResponse *proto.CartographerAddResponse
+	lastRequest    *proto.CartographerGetRequest
+	lastAdd        *proto.CartographerAddRequest
+	lastDelete     *proto.CartographerDeleteRequest
+	response       *proto.CartographerGetResponse
+	addResponse    *proto.CartographerAddResponse
+	deleteResponse *proto.CartographerDeleteResponse
 }
 
 // Get records a request and returns a canned Cartographer response.
@@ -34,6 +36,15 @@ func (f *fakeCartographerClient) Add(_ context.Context, in *proto.CartographerAd
 	return &proto.CartographerAddResponse{Response: &proto.CartographerResponse{Notes: in.GetRequest().GetNotes()}}, nil
 }
 
+// Delete records a request and returns a canned Cartographer delete response.
+func (f *fakeCartographerClient) Delete(_ context.Context, in *proto.CartographerDeleteRequest, _ ...grpc.CallOption) (*proto.CartographerDeleteResponse, error) {
+	f.lastDelete = in
+	if f.deleteResponse != nil {
+		return f.deleteResponse, nil
+	}
+	return &proto.CartographerDeleteResponse{Ids: in.GetIds()}, nil
+}
+
 // TestServerInitializeAndListTools verifies the MCP handshake and tool catalog.
 func TestServerInitializeAndListTools(t *testing.T) {
 	client := &fakeCartographerClient{}
@@ -43,7 +54,7 @@ func TestServerInitializeAndListTools(t *testing.T) {
 	)
 	var output strings.Builder
 
-	server := NewServer(context.Background(), client, input, &output)
+	server := NewMCPServer(context.Background(), client, input, &output)
 	if err := server.Serve(); err != nil {
 		t.Fatalf("Serve() error = %v", err)
 	}
@@ -63,8 +74,8 @@ func TestServerInitializeAndListTools(t *testing.T) {
 	}
 	result := toolsResp["result"].(map[string]any)
 	tools := result["tools"].([]any)
-	if got := len(tools); got != 4 {
-		t.Fatalf("expected 3 tools, got %d", got)
+	if got := len(tools); got != 5 {
+		t.Fatalf("expected 5 tools, got %d", got)
 	}
 }
 
@@ -91,7 +102,7 @@ func TestServerSearchNotes(t *testing.T) {
 	input := strings.NewReader(`{"jsonrpc":"2.0","id":"call-1","method":"tools/call","params":{"name":"cartographer_search_notes","arguments":{"namespace":"research","terms":["body"],"tags":["thought"],"limit":5}}}` + "\n")
 	var output strings.Builder
 
-	server := NewServer(context.Background(), client, input, &output)
+	server := NewMCPServer(context.Background(), client, input, &output)
 	if err := server.Serve(); err != nil {
 		t.Fatalf("Serve() error = %v", err)
 	}
@@ -123,7 +134,7 @@ func TestServerAddNote(t *testing.T) {
 	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-1","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"research","id":"note-2","title":"Second note","body":"markdown body","url":"https://example.com","tags":["thought","mcp"],"data":{"source":"test"},"created_at":"2026-05-30T19:00:00Z","updated_at":"2026-05-30T19:10:00Z","source":"mcp-test","author":"codex","version":7}}}` + "\n")
 	var output strings.Builder
 
-	server := NewServer(context.Background(), client, input, &output)
+	server := NewMCPServer(context.Background(), client, input, &output)
 	if err := server.Serve(); err != nil {
 		t.Fatalf("Serve() error = %v", err)
 	}
@@ -189,7 +200,7 @@ func TestServerAddNoteRejectsReservedNamespace(t *testing.T) {
 	input := strings.NewReader(`{"jsonrpc":"2.0","id":"add-reserved","method":"tools/call","params":{"name":"cartographer_add_note","arguments":{"namespace":"cartographer-admin","id":"template/bad","title":"Bad","body":"bad"}}}` + "\n")
 	var output strings.Builder
 
-	server := NewServer(context.Background(), client, input, &output)
+	server := NewMCPServer(context.Background(), client, input, &output)
 	if err := server.Serve(); err != nil {
 		t.Fatalf("Serve() error = %v", err)
 	}
@@ -206,5 +217,63 @@ func TestServerAddNoteRejectsReservedNamespace(t *testing.T) {
 	}
 	if !response.Result.IsError || !strings.Contains(response.Result.Content[0].Text, "reserved namespace") {
 		t.Fatalf("expected reserved namespace error, got %+v", response.Result)
+	}
+}
+
+// TestServerDeleteNotes verifies a delete tool call maps arguments to a Cartographer delete request.
+func TestServerDeleteNotes(t *testing.T) {
+	client := &fakeCartographerClient{}
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":"delete-1","method":"tools/call","params":{"name":"cartographer_delete_notes","arguments":{"namespace":"research","ids":["note-2"," ","note-3"]}}}` + "\n")
+	var output strings.Builder
+
+	server := NewMCPServer(context.Background(), client, input, &output)
+	if err := server.Serve(); err != nil {
+		t.Fatalf("Serve() error = %v", err)
+	}
+
+	if client.lastDelete == nil {
+		t.Fatal("expected delete request")
+	}
+	if got := client.lastDelete.GetNamespace(); got != "research" {
+		t.Fatalf("expected namespace research, got %q", got)
+	}
+	if got := client.lastDelete.GetIds(); len(got) != 2 || got[0] != "note-2" || got[1] != "note-3" {
+		t.Fatalf("expected cleaned delete ids note-2,note-3, got %v", got)
+	}
+
+	var response struct {
+		Result toolResult `json:"result"`
+	}
+	if err := json.NewDecoder(strings.NewReader(output.String())).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.Result.Content) != 1 || !strings.Contains(response.Result.Content[0].Text, "note-2") {
+		t.Fatalf("expected deleted ids payload in tool content, got %+v", response.Result)
+	}
+}
+
+// TestServerDeleteNotesRequiresID verifies delete rejects empty ID lists before calling Cartographer.
+func TestServerDeleteNotesRequiresID(t *testing.T) {
+	client := &fakeCartographerClient{}
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":"delete-empty","method":"tools/call","params":{"name":"cartographer_delete_notes","arguments":{"namespace":"research","ids":[" "]}}}` + "\n")
+	var output strings.Builder
+
+	server := NewMCPServer(context.Background(), client, input, &output)
+	if err := server.Serve(); err != nil {
+		t.Fatalf("Serve() error = %v", err)
+	}
+
+	if client.lastDelete != nil {
+		t.Fatal("expected empty ID request to skip delete")
+	}
+
+	var response struct {
+		Result toolResult `json:"result"`
+	}
+	if err := json.NewDecoder(strings.NewReader(output.String())).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !response.Result.IsError || !strings.Contains(response.Result.Content[0].Text, "at least one id is required") {
+		t.Fatalf("expected missing ID error, got %+v", response.Result)
 	}
 }
