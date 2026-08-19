@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --experimental-default-type=module --test test/*.test.mjs"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.1",

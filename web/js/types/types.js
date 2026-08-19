@@ -2,6 +2,7 @@ import { Note, RenderMarkdown } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import * as query from '../query/query.js';
+import { GetNoteSortMode, NoteSortOptions, SetNoteSortMode, SortNotes, } from '../preferences/noteSort.js';
 const EncodingHeader = {
     headers: {
         'Accept-Encoding': 'gzip'
@@ -40,9 +41,14 @@ export class Cartographer {
     Cards = [];
     SearchBar;
     renderVersion = 0;
+    noteSortMode = GetNoteSortMode();
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
         SetupCardStyleControls();
+        SetupNoteSortControls(this.noteSortMode, (mode) => {
+            this.noteSortMode = mode;
+            this.BuildAndRenderCards();
+        });
         SetupAdminPanel();
         SetupNoteSubmission();
         this.SetupNoteDeletion();
@@ -54,13 +60,18 @@ export class Cartographer {
     }
     async LoadCurrentNamespace() {
         await QueryMainData();
+        this.BuildAndRenderCards();
+    }
+    BuildAndRenderCards() {
         if (!CartographerData || !Array.isArray(CartographerData.notes)) {
             console.error('No notes data available to render');
             RenderNavMetadata([]);
             return;
         }
         this.Cards.splice(0, this.Cards.length);
-        CartographerData.notes.forEach((note) => {
+        const hasTermSearch = new URLSearchParams(window.location.search).has('term');
+        const sortedNotes = SortNotes(CartographerData.notes, this.noteSortMode, hasTermSearch);
+        sortedNotes.forEach((note) => {
             const resolvedID = note.id || note.url || note.title;
             if (!resolvedID) {
                 return;
@@ -79,6 +90,7 @@ export class Cartographer {
         });
         RenderNavMetadata(this.Cards);
         this.renderCards();
+        this.Cards.forEach(card => card.processFilter(this.SearchBar.filter));
     }
     SetupNoteDeletion() {
         document.addEventListener('cartographer:delete-note', (event) => {
@@ -205,6 +217,37 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+function SetupNoteSortControls(initialMode, onChange) {
+    const select = document.getElementById('noteSortSelect');
+    const summary = document.getElementById('noteSortSummary');
+    if (!select) {
+        return;
+    }
+    const optionsByID = new Map(NoteSortOptions.map(option => [option.id, option]));
+    const applyNoteSort = (mode, persist) => {
+        const selected = optionsByID.get(mode) || NoteSortOptions[0];
+        select.value = selected.id;
+        if (summary) {
+            summary.textContent = selected.summary;
+        }
+        if (persist) {
+            SetNoteSortMode(selected.id);
+            onChange(selected.id);
+        }
+    };
+    select.replaceChildren();
+    NoteSortOptions.forEach(option => {
+        const element = document.createElement('option');
+        element.value = option.id;
+        element.textContent = option.label;
+        select.appendChild(element);
+    });
+    select.addEventListener('change', () => {
+        const selected = optionsByID.get(select.value) || NoteSortOptions[0];
+        applyNoteSort(selected.id, true);
+    });
+    applyNoteSort(initialMode, false);
 }
 function SetupCardStyleControls() {
     const optionsContainer = document.getElementById('cardStyleOptions');
