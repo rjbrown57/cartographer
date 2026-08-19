@@ -4,6 +4,13 @@ import type { NoteMetadata, TimestampValue } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import * as query from '../query/query.js';
+import {
+    GetNoteSortMode,
+    NoteSortOptions,
+    SetNoteSortMode,
+    SortNotes,
+    type NoteSortMode,
+} from '../preferences/noteSort.js';
 
 const EncodingHeader = {
     headers: {
@@ -122,13 +129,18 @@ type NamespaceSwitchHandler = (namespace: string, nextURL: URL) => Promise<void>
 // Cartographer class is used to represent a collection of cards
 // move to it's own file
 export class Cartographer {
-    Cards: cards.Card[] = [];
+    Cards: Note[] = [];
     SearchBar: SearchBar;
     private renderVersion: number = 0;
+    private noteSortMode: NoteSortMode = GetNoteSortMode();
     // Initialize data, build cards, and wire up UI controls.
     constructor() {
         this.SearchBar = new SearchBar(this.Cards);
         SetupCardStyleControls();
+        SetupNoteSortControls(this.noteSortMode, (mode) => {
+            this.noteSortMode = mode;
+            this.BuildAndRenderCards();
+        });
         SetupAdminPanel();
         SetupNoteSubmission();
         this.SetupNoteDeletion();
@@ -145,6 +157,11 @@ export class Cartographer {
     private async LoadCurrentNamespace(): Promise<void> {
         await QueryMainData();
 
+        this.BuildAndRenderCards();
+    }
+
+    // BuildAndRenderCards rebuilds the deck in the selected per-browser sort order.
+    private BuildAndRenderCards(): void {
         if (!CartographerData || !Array.isArray(CartographerData.notes)) {
             console.error('No notes data available to render');
             RenderNavMetadata([]);
@@ -152,7 +169,9 @@ export class Cartographer {
         }
 
         this.Cards.splice(0, this.Cards.length);
-        CartographerData.notes.forEach((note) => {
+        const hasTermSearch = new URLSearchParams(window.location.search).has('term');
+        const sortedNotes = SortNotes(CartographerData.notes, this.noteSortMode, hasTermSearch);
+        sortedNotes.forEach((note) => {
             const resolvedID = note.id || note.url || note.title;
             if (!resolvedID) {
                 return;
@@ -184,6 +203,7 @@ export class Cartographer {
 
         RenderNavMetadata(this.Cards);
         this.renderCards();
+        this.Cards.forEach(card => card.processFilter(this.SearchBar.filter));
     }
 
     // SetupNoteDeletion wires admin note deletion events from card actions.
@@ -345,6 +365,45 @@ export class Cartographer {
             container.appendChild(remainingFragment);
         }
     }
+}
+
+// SetupNoteSortControls wires the cookie-backed note ordering preference.
+function SetupNoteSortControls(initialMode: NoteSortMode, onChange: (mode: NoteSortMode) => void): void {
+    const select = document.getElementById('noteSortSelect') as HTMLSelectElement | null;
+    const summary = document.getElementById('noteSortSummary') as HTMLElement | null;
+    if (!select) {
+        return;
+    }
+
+    const optionsByID = new Map(NoteSortOptions.map(option => [option.id, option]));
+
+    // applyNoteSort updates the control summary and optionally persists the selection.
+    const applyNoteSort = (mode: NoteSortMode, persist: boolean) => {
+        const selected = optionsByID.get(mode) || NoteSortOptions[0];
+        select.value = selected.id;
+        if (summary) {
+            summary.textContent = selected.summary;
+        }
+        if (persist) {
+            SetNoteSortMode(selected.id);
+            onChange(selected.id);
+        }
+    };
+
+    select.replaceChildren();
+    NoteSortOptions.forEach(option => {
+        const element = document.createElement('option');
+        element.value = option.id;
+        element.textContent = option.label;
+        select.appendChild(element);
+    });
+
+    select.addEventListener('change', () => {
+        const selected = optionsByID.get(select.value as NoteSortMode) || NoteSortOptions[0];
+        applyNoteSort(selected.id, true);
+    });
+
+    applyNoteSort(initialMode, false);
 }
 
 // SetupCardStyleControls wires the tools control that switches card rendering styles.

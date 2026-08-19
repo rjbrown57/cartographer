@@ -1028,6 +1028,10 @@
 			color: #ffffff;
 		}
 
+		.note-sort-select {
+			max-width: 12rem;
+		}
+
 		.admin-tabs {
 			background: transparent;
 			border: 0;
@@ -1591,6 +1595,16 @@
 								<div id="cardStyleSummary" class="admin-cache-card__meta">Comfortable cards</div>
 							</div>
 							<div id="cardStyleOptions" class="card-style-options" role="group" aria-label="Card style"></div>
+						</div>
+					</section>
+					<section class="admin-cache-card" aria-labelledby="noteSortToolsTitle">
+						<div class="admin-cache-card__header">
+							<div>
+								<h2 id="noteSortToolsTitle" class="h6 mb-1">Note order</h2>
+								<div id="noteSortSummary" class="admin-cache-card__meta">Relevant for searches, recently updated otherwise.</div>
+							</div>
+							<label class="visually-hidden" for="noteSortSelect">Sort notes</label>
+							<select id="noteSortSelect" class="form-select form-select-sm note-sort-select" aria-label="Sort notes"></select>
 						</div>
 					</section>
 					<form id="adminLoginForm" class="note-form-grid is-hidden">
