@@ -118,7 +118,21 @@ func noteContentEqual(existing, incoming *proto.Note) bool {
 		existing.GetTitle() == incoming.GetTitle() &&
 		existing.GetBody() == incoming.GetBody() &&
 		existing.GetUrl() == incoming.GetUrl() &&
-		slices.Equal(existing.GetTags(), incoming.GetTags()) &&
+		tagsEqual(existing.GetTags(), incoming.GetTags()) &&
 		maps.Equal(existing.GetAnnotations(), incoming.GetAnnotations()) &&
 		gproto.Equal(existing.GetData(), incoming.GetData())
+}
+
+// tagsEqual compares tags as an unordered collection without mutating either note.
+func tagsEqual(existing, incoming []string) bool {
+	if len(existing) != len(incoming) {
+		return false
+	}
+
+	existingTags := slices.Clone(existing)
+	incomingTags := slices.Clone(incoming)
+	slices.Sort(existingTags)
+	slices.Sort(incomingTags)
+
+	return slices.Equal(existingTags, incomingTags)
 }
