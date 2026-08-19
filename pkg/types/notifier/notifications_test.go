@@ -8,6 +8,7 @@ import (
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 )
 
+// TestNewNotifier verifies a notifier starts with no subscribers.
 func TestNewNotifier(t *testing.T) {
 	notifier := NewNotifier()
 	if notifier == nil {
@@ -18,6 +19,7 @@ func TestNewNotifier(t *testing.T) {
 	}
 }
 
+// TestSubscribe verifies a subscriber is registered and returned.
 func TestSubscribe(t *testing.T) {
 	notifier := NewNotifier()
 	subscriber := notifier.Subscribe()
@@ -29,6 +31,7 @@ func TestSubscribe(t *testing.T) {
 	}
 }
 
+// TestPublish verifies notifications reach registered subscribers.
 func TestPublish(t *testing.T) {
 	notifier := NewNotifier()
 	subscriber := notifier.Subscribe()
@@ -51,17 +54,29 @@ func TestPublish(t *testing.T) {
 	}
 }
 
+// TestUnsubscribe verifies cancellation removes a subscriber before returning.
 func TestUnsubscribe(t *testing.T) {
 	notifier := NewNotifier()
 	subscriber := notifier.Subscribe()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go notifier.Unsubscribe(ctx, subscriber.Id)
+	done := make(chan struct{})
+	go func() {
+		notifier.Unsubscribe(ctx, subscriber.Id)
+		close(done)
+	}()
 
 	cancel()
-	time.Sleep(time.Millisecond * 100) // Give some time for unsubscribe to process
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Expected unsubscribe to complete, but timed out")
+	}
 
+	notifier.mu.RLock()
 	if _, ok := notifier.Subscribers[subscriber.Id]; ok {
+		notifier.mu.RUnlock()
 		t.Fatalf("Expected subscriber to be removed, but still exists")
 	}
+	notifier.mu.RUnlock()
 }
