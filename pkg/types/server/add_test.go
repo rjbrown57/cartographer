@@ -196,6 +196,16 @@ func TestAddPreservesVersionForUnchangedContent(t *testing.T) {
 	}
 }
 
+// TestNoteContentEqualIgnoresTagOrder verifies auto-tag iteration order does not create revisions.
+func TestNoteContentEqualIgnoresTagOrder(t *testing.T) {
+	existing := &proto.Note{Id: "stable", Tags: []string{"first", "second"}}
+	incoming := &proto.Note{Id: "stable", Tags: []string{"second", "first"}}
+
+	if !noteContentEqual(existing, incoming) {
+		t.Fatal("expected notes with the same tags in different orders to have equal content")
+	}
+}
+
 // cachedTestNote returns a note from the test server cache.
 func cachedTestNote(t *testing.T, namespace, id string) *proto.Note {
 	t.Helper()
