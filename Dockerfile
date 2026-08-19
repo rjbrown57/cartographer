@@ -1,12 +1,7 @@
-FROM ubuntu
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6
 
-RUN groupadd -r cartographer -g 99999 && \
-    useradd -r -u 99999 -g cartographer -s /bin/bash cartographer
+COPY --chown=99999:99999 cartographer /usr/local/bin/cartographer
 
-COPY cartographer /usr/local/bin/cartographer
-RUN chown cartographer:cartographer /usr/local/bin/cartographer && \
-    chmod 755 /usr/local/bin/cartographer
-
-USER cartographer
+USER 99999:99999
 
 ENTRYPOINT ["/usr/local/bin/cartographer"]
