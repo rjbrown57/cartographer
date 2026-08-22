@@ -1,4 +1,6 @@
 const searchId = 'searchBar';
+const searchShortcutHintId = 'searchShortcutHint';
+const searchShortcutModifierId = 'searchShortcutModifier';
 export class SearchBar {
     filter = [];
     constructor(deck) {
@@ -7,6 +9,7 @@ export class SearchBar {
             console.error('Search bar element not found');
             return;
         }
+        ConfigureSearchShortcutHint(search);
         search.addEventListener('keyup', () => {
             this.filter = PrepareTerms(search.value.toUpperCase());
             FilterCards(deck, this.filter);
@@ -45,6 +48,20 @@ export class SearchBar {
         });
         window.history.pushState({}, '', url.toString());
     }
+}
+function ConfigureSearchShortcutHint(search) {
+    const hint = document.getElementById(searchShortcutHintId);
+    const modifier = document.getElementById(searchShortcutModifierId);
+    if (!hint || !modifier) {
+        return;
+    }
+    const isApplePlatform = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+    modifier.textContent = isApplePlatform ? '⌘' : 'Ctrl';
+    hint.setAttribute('aria-label', `Focus search with ${isApplePlatform ? 'Command' : 'Control'} K`);
+    hint.addEventListener('click', () => {
+        search.focus();
+        search.select();
+    });
 }
 function FilterCards(deck, filter) {
     if (filter.length === 0) {

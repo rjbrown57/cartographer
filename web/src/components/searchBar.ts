@@ -1,6 +1,8 @@
 import * as cards from '../cards/cards.js';
 
 const searchId = 'searchBar';
+const searchShortcutHintId = 'searchShortcutHint';
+const searchShortcutModifierId = 'searchShortcutModifier';
 
 
 
@@ -12,6 +14,8 @@ export class SearchBar {
             console.error('Search bar element not found');
             return;
         }
+
+        ConfigureSearchShortcutHint(search);
         
         search.addEventListener('keyup', () => {
             // https://www.w3schools.com/jsref/jsref_touppercase.asp
@@ -70,6 +74,23 @@ export class SearchBar {
         // Update the URL without reloading the page
         window.history.pushState({}, '', url.toString());
     }
+}
+
+// ConfigureSearchShortcutHint adapts the visible shortcut and makes the keycap focus search.
+function ConfigureSearchShortcutHint(search: HTMLInputElement): void {
+    const hint = document.getElementById(searchShortcutHintId) as HTMLButtonElement | null;
+    const modifier = document.getElementById(searchShortcutModifierId);
+    if (!hint || !modifier) {
+        return;
+    }
+
+    const isApplePlatform = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+    modifier.textContent = isApplePlatform ? '⌘' : 'Ctrl';
+    hint.setAttribute('aria-label', `Focus search with ${isApplePlatform ? 'Command' : 'Control'} K`);
+    hint.addEventListener('click', () => {
+        search.focus();
+        search.select();
+    });
 }
 
 function FilterCards(deck: cards.Card[], filter: string[]) {

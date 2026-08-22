@@ -15,16 +15,6 @@ type CardOverlay = HTMLElement & {
     keyHandler?: (event: KeyboardEvent) => void;
 };
 
-type NoteEditDetail = {
-    id: string;
-    title: string;
-    body: string;
-    url: string;
-    tags: string[];
-    data?: Record<string, any>;
-    metadata?: NoteMetadata;
-};
-
 type NoteDeleteDetail = {
     id: string;
     title: string;
@@ -270,7 +260,7 @@ export class Note implements cards.Card {
         editButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            this.dispatchEditEvent();
+            window.location.assign(this.getNoteEditorURL());
         };
 
         const copyButton = document.createElement('button');
@@ -319,21 +309,6 @@ export class Note implements cards.Card {
             button.innerHTML = originalHTML;
             button.classList.remove('note-action-button--success');
         }, 1600);
-    }
-
-    // dispatchEditEvent sends the current note data to the shared composer.
-    private dispatchEditEvent(): void {
-        document.dispatchEvent(new CustomEvent('cartographer:edit-note', {
-            detail: {
-                id: this.id,
-                title: this.title,
-                body: this.body,
-                url: this.url,
-                tags: this.tags,
-                data: this.data,
-                metadata: this.metadata,
-            },
-        } satisfies CustomEventInit<NoteEditDetail>));
     }
 
     // dispatchDeleteEvent asks the app shell to delete this note.
@@ -451,6 +426,13 @@ export class Note implements cards.Card {
         pageURL.searchParams.set('id', this.id);
         pageURL.searchParams.set('namespace', query.GetSelectedNamespace());
         return pageURL.toString();
+    }
+
+    // getNoteEditorURL builds the standalone edit URL for this note.
+    private getNoteEditorURL(): string {
+        const editorURL = new URL(this.getNotePageURL());
+        editorURL.searchParams.set('mode', 'edit');
+        return editorURL.toString();
     }
 
     // setCopyButtonState updates the copy button to a temporary copied state.

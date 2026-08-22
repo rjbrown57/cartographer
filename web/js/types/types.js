@@ -50,7 +50,6 @@ export class Cartographer {
             this.BuildAndRenderCards();
         });
         SetupAdminPanel();
-        SetupNoteSubmission();
         this.SetupNoteDeletion();
         this.Initialize();
     }
@@ -307,435 +306,6 @@ function GetTopTagsCollapsed() {
 }
 function SetTopTagsCollapsed(collapsed) {
     localStorage.setItem(TopTagsCollapsedStorageKey, String(collapsed));
-}
-function SetupNoteSubmission() {
-    const form = document.getElementById('noteForm');
-    const status = document.getElementById('noteFormStatus');
-    const composer = document.getElementById('noteComposer');
-    const toggle = document.getElementById('noteComposerToggle');
-    const close = document.getElementById('noteComposerClose');
-    const noteID = document.getElementById('noteID');
-    const noteCreatedAt = document.getElementById('noteCreatedAt');
-    const noteUpdatedAt = document.getElementById('noteUpdatedAt');
-    const noteVersion = document.getElementById('noteVersion');
-    const titleInput = document.getElementById('noteTitle');
-    const urlInput = document.getElementById('noteURL');
-    const sourceInput = document.getElementById('noteSource');
-    const authorInput = document.getElementById('noteAuthor');
-    const namespaceInput = document.getElementById('noteNamespace');
-    const namespaceOptions = document.getElementById('noteNamespaceOptions');
-    const bodyInput = document.getElementById('noteBody');
-    const templateSelect = document.getElementById('noteTemplateSelect');
-    const dataAdd = document.getElementById('noteDataAdd');
-    const dataDetails = document.getElementById('noteDataDetails');
-    const dataInput = document.getElementById('noteData');
-    const tagsInput = document.getElementById('noteTags');
-    const tagsPreview = document.getElementById('noteTagPreview');
-    const writeTab = document.getElementById('noteWriteTab');
-    const previewTab = document.getElementById('notePreviewTab');
-    const previewPane = document.getElementById('notePreview');
-    const modeLabel = document.getElementById('noteComposerModeLabel');
-    const submitLabel = document.getElementById('noteSubmitLabel');
-    if (!form) {
-        return;
-    }
-    const parseTags = () => {
-        const tagsValue = tagsInput?.value.trim() || '';
-        return tagsValue.split(',')
-            .map(tag => tag.trim())
-            .filter(tag => tag !== '');
-    };
-    const parseDataInput = () => {
-        const dataValue = dataInput?.value.trim() || '';
-        if (!dataValue) {
-            return null;
-        }
-        try {
-            const parsed = JSON.parse(dataValue);
-            if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-                throw new Error('Data must be a JSON object.');
-            }
-            return parsed;
-        }
-        catch (err) {
-            console.error(err);
-            if (status) {
-                status.textContent = 'Data must be valid JSON object syntax.';
-                status.className = 'note-form-status text-danger';
-            }
-            dataDetails?.setAttribute('open', '');
-            dataInput?.focus();
-            return null;
-        }
-    };
-    const normalizeTimestampValue = (value) => {
-        if (!value) {
-            return '';
-        }
-        if (typeof value === 'string') {
-            return value;
-        }
-        const seconds = Number(value.seconds || 0);
-        const nanos = Number(value.nanos || 0);
-        if (!seconds && !nanos) {
-            return '';
-        }
-        return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
-    };
-    const setDataEnabled = (enabled) => {
-        dataAdd?.classList.toggle('is-hidden', enabled);
-        dataDetails?.classList.toggle('is-hidden', !enabled);
-        dataDetails?.toggleAttribute('open', enabled);
-        dataAdd?.setAttribute('aria-expanded', String(enabled));
-    };
-    const setDataValue = (data) => {
-        if (!dataInput) {
-            return;
-        }
-        const hasData = data && Object.keys(data).length > 0;
-        dataInput.value = hasData ? JSON.stringify(data, null, 2) : '';
-        setDataEnabled(Boolean(hasData));
-    };
-    const populateTemplateSelect = async () => {
-        if (!templateSelect) {
-            return;
-        }
-        const templates = await LoadTemplates();
-        templateSelect.innerHTML = '';
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = 'Template';
-        templateSelect.appendChild(emptyOption);
-        templates.forEach((template) => {
-            const option = document.createElement('option');
-            option.value = template.id;
-            option.textContent = template.name;
-            templateSelect.appendChild(option);
-        });
-    };
-    const applyTemplateToComposer = (templateID) => {
-        const template = TemplateData.find((candidate) => candidate.id === templateID);
-        if (!template || !bodyInput) {
-            return;
-        }
-        const existingBody = bodyInput.value.trim();
-        bodyInput.value = existingBody
-            ? `${existingBody}\n\n${template.body}`
-            : template.body;
-        const currentTags = new Set(parseTags());
-        (template.tags || []).forEach((tag) => currentTags.add(tag));
-        if (tagsInput) {
-            tagsInput.value = Array.from(currentTags).join(', ');
-        }
-        syncTagPreview();
-        updatePreview();
-        setEditorMode('write');
-    };
-    const syncTagPreview = () => {
-        if (!tagsPreview) {
-            return;
-        }
-        tagsPreview.innerHTML = '';
-        parseTags().forEach((tag) => {
-            const chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'note-tag-chip';
-            const label = document.createElement('span');
-            label.textContent = tag;
-            const icon = document.createElement('i');
-            icon.className = 'bi bi-x';
-            chip.appendChild(label);
-            chip.appendChild(icon);
-            chip.addEventListener('click', () => {
-                const remainingTags = parseTags().filter(candidate => candidate !== tag);
-                if (tagsInput) {
-                    tagsInput.value = remainingTags.join(', ');
-                }
-                syncTagPreview();
-            });
-            tagsPreview.appendChild(chip);
-        });
-    };
-    const populateNamespaceOptions = async (selectedNamespace) => {
-        if (!namespaceOptions) {
-            return;
-        }
-        const namespaces = await GetNamespaces();
-        const selected = NormalizeNamespaceInput(selectedNamespace || query.GetSelectedNamespace());
-        if (selected && !namespaces.includes(selected)) {
-            namespaces.push(selected);
-        }
-        namespaces.sort((a, b) => a.localeCompare(b));
-        namespaceOptions.innerHTML = '';
-        namespaces.forEach((namespace) => {
-            const option = document.createElement('option');
-            option.value = namespace;
-            namespaceOptions.appendChild(option);
-        });
-    };
-    const setNamespaceValue = (namespace) => {
-        if (!namespaceInput) {
-            return;
-        }
-        namespaceInput.value = NormalizeNamespaceInput(namespace || query.GetSelectedNamespace());
-        void populateNamespaceOptions(namespaceInput.value);
-    };
-    const updatePreview = () => {
-        if (!previewPane || !bodyInput) {
-            return;
-        }
-        const markdown = bodyInput.value.trim();
-        previewPane.innerHTML = markdown
-            ? RenderMarkdown(markdown)
-            : '<p class="text-secondary mb-0">Markdown preview will appear here.</p>';
-    };
-    const setEditorMode = (mode) => {
-        const isPreview = mode === 'preview';
-        bodyInput?.classList.toggle('is-hidden', isPreview);
-        previewPane?.classList.toggle('is-hidden', !isPreview);
-        writeTab?.classList.toggle('note-editor-tab--active', !isPreview);
-        previewTab?.classList.toggle('note-editor-tab--active', isPreview);
-        writeTab?.setAttribute('aria-pressed', String(!isPreview));
-        previewTab?.setAttribute('aria-pressed', String(isPreview));
-        if (isPreview) {
-            updatePreview();
-        }
-    };
-    const setComposerOpen = (open, focusNamespace = false) => {
-        if (!composer || !toggle) {
-            return;
-        }
-        composer.classList.toggle('is-hidden', !open);
-        document.body.classList.toggle('modal-open', open);
-        toggle.setAttribute('aria-expanded', String(open));
-        toggle.classList.toggle('nav-action--active', open);
-        if (open) {
-            if (focusNamespace) {
-                namespaceInput?.focus();
-                namespaceInput?.select();
-            }
-            else {
-                titleInput?.focus();
-            }
-        }
-    };
-    const setCreateMode = (namespace = query.GetSelectedNamespace()) => {
-        if (noteID) {
-            noteID.value = '';
-        }
-        if (noteCreatedAt) {
-            noteCreatedAt.value = '';
-        }
-        if (noteUpdatedAt) {
-            noteUpdatedAt.value = '';
-        }
-        if (noteVersion) {
-            noteVersion.value = '';
-        }
-        if (namespaceInput) {
-            namespaceInput.disabled = false;
-        }
-        setNamespaceValue(namespace);
-        setDataValue();
-        if (submitLabel) {
-            submitLabel.textContent = 'Save note';
-        }
-        if (modeLabel) {
-            modeLabel.textContent = 'Add note';
-        }
-        if (status) {
-            status.textContent = '';
-            status.className = 'note-form-status';
-        }
-        syncTagPreview();
-        updatePreview();
-        setEditorMode('write');
-    };
-    bodyInput?.addEventListener('input', updatePreview);
-    tagsInput?.addEventListener('input', syncTagPreview);
-    dataAdd?.addEventListener('click', () => {
-        setDataEnabled(true);
-        dataInput?.focus();
-    });
-    templateSelect?.addEventListener('change', () => {
-        applyTemplateToComposer(templateSelect.value);
-        templateSelect.value = '';
-    });
-    writeTab?.addEventListener('click', () => setEditorMode('write'));
-    previewTab?.addEventListener('click', () => setEditorMode('preview'));
-    toggle?.addEventListener('click', () => {
-        const isOpen = composer ? !composer.classList.contains('is-hidden') : false;
-        if (!isOpen) {
-            form.reset();
-            setCreateMode(query.GetSelectedNamespace());
-            void populateTemplateSelect();
-        }
-        setComposerOpen(!isOpen);
-    });
-    close?.addEventListener('click', () => {
-        setComposerOpen(false);
-        toggle?.focus();
-    });
-    composer?.addEventListener('click', (event) => {
-        if (event.target === composer) {
-            setComposerOpen(false);
-            toggle?.focus();
-        }
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && composer && !composer.classList.contains('is-hidden')) {
-            setComposerOpen(false);
-            toggle?.focus();
-        }
-    });
-    document.addEventListener('cartographer:edit-note', ((event) => {
-        const detail = event.detail;
-        if (!detail) {
-            return;
-        }
-        if (noteID) {
-            noteID.value = detail.id;
-        }
-        if (noteCreatedAt) {
-            noteCreatedAt.value = normalizeTimestampValue(detail.metadata?.created_at);
-        }
-        if (noteUpdatedAt) {
-            noteUpdatedAt.value = normalizeTimestampValue(detail.metadata?.updated_at);
-        }
-        if (noteVersion) {
-            noteVersion.value = String(detail.metadata?.version || '');
-        }
-        if (namespaceInput) {
-            namespaceInput.disabled = true;
-        }
-        setNamespaceValue(query.GetSelectedNamespace());
-        if (titleInput) {
-            titleInput.value = detail.title;
-        }
-        if (urlInput) {
-            urlInput.value = detail.url;
-        }
-        if (sourceInput) {
-            sourceInput.value = detail.metadata?.source || '';
-        }
-        if (authorInput) {
-            authorInput.value = detail.metadata?.author || '';
-        }
-        if (bodyInput) {
-            bodyInput.value = detail.body;
-        }
-        setDataValue(detail.data);
-        if (tagsInput) {
-            tagsInput.value = detail.tags.join(', ');
-        }
-        if (submitLabel) {
-            submitLabel.textContent = 'Save changes';
-        }
-        if (modeLabel) {
-            modeLabel.textContent = 'Edit note';
-        }
-        if (status) {
-            status.textContent = 'Editing existing note.';
-            status.className = 'note-form-status text-secondary';
-        }
-        syncTagPreview();
-        updatePreview();
-        setEditorMode('write');
-        void populateTemplateSelect();
-        setComposerOpen(true);
-    }));
-    document.addEventListener('cartographer:add-note', ((event) => {
-        const detail = event.detail;
-        form.reset();
-        setCreateMode(detail?.namespace || query.GetSelectedNamespace());
-        void populateTemplateSelect();
-        setComposerOpen(true, Boolean(detail?.focusNamespace));
-    }));
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const existingID = noteID?.value.trim() || '';
-        const title = titleInput?.value.trim() || '';
-        const url = urlInput?.value.trim() || '';
-        const source = sourceInput?.value.trim() || '';
-        const author = authorInput?.value.trim() || '';
-        const body = bodyInput?.value.trim() || '';
-        const tags = parseTags();
-        const namespace = NormalizeNamespaceInput(namespaceInput?.value || query.GetSelectedNamespace());
-        const data = parseDataInput();
-        const hasDataInput = Boolean(dataInput?.value.trim());
-        if (hasDataInput && !data) {
-            return;
-        }
-        if (!title || !body) {
-            if (status) {
-                status.textContent = 'Title and markdown body are required.';
-                status.className = 'note-form-status text-danger';
-            }
-            return;
-        }
-        if (!IsValidNamespace(namespace)) {
-            if (status) {
-                status.textContent = 'Use a valid namespace: lowercase letters, numbers, and hyphens.';
-                status.className = 'note-form-status text-danger';
-            }
-            namespaceInput?.focus();
-            return;
-        }
-        if (namespaceInput) {
-            namespaceInput.value = namespace;
-        }
-        const payload = {
-            id: existingID || crypto.randomUUID(),
-            title,
-            body,
-            url,
-            tags,
-            data: data || undefined,
-            namespace,
-            created_at: noteCreatedAt?.value || undefined,
-            updated_at: undefined,
-            source: source || undefined,
-            author: author || undefined,
-            version: undefined,
-        };
-        const namespaceToOpen = namespace !== query.GetSelectedNamespace() ? namespace : '';
-        if (status) {
-            status.textContent = existingID ? 'Saving changes...' : 'Saving note...';
-            status.className = 'note-form-status text-secondary';
-        }
-        try {
-            const response = await fetch(NotesEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) {
-                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
-            }
-            cache.invalidateCache();
-            if (status) {
-                status.textContent = existingID ? 'Changes saved.' : 'Note saved.';
-                status.className = 'note-form-status text-success';
-            }
-            form.reset();
-            setCreateMode(query.GetSelectedNamespace());
-            if (namespaceToOpen) {
-                query.SetSelectedNamespace(namespaceToOpen);
-                window.location.assign(GetNamespaceURL(namespaceToOpen).toString());
-                return;
-            }
-            window.location.reload();
-        }
-        catch (err) {
-            console.error(err);
-            if (status) {
-                status.textContent = 'Unable to save note.';
-                status.className = 'note-form-status text-danger';
-            }
-        }
-    });
 }
 function SetupAdminPanel() {
     const panel = document.getElementById('adminPanel');
@@ -1292,6 +862,15 @@ function GetNamespaceURL(namespace) {
     }
     return nextURL;
 }
+function GetNoteCreateURL(namespace, focusNamespace = false) {
+    const nextURL = new URL('/note', window.location.origin);
+    nextURL.searchParams.set('mode', 'create');
+    nextURL.searchParams.set('namespace', namespace);
+    if (focusNamespace) {
+        nextURL.searchParams.set('focus', 'namespace');
+    }
+    return nextURL.toString();
+}
 function GetVisibleNamespaces(availableNamespaces, currentNamespace) {
     if (availableNamespaces.length <= MaxVisibleNamespaceTabs) {
         return availableNamespaces;
@@ -1441,6 +1020,10 @@ async function SetupNamespaceSelector(onSwitch) {
     }
     const availableNamespaces = await GetNamespaces();
     const currentNamespace = query.GetSelectedNamespace();
+    const noteCreateLink = document.getElementById('noteComposerToggle');
+    if (noteCreateLink) {
+        noteCreateLink.href = GetNoteCreateURL(currentNamespace);
+    }
     if (availableNamespaces.length === 0) {
         availableNamespaces.push(currentNamespace);
     }
@@ -1503,14 +1086,10 @@ async function SetupNamespaceSelector(onSwitch) {
         }
     };
     const openAddNoteInNamespace = (namespace) => {
-        document.dispatchEvent(new CustomEvent('cartographer:add-note', {
-            detail: { namespace, focusNamespace: false },
-        }));
+        window.location.assign(GetNoteCreateURL(namespace));
     };
     const openAddNoteNamespacePicker = () => {
-        document.dispatchEvent(new CustomEvent('cartographer:add-note', {
-            detail: { namespace: query.GetSelectedNamespace(), focusNamespace: true },
-        }));
+        window.location.assign(GetNoteCreateURL(query.GetSelectedNamespace(), true));
     };
     const createNamespaceButton = (namespace) => {
         const button = document.createElement('button');
