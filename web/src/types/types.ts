@@ -28,7 +28,7 @@ const AdminSessionEndpoint = '/v1/admin/session';
 const AdminNamespacesEndpoint = '/v1/admin/namespaces';
 const NamespaceListId = 'namespaceList'
 const NamespaceFinderId = 'namespaceFinder'
-const MaxVisibleNamespaceTabs = 8;
+const NamespaceSearchThreshold = 16;
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
@@ -1136,11 +1136,11 @@ function GetNoteCreateURL(namespace: string, focusNamespace: boolean = false): s
 
 // GetVisibleNamespaces keeps the selected namespace visible while capping tab count.
 function GetVisibleNamespaces(availableNamespaces: string[], currentNamespace: string): string[] {
-    if (availableNamespaces.length <= MaxVisibleNamespaceTabs) {
+    if (availableNamespaces.length <= NamespaceSearchThreshold) {
         return availableNamespaces;
     }
 
-    const visible = availableNamespaces.slice(0, MaxVisibleNamespaceTabs);
+    const visible = availableNamespaces.slice(0, NamespaceSearchThreshold);
     if (visible.includes(currentNamespace)) {
         return visible;
     }
@@ -1434,10 +1434,12 @@ async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promis
     });
 
     if (namespaceFinder && hasOverflow) {
+        const hiddenNamespaceCount = availableNamespaces.length - visibleNamespaces.length;
         const finderButton = document.createElement('button');
         finderButton.type = 'button';
         finderButton.className = 'namespace-tab namespace-tab--utility';
-        finderButton.setAttribute('aria-label', 'Find namespace');
+        finderButton.setAttribute('aria-label', `Find ${hiddenNamespaceCount} more ${hiddenNamespaceCount === 1 ? 'namespace' : 'namespaces'}`);
+        finderButton.title = `Find ${hiddenNamespaceCount} more ${hiddenNamespaceCount === 1 ? 'namespace' : 'namespaces'}`;
         finderButton.innerHTML = '<i class="bi bi-search" aria-hidden="true"></i>';
         finderButton.addEventListener('click', () => {
             RenderNamespaceFinder(namespaceFinder, availableNamespaces, 'find', selectNamespace, openAddNoteInNamespace);
