@@ -431,7 +431,34 @@
 			border: none;
 			color: #f8fafc;
 			caret-color: #f8fafc;
+			min-width: 0;
 			padding-left: 0;
+		}
+
+		.search-shortcut-hint {
+			align-items: center;
+			background: rgba(148, 163, 184, 0.14);
+			border: 1px solid rgba(226, 232, 240, 0.24);
+			border-radius: 0.45rem;
+			color: rgba(241, 245, 249, 0.82);
+			display: inline-flex;
+			font-family: inherit;
+			font-size: 0.72rem;
+			font-weight: 600;
+			gap: 0.2rem;
+			letter-spacing: 0.01em;
+			line-height: 1;
+			margin-right: 0.75rem;
+			padding: 0.28rem 0.42rem;
+			white-space: nowrap;
+		}
+
+		.search-shortcut-hint:hover,
+		.search-shortcut-hint:focus-visible {
+			background: rgba(148, 163, 184, 0.24);
+			border-color: rgba(226, 232, 240, 0.42);
+			color: #f8fafc;
+			outline: none;
 		}
 
 		.search-input::placeholder {
@@ -1525,12 +1552,15 @@
 				<div class="search-bar-wrap d-flex align-items-center">
 					<span class="search-icon-wrap px-3"><i class="bi bi-search"></i></span>
 					<input id="searchBar" type="text" class="form-control search-input" placeholder="Search notes and tags...">
+					<button id="searchShortcutHint" class="search-shortcut-hint d-none d-sm-inline-flex" type="button" aria-label="Focus search with Command K" title="Focus search">
+						<span id="searchShortcutModifier" aria-hidden="true">⌘</span><span aria-hidden="true">K</span>
+					</button>
 				</div>
 			</div>
-			<button id="noteComposerToggle" class="btn nav-action admin-only d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="noteComposer" type="button">
+			<a id="noteComposerToggle" href="/note?mode=create&amp;namespace=default" class="btn nav-action admin-only d-flex align-items-center justify-content-center" aria-label="Add note">
 				<i class="bi bi-journal-plus"></i>
 				<span class="visually-hidden">Add note</span>
-			</button>
+			</a>
 			<button id="adminPanelToggle" class="btn nav-action d-flex align-items-center justify-content-center" aria-expanded="false" aria-controls="adminPanel" type="button">
 				<i class="bi bi-sliders"></i>
 				<span class="visually-hidden">Tools</span>
@@ -1701,92 +1731,6 @@
 						</button>
 						<button id="templateCancelEdit" class="btn btn-outline-secondary" type="button">Cancel</button>
 						<span id="templateFormStatus" class="note-form-status"></span>
-					</div>
-				</form>
-			</div>
-		</section>
-		<section id="noteComposer" class="note-composer is-hidden" aria-labelledby="noteComposerTitle">
-			<div class="note-composer__panel" role="dialog" aria-modal="true">
-				<div class="note-composer__header">
-					<div id="noteComposerTitle" class="d-flex align-items-center gap-2">
-						<i class="bi bi-journal-plus"></i>
-						<span id="noteComposerModeLabel">Add note</span>
-					</div>
-					<button id="noteComposerClose" class="note-composer__close" type="button" aria-label="Close note form">
-						<i class="bi bi-x-lg"></i>
-					</button>
-				</div>
-				<form id="noteForm" class="note-form-grid">
-					<input id="noteID" type="hidden">
-					<input id="noteCreatedAt" type="hidden">
-					<input id="noteUpdatedAt" type="hidden">
-					<input id="noteVersion" type="hidden">
-					<div class="row g-3">
-						<div class="col-12 col-lg-4">
-							<label for="noteTitle" class="form-label">Title</label>
-							<input id="noteTitle" class="form-control" type="text" autocomplete="off" required>
-						</div>
-						<div class="col-12 col-lg-4">
-							<label for="noteURL" class="form-label">URL</label>
-							<input id="noteURL" class="form-control" type="url" autocomplete="off">
-						</div>
-						<div class="col-12 col-lg-4">
-							<label for="noteNamespace" class="form-label">Namespace</label>
-							<input id="noteNamespace" class="form-control" type="text" autocomplete="off" list="noteNamespaceOptions" required>
-							<datalist id="noteNamespaceOptions"></datalist>
-						</div>
-						<div class="col-12">
-							<div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-								<label for="noteBody" class="form-label mb-0">Markdown</label>
-								<div class="d-flex align-items-center gap-2">
-									<select id="noteTemplateSelect" class="form-select form-select-sm note-template-select" aria-label="Apply note template">
-										<option value="">Template</option>
-									</select>
-									<div class="note-editor-tabs" role="group" aria-label="Markdown editor mode">
-										<button id="noteWriteTab" class="note-editor-tab note-editor-tab--active" type="button" aria-pressed="true">
-											<i class="bi bi-pencil"></i>
-											<span>Write</span>
-										</button>
-										<button id="notePreviewTab" class="note-editor-tab" type="button" aria-pressed="false">
-											<i class="bi bi-eye"></i>
-											<span>Preview</span>
-										</button>
-									</div>
-								</div>
-							</div>
-							<textarea id="noteBody" class="form-control" rows="8" required></textarea>
-							<div id="notePreview" class="note-preview-pane note-markdown is-hidden"></div>
-						</div>
-						<div class="col-12 col-lg-8">
-							<label for="noteTags" class="form-label">Tags</label>
-							<input id="noteTags" class="form-control" type="text" autocomplete="off" placeholder="ops, runbook, incident">
-							<div id="noteTagPreview" class="note-tag-preview" aria-live="polite"></div>
-						</div>
-						<div class="col-12 col-lg-2">
-							<label for="noteSource" class="form-label">Source</label>
-							<input id="noteSource" class="form-control" type="text" autocomplete="off" placeholder="cartographer">
-						</div>
-						<div class="col-12 col-lg-2">
-							<label for="noteAuthor" class="form-label">Author</label>
-							<input id="noteAuthor" class="form-control" type="text" autocomplete="off">
-						</div>
-						<div class="col-12">
-							<button id="noteDataAdd" class="btn btn-outline-secondary btn-sm note-data-add d-inline-flex align-items-center gap-2" type="button" aria-controls="noteDataDetails">
-								<i class="bi bi-plus-lg"></i>
-								<span>Structured data</span>
-							</button>
-							<details id="noteDataDetails" class="note-data-details is-hidden">
-								<summary class="note-data-summary">Structured data</summary>
-								<textarea id="noteData" class="form-control note-data-textarea" rows="6" autocomplete="off" spellcheck="false" placeholder='{"key": "value"}'></textarea>
-							</details>
-						</div>
-						<div class="col-12 col-lg-4 d-flex align-items-end gap-3">
-							<button class="btn btn-primary d-inline-flex align-items-center gap-2" type="submit">
-								<i class="bi bi-save"></i>
-								<span id="noteSubmitLabel">Save note</span>
-							</button>
-							<span id="noteFormStatus" class="note-form-status"></span>
-						</div>
 					</div>
 				</form>
 			</div>

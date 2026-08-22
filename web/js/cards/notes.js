@@ -174,7 +174,7 @@ export class Note {
         editButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            this.dispatchEditEvent();
+            window.location.assign(this.getNoteEditorURL());
         };
         const copyButton = document.createElement('button');
         copyButton.type = 'button';
@@ -216,19 +216,6 @@ export class Note {
             button.innerHTML = originalHTML;
             button.classList.remove('note-action-button--success');
         }, 1600);
-    }
-    dispatchEditEvent() {
-        document.dispatchEvent(new CustomEvent('cartographer:edit-note', {
-            detail: {
-                id: this.id,
-                title: this.title,
-                body: this.body,
-                url: this.url,
-                tags: this.tags,
-                data: this.data,
-                metadata: this.metadata,
-            },
-        }));
     }
     dispatchDeleteEvent() {
         document.dispatchEvent(new CustomEvent('cartographer:delete-note', {
@@ -321,6 +308,11 @@ export class Note {
         pageURL.searchParams.set('id', this.id);
         pageURL.searchParams.set('namespace', query.GetSelectedNamespace());
         return pageURL.toString();
+    }
+    getNoteEditorURL() {
+        const editorURL = new URL(this.getNotePageURL());
+        editorURL.searchParams.set('mode', 'edit');
+        return editorURL.toString();
     }
     setCopyButtonState(copyButton, copied) {
         if (!copied) {
