@@ -54,6 +54,23 @@ export function IsValidNamespace(namespace: string): boolean {
     return NamespacePattern.test(namespace);
 }
 
+// ResolveReturnPath accepts only relative or same-origin navigation destinations.
+export function ResolveReturnPath(value: string | null, origin: string): string | null {
+    if (!value) {
+        return null;
+    }
+
+    try {
+        const destination = new URL(value, origin);
+        if (destination.origin !== new URL(origin).origin) {
+            return null;
+        }
+        return `${destination.pathname}${destination.search}${destination.hash}`;
+    } catch {
+        return null;
+    }
+}
+
 // ParseDataValue validates optional structured data JSON.
 export function ParseDataValue(value: string): DataParseResult {
     const trimmed = value.trim();

@@ -1,13 +1,15 @@
 import { RenderMarkdown } from './cards/notes.js';
-import { DraftFingerprint, FormatData, IsValidNamespace, NormalizeNamespaceInput, NormalizeTimestamp, ParseCommaList, ParseDataValue, } from './noteEditor.js';
+import { DraftFingerprint, FormatData, IsValidNamespace, NormalizeNamespaceInput, NormalizeTimestamp, ParseCommaList, ParseDataValue, ResolveReturnPath, } from './noteEditor.js';
 const GetEndpoint = '/v1/get';
 const NamespacesEndpoint = '/v1/get/namespaces';
 const NotesEndpoint = '/v1/notes';
 const TemplatesEndpoint = '/v1/admin/templates';
 const AdminSessionEndpoint = '/v1/admin/session';
 const EditorModeStorageKey = 'cartographer_note_editor_mode';
+const ReturnToParameter = 'returnTo';
 let activeNote = null;
 let activeNamespace = 'default';
+let activeReturnPath = null;
 let pageMode = 'read';
 let editorDirty = false;
 let initialEditorFingerprint = '';
@@ -19,6 +21,7 @@ async function main() {
     }
     const params = new URLSearchParams(window.location.search);
     activeNamespace = NormalizeNamespaceInput(params.get('namespace') || 'default') || 'default';
+    activeReturnPath = ResolveReturnPath(params.get(ReturnToParameter), window.location.origin);
     const requestedMode = params.get('mode');
     pageMode = requestedMode === 'create' ? 'create' : requestedMode === 'edit' ? 'edit' : 'read';
     wireGlobalNavigation();
@@ -41,6 +44,7 @@ async function main() {
             renderError(shell, 'Note not found.');
             return;
         }
+        updateBackLinkDestination();
         if (pageMode === 'edit') {
             if (!await requireAdmin(shell)) {
                 return;
@@ -488,7 +492,8 @@ async function saveEditor(elements) {
             context.textContent = 'Edit note';
         }
         document.title = `Edit note · ${title}`;
-        window.history.replaceState({}, '', getEditorURL(id, namespace));
+        window.history.replaceState({}, '', getEditorURL(id, namespace, activeReturnPath));
+        updateBackLinkDestination();
         invalidateAppCache();
         initialEditorFingerprint = getEditorFingerprint(elements);
         setEditorDirty(false);
@@ -592,16 +597,12 @@ function navigateAwayFromEditor() {
         return;
     }
     editorDirty = false;
-    if (activeNote) {
-        window.location.assign(getReaderURL(activeNote.id, activeNamespace));
-        return;
-    }
-    window.location.assign(getNamespaceURL(activeNamespace));
+    window.location.assign(getEditorExitURL());
 }
 function wireGlobalNavigation() {
     const backLink = document.getElementById('backLink');
     if (backLink) {
-        backLink.href = getNamespaceURL(activeNamespace);
+        updateBackLinkDestination();
         backLink.onclick = (event) => {
             if (pageMode === 'read') {
                 return;
@@ -623,6 +624,24 @@ function wireGlobalNavigation() {
         event.preventDefault();
         event.returnValue = '';
     });
+}
+function updateBackLinkDestination() {
+    const backLink = document.getElementById('backLink');
+    if (!backLink) {
+        return;
+    }
+    backLink.href = pageMode === 'read'
+        ? getNamespaceURL(activeNamespace)
+        : getEditorExitURL();
+}
+function getEditorExitURL() {
+    if (activeReturnPath) {
+        return new URL(activeReturnPath, window.location.origin).toString();
+    }
+    if (activeNote) {
+        return getReaderURL(activeNote.id, activeNamespace);
+    }
+    return getNamespaceURL(activeNamespace);
 }
 function setPageChrome(editing, contextLabel) {
     const page = document.getElementById('notePage');
@@ -731,9 +750,12 @@ function getReaderURL(id, namespace) {
     url.searchParams.set('namespace', namespace);
     return url.toString();
 }
-function getEditorURL(id, namespace) {
+function getEditorURL(id, namespace, returnPath) {
     const url = new URL(getReaderURL(id, namespace));
     url.searchParams.set('mode', 'edit');
+    if (returnPath) {
+        url.searchParams.set(ReturnToParameter, returnPath);
+    }
     return url.toString();
 }
 function invalidateAppCache() {

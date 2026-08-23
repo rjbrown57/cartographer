@@ -10,6 +10,21 @@ export function NormalizeNamespaceInput(value) {
 export function IsValidNamespace(namespace) {
     return NamespacePattern.test(namespace);
 }
+export function ResolveReturnPath(value, origin) {
+    if (!value) {
+        return null;
+    }
+    try {
+        const destination = new URL(value, origin);
+        if (destination.origin !== new URL(origin).origin) {
+            return null;
+        }
+        return `${destination.pathname}${destination.search}${destination.hash}`;
+    }
+    catch {
+        return null;
+    }
+}
 export function ParseDataValue(value) {
     const trimmed = value.trim();
     if (!trimmed) {

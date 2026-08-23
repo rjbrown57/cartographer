@@ -9,6 +9,7 @@ import {
     NormalizeTimestamp,
     ParseCommaList,
     ParseDataValue,
+    ResolveReturnPath,
 } from '../js/noteEditor.js';
 
 test('ParseCommaList trims, removes blanks, and preserves unique order', () => {
@@ -20,6 +21,23 @@ test('namespace helpers normalize author input and enforce backend-safe names', 
     assert.equal(IsValidNamespace('platform-ops'), true);
     assert.equal(IsValidNamespace('-platform'), false);
     assert.equal(IsValidNamespace('platform_ops'), false);
+});
+
+test('ResolveReturnPath preserves same-origin state and rejects unsafe destinations', () => {
+    const origin = 'https://cartographer.example';
+
+    assert.equal(
+        ResolveReturnPath('/?namespace=security&tag=incident#notes', origin),
+        '/?namespace=security&tag=incident#notes',
+    );
+    assert.equal(
+        ResolveReturnPath('https://cartographer.example/?term=checkout', origin),
+        '/?term=checkout',
+    );
+    assert.equal(ResolveReturnPath('https://example.com/phishing', origin), null);
+    assert.equal(ResolveReturnPath('//example.com/phishing', origin), null);
+    assert.equal(ResolveReturnPath('http://[', origin), null);
+    assert.equal(ResolveReturnPath(null, origin), null);
 });
 
 test('ParseDataValue accepts optional objects and explains invalid values', () => {
