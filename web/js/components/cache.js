@@ -1,7 +1,12 @@
 const CACHE_TTL_MS = 480 * 60 * 1000;
 const CACHE_STORAGE_KEY = 'cartographer_cache';
+const CACHE_ENABLED_STORAGE_KEY = 'cartographer_note_cache_enabled';
 const mainDataCache = new Map();
 function loadCacheFromStorage() {
+    if (!isNoteCacheEnabled()) {
+        invalidateCache();
+        return;
+    }
     try {
         const stored = localStorage.getItem(CACHE_STORAGE_KEY);
         if (stored) {
@@ -36,7 +41,19 @@ export function isCacheValid(cache) {
     const now = Date.now();
     return (now - cache.timestamp) < cache.ttl;
 }
+export function isNoteCacheEnabled() {
+    return localStorage.getItem(CACHE_ENABLED_STORAGE_KEY) !== 'false';
+}
+export function setNoteCacheEnabled(enabled) {
+    localStorage.setItem(CACHE_ENABLED_STORAGE_KEY, String(enabled));
+    if (!enabled) {
+        invalidateCache();
+    }
+}
 export function getCacheEntry(queryPath) {
+    if (!isNoteCacheEnabled()) {
+        return undefined;
+    }
     let cachedEntry = mainDataCache.get(queryPath);
     if (!cachedEntry) {
         try {
@@ -56,6 +73,9 @@ export function getCacheEntry(queryPath) {
     return cachedEntry;
 }
 export function setCacheEntry(queryPath, data) {
+    if (!isNoteCacheEnabled()) {
+        return;
+    }
     const cacheEntry = {
         data: data,
         timestamp: Date.now(),
@@ -72,5 +92,5 @@ export function getCacheKeys() {
 }
 export function invalidateCache() {
     mainDataCache.clear();
-    saveCacheToStorage();
+    localStorage.removeItem(CACHE_STORAGE_KEY);
 }

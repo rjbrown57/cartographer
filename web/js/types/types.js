@@ -18,6 +18,7 @@ const AdminNamespacesEndpoint = '/v1/admin/namespaces';
 const NamespaceListId = 'namespaceList';
 const NamespaceFinderId = 'namespaceFinder';
 const NamespaceSearchThreshold = 16;
+const NoteCacheChangedEvent = 'cartographer:note-cache-changed';
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
@@ -51,6 +52,9 @@ export class Cartographer {
         });
         SetupAdminPanel();
         this.SetupNoteDeletion();
+        document.addEventListener(NoteCacheChangedEvent, () => {
+            void this.LoadCurrentNamespace();
+        });
         this.Initialize();
     }
     async Initialize() {
@@ -314,7 +318,9 @@ function SetupAdminPanel() {
     const body = document.getElementById('adminPanelBody');
     const cacheSummary = document.getElementById('cacheSummary');
     const cacheKeyList = document.getElementById('cacheKeyList');
+    const cacheKeyDetails = document.getElementById('cacheKeyDetails');
     const clearCacheButton = document.getElementById('clearCacheButton');
+    const noteCacheToggle = document.getElementById('noteCacheToggle');
     const cacheToolsStatus = document.getElementById('cacheToolsStatus');
     const loginForm = document.getElementById('adminLoginForm');
     const tokenInput = document.getElementById('adminToken');
@@ -349,10 +355,20 @@ function SetupAdminPanel() {
     let activeAdminTab = 'templates';
     let templateEditorMode = 'write';
     const renderCacheTools = () => {
+        const enabled = cache.isNoteCacheEnabled();
         const cacheKeys = cache.getCacheKeys();
+        if (noteCacheToggle) {
+            noteCacheToggle.checked = enabled;
+        }
+        if (clearCacheButton) {
+            clearCacheButton.disabled = !enabled;
+        }
+        cacheKeyDetails?.classList.toggle('is-hidden', !enabled);
         if (cacheSummary) {
             const entryLabel = cacheKeys.length === 1 ? 'entry' : 'entries';
-            cacheSummary.textContent = `${cacheKeys.length} cached ${entryLabel}`;
+            cacheSummary.textContent = enabled
+                ? `${cacheKeys.length} cached ${entryLabel}`
+                : 'Note caching disabled';
         }
         if (!cacheKeyList) {
             return;
@@ -599,6 +615,18 @@ function SetupAdminPanel() {
     });
     clearCacheButton?.addEventListener('click', () => {
         clearCacheTools();
+    });
+    noteCacheToggle?.addEventListener('change', () => {
+        const enabled = noteCacheToggle.checked;
+        cache.setNoteCacheEnabled(enabled);
+        renderCacheTools();
+        if (cacheToolsStatus) {
+            cacheToolsStatus.textContent = enabled
+                ? 'Note caching enabled.'
+                : 'Note caching disabled. Stored notes cleared.';
+            cacheToolsStatus.className = 'note-form-status text-success';
+        }
+        document.dispatchEvent(new CustomEvent(NoteCacheChangedEvent));
     });
     newTemplateButton?.addEventListener('click', () => {
         openTemplateComposer();
@@ -1139,16 +1167,20 @@ async function SetupNamespaceSelector(onSwitch) {
 }
 async function QueryMainData() {
     const queryPath = query.GetQueryPath();
+    const noteCacheEnabled = cache.isNoteCacheEnabled();
     console.log('Cache lookup for path:', queryPath, 'Cache size:', cache.getCacheSize(), 'Cache keys:', cache.getCacheKeys());
-    const cachedEntry = cache.getCacheEntry(queryPath);
+    const cachedEntry = noteCacheEnabled ? cache.getCacheEntry(queryPath) : undefined;
     console.log('Cache entry retrieved:', cachedEntry);
-    if (cache.isCacheValid(cachedEntry)) {
+    if (noteCacheEnabled && cache.isCacheValid(cachedEntry)) {
         CartographerData = cachedEntry.data;
         console.log('Using cached data:', CartographerData);
         return;
     }
     try {
-        const response = await fetch(queryPath, EncodingHeader);
+        const response = await fetch(queryPath, {
+            ...EncodingHeader,
+            cache: noteCacheEnabled ? 'default' : 'no-store',
+        });
         if (!response.ok) {
             throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
         }

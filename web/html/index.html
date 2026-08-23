@@ -1612,7 +1612,12 @@
 								<span>Clear cache</span>
 							</button>
 						</div>
-						<details class="admin-cache-details">
+						<div class="form-check form-switch mt-3">
+							<input id="noteCacheToggle" class="form-check-input" type="checkbox" role="switch" checked aria-describedby="noteCacheDescription">
+							<label class="form-check-label fw-semibold" for="noteCacheToggle">Cache note queries</label>
+							<div id="noteCacheDescription" class="admin-cache-card__meta">Speeds up returning to previously viewed namespaces.</div>
+						</div>
+						<details id="cacheKeyDetails" class="admin-cache-details">
 							<summary>Cached queries</summary>
 							<ul id="cacheKeyList" class="admin-cache-keys"></ul>
 						</details>
