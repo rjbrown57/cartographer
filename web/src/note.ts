@@ -7,6 +7,7 @@ import {
     NormalizeTimestamp,
     ParseCommaList,
     ParseDataValue,
+    ResolveReturnPath,
     type NoteData,
     type NoteDraft,
 } from './noteEditor.js';
@@ -68,9 +69,11 @@ const NotesEndpoint = '/v1/notes';
 const TemplatesEndpoint = '/v1/admin/templates';
 const AdminSessionEndpoint = '/v1/admin/session';
 const EditorModeStorageKey = 'cartographer_note_editor_mode';
+const ReturnToParameter = 'returnTo';
 
 let activeNote: NoteData | null = null;
 let activeNamespace = 'default';
+let activeReturnPath: string | null = null;
 let pageMode: PageMode = 'read';
 let editorDirty = false;
 let initialEditorFingerprint = '';
@@ -85,6 +88,7 @@ async function main(): Promise<void> {
 
     const params = new URLSearchParams(window.location.search);
     activeNamespace = NormalizeNamespaceInput(params.get('namespace') || 'default') || 'default';
+    activeReturnPath = ResolveReturnPath(params.get(ReturnToParameter), window.location.origin);
     const requestedMode = params.get('mode');
     pageMode = requestedMode === 'create' ? 'create' : requestedMode === 'edit' ? 'edit' : 'read';
     wireGlobalNavigation();
@@ -110,6 +114,7 @@ async function main(): Promise<void> {
             renderError(shell, 'Note not found.');
             return;
         }
+        updateBackLinkDestination();
 
         if (pageMode === 'edit') {
             if (!await requireAdmin(shell)) {
@@ -605,7 +610,8 @@ async function saveEditor(elements: EditorElements): Promise<void> {
             context.textContent = 'Edit note';
         }
         document.title = `Edit note · ${title}`;
-        window.history.replaceState({}, '', getEditorURL(id, namespace));
+        window.history.replaceState({}, '', getEditorURL(id, namespace, activeReturnPath));
+        updateBackLinkDestination();
         invalidateAppCache();
         initialEditorFingerprint = getEditorFingerprint(elements);
         setEditorDirty(false);
@@ -717,18 +723,14 @@ function navigateAwayFromEditor(): void {
         return;
     }
     editorDirty = false;
-    if (activeNote) {
-        window.location.assign(getReaderURL(activeNote.id, activeNamespace));
-        return;
-    }
-    window.location.assign(getNamespaceURL(activeNamespace));
+    window.location.assign(getEditorExitURL());
 }
 
 // wireGlobalNavigation configures back navigation, keyboard save, and unload protection.
 function wireGlobalNavigation(): void {
     const backLink = document.getElementById('backLink') as HTMLAnchorElement | null;
     if (backLink) {
-        backLink.href = getNamespaceURL(activeNamespace);
+        updateBackLinkDestination();
         backLink.onclick = (event) => {
             if (pageMode === 'read') {
                 return;
@@ -751,6 +753,28 @@ function wireGlobalNavigation(): void {
         event.preventDefault();
         event.returnValue = '';
     });
+}
+
+// updateBackLinkDestination keeps the visible link aligned with editor exit behavior.
+function updateBackLinkDestination(): void {
+    const backLink = document.getElementById('backLink') as HTMLAnchorElement | null;
+    if (!backLink) {
+        return;
+    }
+    backLink.href = pageMode === 'read'
+        ? getNamespaceURL(activeNamespace)
+        : getEditorExitURL();
+}
+
+// getEditorExitURL resolves landing-page context before using reader and namespace fallbacks.
+function getEditorExitURL(): string {
+    if (activeReturnPath) {
+        return new URL(activeReturnPath, window.location.origin).toString();
+    }
+    if (activeNote) {
+        return getReaderURL(activeNote.id, activeNamespace);
+    }
+    return getNamespaceURL(activeNamespace);
 }
 
 // setPageChrome switches shared page framing between reading and authoring.
@@ -879,10 +903,13 @@ function getReaderURL(id: string, namespace: string): string {
     return url.toString();
 }
 
-// getEditorURL builds the full-page editor URL for a note.
-function getEditorURL(id: string, namespace: string): string {
+// getEditorURL builds the full-page editor URL and preserves an optional return path.
+function getEditorURL(id: string, namespace: string, returnPath?: string | null): string {
     const url = new URL(getReaderURL(id, namespace));
     url.searchParams.set('mode', 'edit');
+    if (returnPath) {
+        url.searchParams.set(ReturnToParameter, returnPath);
+    }
     return url.toString();
 }
 

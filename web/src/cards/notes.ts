@@ -432,6 +432,7 @@ export class Note implements cards.Card {
     private getNoteEditorURL(): string {
         const editorURL = new URL(this.getNotePageURL());
         editorURL.searchParams.set('mode', 'edit');
+        editorURL.searchParams.set('returnTo', `${window.location.pathname}${window.location.search}${window.location.hash}`);
         return editorURL.toString();
     }
 
