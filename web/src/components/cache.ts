@@ -3,6 +3,7 @@ import type { CartoResponse } from '../types/types.js';
 // Cache configuration
 const CACHE_TTL_MS = 480 * 60 * 1000; // 8 hours default TTL
 const CACHE_STORAGE_KEY = 'cartographer_cache';
+const CACHE_ENABLED_STORAGE_KEY = 'cartographer_note_cache_enabled';
 
 export interface CacheEntry<T> {
     data: T;
@@ -16,6 +17,11 @@ const mainDataCache: Map<string, CacheEntry<CartoResponse>> = new Map();
 
 // Load cache from localStorage on initialization
 function loadCacheFromStorage(): void {
+    if (!isNoteCacheEnabled()) {
+        invalidateCache();
+        return;
+    }
+
     try {
         const stored = localStorage.getItem(CACHE_STORAGE_KEY);
         if (stored) {
@@ -54,7 +60,25 @@ export function isCacheValid<T>(cache: CacheEntry<T> | null | undefined): boolea
     return (now - cache.timestamp) < cache.ttl;
 }
 
+// isNoteCacheEnabled returns whether this browser should reuse stored note queries.
+export function isNoteCacheEnabled(): boolean {
+    return localStorage.getItem(CACHE_ENABLED_STORAGE_KEY) !== 'false';
+}
+
+// setNoteCacheEnabled persists the browser preference and clears notes when disabled.
+export function setNoteCacheEnabled(enabled: boolean): void {
+    localStorage.setItem(CACHE_ENABLED_STORAGE_KEY, String(enabled));
+    if (!enabled) {
+        invalidateCache();
+    }
+}
+
+// getCacheEntry returns a stored note query when note caching is enabled.
 export function getCacheEntry(queryPath: string): CacheEntry<CartoResponse> | undefined {
+    if (!isNoteCacheEnabled()) {
+        return undefined;
+    }
+
     let cachedEntry = mainDataCache.get(queryPath);
     
     // Fallback: check localStorage if not in memory cache
@@ -77,7 +101,12 @@ export function getCacheEntry(queryPath: string): CacheEntry<CartoResponse> | un
     return cachedEntry;
 }
 
+// setCacheEntry stores a note query when note caching is enabled.
 export function setCacheEntry(queryPath: string, data: CartoResponse): void {
+    if (!isNoteCacheEnabled()) {
+        return;
+    }
+
     const cacheEntry: CacheEntry<CartoResponse> = {
         data: data,
         timestamp: Date.now(),
@@ -87,16 +116,18 @@ export function setCacheEntry(queryPath: string, data: CartoResponse): void {
     saveCacheToStorage(); // Persist to localStorage
 }
 
+// getCacheSize returns the number of note queries held in memory.
 export function getCacheSize(): number {
     return mainDataCache.size;
 }
 
+// getCacheKeys returns the query paths currently held in the note cache.
 export function getCacheKeys(): string[] {
     return Array.from(mainDataCache.keys());
 }
 
-// Invalidate the cache by clearing the in-memory cache and saving to localStorage
+// invalidateCache clears note queries from memory and persistent browser storage.
 export function invalidateCache(): void {
     mainDataCache.clear();
-    saveCacheToStorage();
+    localStorage.removeItem(CACHE_STORAGE_KEY);
 }

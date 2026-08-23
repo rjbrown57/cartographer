@@ -29,6 +29,7 @@ const AdminNamespacesEndpoint = '/v1/admin/namespaces';
 const NamespaceListId = 'namespaceList'
 const NamespaceFinderId = 'namespaceFinder'
 const NamespaceSearchThreshold = 16;
+const NoteCacheChangedEvent = 'cartographer:note-cache-changed';
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
@@ -128,6 +129,9 @@ export class Cartographer {
         });
         SetupAdminPanel();
         this.SetupNoteDeletion();
+        document.addEventListener(NoteCacheChangedEvent, () => {
+            void this.LoadCurrentNamespace();
+        });
         this.Initialize();
     }
 
@@ -475,7 +479,9 @@ function SetupAdminPanel(): void {
     const body = document.getElementById('adminPanelBody') as HTMLElement | null;
     const cacheSummary = document.getElementById('cacheSummary') as HTMLElement | null;
     const cacheKeyList = document.getElementById('cacheKeyList') as HTMLUListElement | null;
+    const cacheKeyDetails = document.getElementById('cacheKeyDetails') as HTMLDetailsElement | null;
     const clearCacheButton = document.getElementById('clearCacheButton') as HTMLButtonElement | null;
+    const noteCacheToggle = document.getElementById('noteCacheToggle') as HTMLInputElement | null;
     const cacheToolsStatus = document.getElementById('cacheToolsStatus') as HTMLElement | null;
     const loginForm = document.getElementById('adminLoginForm') as HTMLFormElement | null;
     const tokenInput = document.getElementById('adminToken') as HTMLInputElement | null;
@@ -514,10 +520,20 @@ function SetupAdminPanel(): void {
 
     // renderCacheTools refreshes the public browser cache summary.
     const renderCacheTools = () => {
+        const enabled = cache.isNoteCacheEnabled();
         const cacheKeys = cache.getCacheKeys();
+        if (noteCacheToggle) {
+            noteCacheToggle.checked = enabled;
+        }
+        if (clearCacheButton) {
+            clearCacheButton.disabled = !enabled;
+        }
+        cacheKeyDetails?.classList.toggle('is-hidden', !enabled);
         if (cacheSummary) {
             const entryLabel = cacheKeys.length === 1 ? 'entry' : 'entries';
-            cacheSummary.textContent = `${cacheKeys.length} cached ${entryLabel}`;
+            cacheSummary.textContent = enabled
+                ? `${cacheKeys.length} cached ${entryLabel}`
+                : 'Note caching disabled';
         }
 
         if (!cacheKeyList) {
@@ -804,6 +820,19 @@ function SetupAdminPanel(): void {
 
     clearCacheButton?.addEventListener('click', () => {
         clearCacheTools();
+    });
+
+    noteCacheToggle?.addEventListener('change', () => {
+        const enabled = noteCacheToggle.checked;
+        cache.setNoteCacheEnabled(enabled);
+        renderCacheTools();
+        if (cacheToolsStatus) {
+            cacheToolsStatus.textContent = enabled
+                ? 'Note caching enabled.'
+                : 'Note caching disabled. Stored notes cleared.';
+            cacheToolsStatus.className = 'note-form-status text-success';
+        }
+        document.dispatchEvent(new CustomEvent(NoteCacheChangedEvent));
     });
 
     newTemplateButton?.addEventListener('click', () => {
@@ -1463,13 +1492,14 @@ async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promis
 // Fetch main data with cache validation and update the global store.
 async function QueryMainData() {
     const queryPath = query.GetQueryPath();
+    const noteCacheEnabled = cache.isNoteCacheEnabled();
     
     // Check if we have valid cached data for this query path
     console.log('Cache lookup for path:', queryPath, 'Cache size:', cache.getCacheSize(), 'Cache keys:', cache.getCacheKeys());
-    const cachedEntry = cache.getCacheEntry(queryPath);
+    const cachedEntry = noteCacheEnabled ? cache.getCacheEntry(queryPath) : undefined;
     
     console.log('Cache entry retrieved:', cachedEntry);
-    if (cache.isCacheValid(cachedEntry)) {
+    if (noteCacheEnabled && cache.isCacheValid(cachedEntry)) {
         // The `!` is TypeScript's non-null assertion operator. It tells TypeScript that `cachedEntry` is definitely not null/undefined
         // at this point, even though `getCacheEntry()` returns `CacheEntry<CartoResponse> | undefined`. We can safely use `!` here because `isCacheValid()` 
         // returns false if the cache entry is null/undefined, so we know it exists when we reach this line.
@@ -1479,7 +1509,10 @@ async function QueryMainData() {
     }
 
     try {
-        const response = await fetch(queryPath, EncodingHeader);
+        const response = await fetch(queryPath, {
+            ...EncodingHeader,
+            cache: noteCacheEnabled ? 'default' : 'no-store',
+        });
         if (!response.ok) {
             throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
         }
