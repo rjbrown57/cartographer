@@ -772,6 +772,27 @@
 			backdrop-filter: blur(6px);
 		}
 
+		body.is-admin #linkgrid .note-actions {
+			display: flex;
+			padding: 0.1rem;
+			right: 0.65rem;
+			top: 0.65rem;
+		}
+
+		body.is-admin #linkgrid .card-view {
+			padding-right: 2.15rem;
+		}
+
+		#linkgrid .note-actions .note-action-button:not(.note-action-button--quick-edit) {
+			display: none !important;
+		}
+
+		#linkgrid .note-action-button--quick-edit {
+			font-size: 0.75rem;
+			height: 1.5rem;
+			width: 1.5rem;
+		}
+
 		#maximized-card-overlay .note-actions {
 			display: flex;
 		}

@@ -253,7 +253,7 @@ export class Note implements cards.Card {
 
         const editButton = document.createElement('button');
         editButton.type = 'button';
-        editButton.className = 'note-action-button admin-only';
+        editButton.className = 'note-action-button note-action-button--quick-edit admin-only';
         editButton.title = 'Edit note';
         editButton.setAttribute('aria-label', 'Edit note');
         editButton.innerHTML = '<i class="bi bi-pencil-square"></i>';
