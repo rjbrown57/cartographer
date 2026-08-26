@@ -192,7 +192,7 @@ export class Note {
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
         actions.appendChild(this.createPageButton());
-        actions.appendChild(this.createRawButton());
+        actions.appendChild(this.createCopyLinkButton());
         actions.appendChild(this.createDeleteButton());
         return actions;
     }
@@ -255,19 +255,21 @@ export class Note {
         };
         return copyButton;
     }
-    createRawButton() {
-        const rawButton = document.createElement('button');
-        rawButton.type = 'button';
-        rawButton.className = 'note-action-button';
-        rawButton.title = 'Open raw note data';
-        rawButton.setAttribute('aria-label', 'Open raw note data');
-        rawButton.innerHTML = '<i class="bi bi-code-slash"></i>';
-        rawButton.onclick = (event) => {
+    createCopyLinkButton() {
+        const linkButton = document.createElement('button');
+        linkButton.type = 'button';
+        linkButton.className = 'note-action-button';
+        linkButton.title = 'Copy note link';
+        linkButton.setAttribute('aria-label', 'Copy note link');
+        linkButton.innerHTML = '<i class="bi bi-link-45deg"></i>';
+        linkButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            window.open(this.getRawQueryURL(), '_blank', 'noopener,noreferrer');
+            this.copyTextToClipboard(this.getNotePageURL(), () => {
+                this.setInlineActionState(linkButton, '<i class="bi bi-check2"></i>');
+            });
         };
-        return rawButton;
+        return linkButton;
     }
     createPageButton() {
         const pageButton = document.createElement('button');
@@ -296,12 +298,6 @@ export class Note {
             this.dispatchDeleteEvent();
         };
         return deleteButton;
-    }
-    getRawQueryURL() {
-        const rawURL = new URL(query.GetEndpoint, window.location.origin);
-        rawURL.searchParams.set('id', this.id);
-        rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
-        return rawURL.toString();
     }
     getNotePageURL() {
         const pageURL = new URL('/note', window.location.origin);
