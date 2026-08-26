@@ -679,7 +679,7 @@
 		body.card-style-condensed #linkgrid .note-meta-row {
 			gap: 0.28rem;
 			min-height: 1.35rem;
-			padding-right: 0.15rem;
+			padding-right: 5.5rem;
 		}
 
 		.note-type-badge,
@@ -772,22 +772,22 @@
 			backdrop-filter: blur(6px);
 		}
 
-		body.is-admin #linkgrid .note-actions {
+		#linkgrid .note-actions {
 			display: flex;
 			padding: 0.1rem;
 			right: 0.65rem;
 			top: 0.65rem;
 		}
 
-		body.is-admin #linkgrid .card-view {
-			padding-right: 2.15rem;
+		#linkgrid .note-meta-row {
+			padding-right: 5.5rem;
 		}
 
-		#linkgrid .note-actions .note-action-button:not(.note-action-button--quick-edit) {
-			display: none !important;
+		body.is-admin #linkgrid .note-meta-row {
+			padding-right: 9rem;
 		}
 
-		#linkgrid .note-action-button--quick-edit {
+		#linkgrid .note-action-button {
 			font-size: 0.75rem;
 			height: 1.5rem;
 			width: 1.5rem;

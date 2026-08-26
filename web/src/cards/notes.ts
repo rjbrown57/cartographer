@@ -280,7 +280,7 @@ export class Note implements cards.Card {
         actions.appendChild(editButton);
         actions.appendChild(copyButton);
         actions.appendChild(this.createPageButton());
-        actions.appendChild(this.createRawButton());
+        actions.appendChild(this.createCopyLinkButton());
         actions.appendChild(this.createDeleteButton());
         return actions;
     }
@@ -361,21 +361,23 @@ export class Note implements cards.Card {
         return copyButton;
     }
 
-    // createRawButton builds a button that opens the exact raw note API query.
-    private createRawButton(): HTMLButtonElement {
-        const rawButton = document.createElement('button');
-        rawButton.type = 'button';
-        rawButton.className = 'note-action-button';
-        rawButton.title = 'Open raw note data';
-        rawButton.setAttribute('aria-label', 'Open raw note data');
-        rawButton.innerHTML = '<i class="bi bi-code-slash"></i>';
-        rawButton.onclick = (event) => {
+    // createCopyLinkButton builds a button that copies the standalone note URL.
+    private createCopyLinkButton(): HTMLButtonElement {
+        const linkButton = document.createElement('button');
+        linkButton.type = 'button';
+        linkButton.className = 'note-action-button';
+        linkButton.title = 'Copy note link';
+        linkButton.setAttribute('aria-label', 'Copy note link');
+        linkButton.innerHTML = '<i class="bi bi-link-45deg"></i>';
+        linkButton.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            window.open(this.getRawQueryURL(), '_blank', 'noopener,noreferrer');
+            this.copyTextToClipboard(this.getNotePageURL(), () => {
+                this.setInlineActionState(linkButton, '<i class="bi bi-check2"></i>');
+            });
         };
 
-        return rawButton;
+        return linkButton;
     }
 
     // createPageButton builds a button that opens this note as a standalone page.
@@ -410,14 +412,6 @@ export class Note implements cards.Card {
         };
 
         return deleteButton;
-    }
-
-    // getRawQueryURL builds the v1/get query URL for this exact card.
-    private getRawQueryURL(): string {
-        const rawURL = new URL(query.GetEndpoint, window.location.origin);
-        rawURL.searchParams.set('id', this.id);
-        rawURL.searchParams.set('namespace', query.GetSelectedNamespace());
-        return rawURL.toString();
     }
 
     // getNotePageURL builds the standalone rendered note URL.
