@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+// GetConfig returns in-cluster configuration or falls back to the current kubeconfig.
 func GetConfig() *rest.Config {
 
 	var config *rest.Config
@@ -33,6 +34,7 @@ func GetConfig() *rest.Config {
 	return config
 }
 
+// NewK8sClient constructs a Kubernetes client from the resolved configuration.
 func NewK8sClient() *kubernetes.Clientset {
 	clientset, err := kubernetes.NewForConfig(GetConfig())
 	if err != nil {

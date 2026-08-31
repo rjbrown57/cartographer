@@ -4,74 +4,85 @@ import (
 	"context"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
-	"github.com/rjbrown57/cartographer/pkg/types/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-var K8sExplorerNamespace string = "k8sexplorer"
+const (
+	// DefaultNamespace is the namespace used when the Kubernetes explorer is not configured explicitly.
+	DefaultNamespace = "k8sexplorer"
+	// DefaultSourceID is the ownership identity used by the Kubernetes explorer.
+	DefaultSourceID        = "kubernetes"
+	explorerTypeAnnotation = "cartographer.io/explorer"
+)
 
-func NewK8sExplorer(o *K8sExplorerOptions) *K8sExplorer {
-	client := client.NewCartographerClient(o.CartographerClientOptions)
+// K8sExplorerOptions configures snapshot identity and permits client injection for tests.
+type K8sExplorerOptions struct {
+	TargetNamespace  string
+	ExplorerSourceID string
+	KubernetesClient kubernetes.Interface
+}
+
+// K8sExplorer discovers Kubernetes objects for a Cartographer snapshot.
+type K8sExplorer struct {
+	options   *K8sExplorerOptions
+	k8sClient kubernetes.Interface
+}
+
+// NewK8sExplorer constructs a Kubernetes explorer with in-cluster or kubeconfig defaults.
+func NewK8sExplorer(options *K8sExplorerOptions) *K8sExplorer {
+	if options == nil {
+		options = &K8sExplorerOptions{}
+	}
+	if options.TargetNamespace == "" {
+		options.TargetNamespace = DefaultNamespace
+	}
+	if options.ExplorerSourceID == "" {
+		options.ExplorerSourceID = DefaultSourceID
+	}
+	if options.KubernetesClient == nil {
+		options.KubernetesClient = NewK8sClient()
+	}
 
 	return &K8sExplorer{
-		client:    client,
-		options:   o,
-		k8sClient: NewK8sClient(),
+		options:   options,
+		k8sClient: options.KubernetesClient,
 	}
-
 }
 
-type K8sExplorerOptions struct {
-	CartographerClientOptions *client.CartographerClientOptions
+// SourceID returns the stable ownership identity for this explorer snapshot.
+func (e *K8sExplorer) SourceID() string {
+	return e.options.ExplorerSourceID
 }
 
-type K8sExplorer struct {
-	client    *client.CartographerClient
-	options   *K8sExplorerOptions
-	k8sClient *kubernetes.Clientset
+// Namespace returns the Cartographer namespace targeted by this explorer.
+func (e *K8sExplorer) Namespace() string {
+	return e.options.TargetNamespace
 }
 
-func (k *K8sExplorer) Start() error {
-
-	r, err := k.GetRequest()
-	if err != nil {
-		return err
-	}
-
-	_, err = k.client.Client.Add(k.client.Ctx, r)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// GetData will query the target and return the data, format it as a proto.CartographerAddRequest
-func (e *K8sExplorer) GetRequest() (*proto.CartographerAddRequest, error) {
-	// Need to refactor this Constructors to be more useful
-	r := proto.NewCartographerAddRequest(nil, nil, K8sExplorerNamespace)
-
-	nodes, err := e.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+// Discover returns the complete Kubernetes node snapshot as one note.
+func (e *K8sExplorer) Discover(ctx context.Context) ([]*proto.Note, error) {
+	nodes, err := e.k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	nodeNames := make([]any, 0)
+	nodeNames := make([]any, 0, len(nodes.Items))
 	for _, node := range nodes.Items {
 		nodeNames = append(nodeNames, node.Name)
 	}
 
-	protoNote, err := proto.NewNoteBuilder().
+	note, err := proto.NewNoteBuilder().
 		WithData(map[string]any{"data": nodeNames}).
 		WithTags([]string{"explorer"}).
 		WithId("k8s").
+		WithTitle("Kubernetes nodes").
+		WithSource("explorer:" + e.SourceID()).
+		WithAnnotations(map[string]string{explorerTypeAnnotation: "kubernetes"}).
 		Build()
 	if err != nil {
 		return nil, err
 	}
 
-	r.Request.Notes = append(r.Request.Notes, protoNote)
-
-	return r, nil
+	return []*proto.Note{note}, nil
 }
