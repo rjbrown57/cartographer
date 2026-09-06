@@ -57,3 +57,24 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("Expected no errors, got %v", err)
 	}
 }
+
+// TestAddDoesNotAcknowledgeFailedTransaction verifies rolled-back writes never appear in response data.
+func TestAddDoesNotAcknowledgeFailedTransaction(t *testing.T) {
+	tempDir := t.TempDir()
+	db := NewBoltDbBackend(&BoltDBBackendOptions{
+		Path: fmt.Sprintf("%s/cartographer.db", tempDir),
+	})
+	if err := db.Close(); err != nil {
+		t.Fatalf("close test backend: %v", err)
+	}
+
+	response := db.Add(backend.NewBackendAddRequest(map[string]any{
+		"not-durable": "value",
+	}, "default"))
+	if len(response.Errors) == 0 {
+		t.Fatal("Add() errors = nil, want closed database error")
+	}
+	if len(response.Data) != 0 {
+		t.Fatalf("Add() acknowledged rolled-back data: %v", response.Data)
+	}
+}

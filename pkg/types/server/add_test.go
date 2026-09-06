@@ -2,11 +2,24 @@ package server
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	proto "github.com/rjbrown57/cartographer/pkg/proto/cartographer/v1"
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 )
+
+// failingAddBackend returns a durable-write error while delegating other backend operations.
+type failingAddBackend struct {
+	backend.Backend
+}
+
+// Add rejects the requested batch without acknowledging any notes.
+func (f *failingAddBackend) Add(_ *backend.BackendAddRequest) *backend.BackendResponse {
+	response := backend.NewBackendResponse()
+	response.Errors = append(response.Errors, errors.New("backend unavailable"))
+	return response
+}
 
 // TestAdd validates add behavior across success and invalid-namespace scenarios.
 func TestAdd(t *testing.T) {
@@ -193,6 +206,60 @@ func TestAddPreservesVersionForUnchangedContent(t *testing.T) {
 	changed := cachedTestNote(t, namespace, id)
 	if got := changed.GetVersion(); got != 2 {
 		t.Fatalf("expected changed note to increment to version 2, got %d", got)
+	}
+}
+
+// TestAddBackendFailureLeavesLiveStateUnchanged verifies failed writes never enter the cache or search index.
+func TestAddBackendFailureLeavesLiveStateUnchanged(t *testing.T) {
+	const namespace = "add-backend-failure"
+	const id = "cache-only-note"
+
+	originalBackend := testServer.Backend
+	testServer.Backend = &failingAddBackend{Backend: originalBackend}
+	t.Cleanup(func() {
+		testServer.Backend = originalBackend
+	})
+
+	beforeDocuments, err := testServer.bleve.DocCount()
+	if err != nil {
+		t.Fatalf("read search document count before add: %v", err)
+	}
+
+	requested := &proto.Note{Id: id, Body: "must be durable before it is visible"}
+	response, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{requested},
+		},
+	})
+	if err == nil {
+		t.Fatal("Add() error = nil, want backend error")
+	}
+	if response != nil {
+		t.Fatalf("Add() response = %+v, want nil", response)
+	}
+
+	testServer.mu.RLock()
+	cachedNamespace := testServer.nsCache[namespace]
+	testServer.mu.RUnlock()
+	if cachedNamespace != nil {
+		cachedNamespace.mu.RLock()
+		_, exists := cachedNamespace.NoteCache[id]
+		cachedNamespace.mu.RUnlock()
+		if exists {
+			t.Fatalf("failed note %q was added to namespace cache", id)
+		}
+	}
+
+	afterDocuments, err := testServer.bleve.DocCount()
+	if err != nil {
+		t.Fatalf("read search document count after add: %v", err)
+	}
+	if afterDocuments != beforeDocuments {
+		t.Fatalf("search document count changed from %d to %d after failed add", beforeDocuments, afterDocuments)
+	}
+	if requested.GetCreatedAt() != nil || requested.GetUpdatedAt() != nil {
+		t.Fatal("failed add mutated the caller's note metadata")
 	}
 }
 
