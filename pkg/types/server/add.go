@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"time"
@@ -21,40 +23,56 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 	// record the duration of the add operation
 	defer metrics.Metrics().RecordOperationDuration("add")()
 
-	for _, note := range in.Request.GetNotes() {
-		auto.ProcessAutoTags(note, c.config.AutoTags)
+	if in == nil || in.GetRequest() == nil {
+		return nil, errors.New("add request is required")
 	}
 
-	newData := make(map[string]any)
-
-	ns, err := proto.GetNamespace(in.Request.Namespace)
+	ns, err := proto.GetNamespace(in.GetRequest().GetNamespace())
 	if err != nil {
 		return nil, err
 	}
 
-	// This needs to be refactored with more constructors/factories etc
-	// Get notes
-	// should make a dataMap constructor
-	for _, v := range in.Request.GetNotes() {
-		c.applyNoteMetadata(v, ns)
-		newData[v.GetKey()] = v
-		c.AddToCache(v, ns)
-		metrics.Metrics().IncrementObjectCount("note", ns, 1)
+	newData := make(map[string]any, len(in.GetRequest().GetNotes()))
+	for index, requestedNote := range in.GetRequest().GetNotes() {
+		if requestedNote == nil {
+			return nil, fmt.Errorf("note at index %d is required", index)
+		}
+
+		// Work on a clone so metadata and automatic tags are only exposed to
+		// callers after the backend has durably accepted the note.
+		note := gproto.Clone(requestedNote).(*proto.Note)
+		auto.ProcessAutoTags(note, c.config.AutoTags)
+		c.applyNoteMetadata(note, ns)
+		newData[note.GetKey()] = note
 	}
 
 	ar := backend.NewBackendAddRequest(newData, ns)
 
 	// run the add
 	b := c.Backend.Add(ar)
+	if b == nil {
+		return nil, errors.New("backend returned an empty add response")
+	}
+	if len(b.Errors) > 0 {
+		return nil, fmt.Errorf("add notes to backend: %w", errors.Join(b.Errors...))
+	}
 
 	// process the response
 	r := proto.NewCartographerResponse()
 
 	for _, v := range b.Data {
 		n := &proto.Note{}
-
-		json.Unmarshal(v, n)
+		if err := json.Unmarshal(v, n); err != nil {
+			return nil, fmt.Errorf("decode added note from backend: %w", err)
+		}
 		r.Notes = append(r.Notes, n)
+	}
+
+	// The backend response is the acknowledgement boundary. Cache, index,
+	// metrics, and notifications must only observe notes that were persisted.
+	for _, note := range r.GetNotes() {
+		c.AddToCache(note, ns)
+		metrics.Metrics().IncrementObjectCount("note", ns, 1)
 	}
 
 	go c.Notifier.Publish(r)

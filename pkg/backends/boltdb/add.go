@@ -13,6 +13,7 @@ func (b *BoltDBBackend) Add(r *backend.BackendAddRequest) *backend.BackendRespon
 	log.Debugf("Adding data to BoltDB backend: %+v", r)
 
 	resp := backend.NewBackendResponse()
+	stagedData := make(map[string][]byte, len(r.Data))
 	// Start a transaction to add the data to the database
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		// get the data_store bucket
@@ -29,15 +30,21 @@ func (b *BoltDBBackend) Add(r *backend.BackendAddRequest) *backend.BackendRespon
 			if err != nil {
 				return fmt.Errorf("error marshalling value: %v", err)
 			}
-			namespaceBucket.Put([]byte(key), bytes)
-			resp.Data[key] = bytes
+			if err := namespaceBucket.Put([]byte(key), bytes); err != nil {
+				return fmt.Errorf("error adding key %q: %w", key, err)
+			}
+			stagedData[key] = bytes
 		}
 		return nil
 	})
 
 	if err != nil {
 		resp.Errors = append(resp.Errors, err)
+		return resp
 	}
+
+	// Only acknowledge data after BoltDB confirms the transaction committed.
+	resp.Data = stagedData
 
 	return resp
 }
