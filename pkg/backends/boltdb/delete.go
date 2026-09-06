@@ -12,6 +12,8 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 	log.Debugf("Removing data from BoltDB backend: %+v", r)
 
 	resp := &proto.CartographerDeleteResponse{}
+	stagedIDs := make([]string, 0, len(r.GetIds()))
+	var stagedErrors []string
 	// Start a transaction to add the data to the database
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		// get the data_store bucket
@@ -21,24 +23,22 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 		// delete the data to the database
 		for _, id := range r.Ids {
 			if namespaceBucket == nil {
-				resp.Errors = append(resp.Errors, fmt.Sprintf("id not found: %s", id))
+				stagedErrors = append(stagedErrors, fmt.Sprintf("id not found: %s", id))
 				continue
 			}
 
 			// check if the id exists in the database
 			if namespaceBucket.Get([]byte(id)) == nil {
-				resp.Errors = append(resp.Errors, fmt.Sprintf("id not found: %s", id))
+				stagedErrors = append(stagedErrors, fmt.Sprintf("id not found: %s", id))
 				continue
 			}
 
 			err := namespaceBucket.Delete([]byte(id))
 			if err != nil {
-				log.Errorf("Error deleting data from BoltDB: %s", err)
-				resp.Errors = append(resp.Errors, fmt.Sprintf("error deleting data from BoltDB: %s", err))
-				continue
+				return fmt.Errorf("error deleting data from BoltDB: %w", err)
 			}
 
-			resp.Ids = append(resp.Ids, id)
+			stagedIDs = append(stagedIDs, id)
 		}
 
 		if namespaceBucket != nil {
@@ -46,8 +46,7 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 			key, _ := cursor.First()
 			if key == nil {
 				if err := dataStoreBucket.DeleteBucket([]byte(r.Namespace)); err != nil {
-					log.Errorf("Error deleting empty namespace bucket from BoltDB: %s", err)
-					resp.Errors = append(resp.Errors, fmt.Sprintf("error deleting empty namespace bucket from BoltDB: %s", err))
+					return fmt.Errorf("error deleting empty namespace bucket from BoltDB: %w", err)
 				}
 			}
 		}
@@ -58,7 +57,12 @@ func (b *BoltDBBackend) Delete(r *proto.CartographerDeleteRequest) *proto.Cartog
 	if err != nil {
 		log.Errorf("Error deleting data from BoltDB: %s", err)
 		resp.Errors = append(resp.Errors, fmt.Sprintf("error deleting data from BoltDB: %s", err))
+		return resp
 	}
+
+	// Only acknowledge IDs and per-ID misses after BoltDB commits the transaction.
+	resp.Ids = stagedIDs
+	resp.Errors = stagedErrors
 
 	return resp
 }

@@ -101,3 +101,22 @@ func TestDeleteRemovesEmptyNamespaceBucket(t *testing.T) {
 		t.Fatal("expected empty namespace bucket to be removed")
 	}
 }
+
+// TestDeleteDoesNotAcknowledgeFailedTransaction verifies rolled-back deletes never appear in response IDs.
+func TestDeleteDoesNotAcknowledgeFailedTransaction(t *testing.T) {
+	db := PrepareTestDB(t)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close test backend: %v", err)
+	}
+
+	response := db.Delete(&proto.CartographerDeleteRequest{
+		Ids:       []string{"test1"},
+		Namespace: "default",
+	})
+	if len(response.GetErrors()) == 0 {
+		t.Fatal("Delete() errors = nil, want closed database error")
+	}
+	if len(response.GetIds()) != 0 {
+		t.Fatalf("Delete() acknowledged rolled-back IDs: %v", response.GetIds())
+	}
+}
