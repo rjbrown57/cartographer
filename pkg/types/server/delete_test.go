@@ -9,6 +9,32 @@ import (
 	"github.com/rjbrown57/cartographer/pkg/types/backend"
 )
 
+// failingDeleteBackend returns a durable-delete error while delegating other backend operations.
+type failingDeleteBackend struct {
+	backend.Backend
+}
+
+// Delete rejects every requested ID without acknowledging a deletion.
+func (f *failingDeleteBackend) Delete(_ *proto.CartographerDeleteRequest) *proto.CartographerDeleteResponse {
+	return &proto.CartographerDeleteResponse{Errors: []string{"backend unavailable"}}
+}
+
+// partialDeleteBackend durably deletes one ID and rejects the remainder.
+type partialDeleteBackend struct {
+	backend.Backend
+	acknowledgedID string
+}
+
+// Delete delegates the acknowledged ID and reports every other ID as failed.
+func (p *partialDeleteBackend) Delete(request *proto.CartographerDeleteRequest) *proto.CartographerDeleteResponse {
+	response := p.Backend.Delete(&proto.CartographerDeleteRequest{
+		Namespace: request.GetNamespace(),
+		Ids:       []string{p.acknowledgedID},
+	})
+	response.Errors = append(response.Errors, "backend unavailable")
+	return response
+}
+
 // TestDelete validates delete behavior for successful deletes, invalid namespaces, and partial backend failures.
 func TestDelete(t *testing.T) {
 	tests := []struct {
@@ -187,6 +213,130 @@ func TestDelete(t *testing.T) {
 				t.Fatalf("expected backend key %q to be deleted, got %v", tc.verifyDeletedID, got)
 			}
 		})
+	}
+}
+
+// TestDeleteBackendFailurePreservesLiveState verifies unacknowledged deletes remain cached and indexed.
+func TestDeleteBackendFailurePreservesLiveState(t *testing.T) {
+	const namespace = "delete-backend-failure"
+	const id = "retry-delete-note"
+
+	_, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes:     []*proto.Note{{Id: id, Body: "retain until durable deletion"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup add failed: %v", err)
+	}
+
+	originalBackend := testServer.Backend
+	testServer.Backend = &failingDeleteBackend{Backend: originalBackend}
+	t.Cleanup(func() {
+		testServer.Backend = originalBackend
+		_, _ = testServer.Delete(context.Background(), &proto.CartographerDeleteRequest{
+			Namespace: namespace,
+			Ids:       []string{id},
+		})
+	})
+
+	beforeDocuments, err := testServer.bleve.DocCount()
+	if err != nil {
+		t.Fatalf("read search document count before delete: %v", err)
+	}
+
+	response, err := testServer.Delete(context.Background(), &proto.CartographerDeleteRequest{
+		Namespace: namespace,
+		Ids:       []string{id},
+	})
+	if err == nil {
+		t.Fatal("Delete() error = nil, want backend error")
+	}
+	if response == nil || len(response.GetIds()) != 0 {
+		t.Fatalf("Delete() response = %+v, want no acknowledged IDs", response)
+	}
+
+	assertCachedTestNote(t, namespace, id, true)
+	afterDocuments, err := testServer.bleve.DocCount()
+	if err != nil {
+		t.Fatalf("read search document count after delete: %v", err)
+	}
+	if afterDocuments != beforeDocuments {
+		t.Fatalf("search document count changed from %d to %d after failed delete", beforeDocuments, afterDocuments)
+	}
+	backendResponse := originalBackend.Get(backend.NewBackendRequest(namespace, id))
+	if backendResponse.Data[id] == nil {
+		t.Fatalf("failed delete removed durable note %q", id)
+	}
+}
+
+// TestDeletePartialFailureEvictsOnlyAcknowledgedIDs verifies failed IDs remain retryable.
+func TestDeletePartialFailureEvictsOnlyAcknowledgedIDs(t *testing.T) {
+	const namespace = "delete-partial-backend-failure"
+	const deletedID = "durably-deleted-note"
+	const retainedID = "retry-partial-delete-note"
+
+	_, err := testServer.Add(context.Background(), &proto.CartographerAddRequest{
+		Request: &proto.CartographerRequest{
+			Namespace: namespace,
+			Notes: []*proto.Note{
+				{Id: deletedID, Body: "delete durably"},
+				{Id: retainedID, Body: "retry later"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup add failed: %v", err)
+	}
+
+	originalBackend := testServer.Backend
+	testServer.Backend = &partialDeleteBackend{
+		Backend:        originalBackend,
+		acknowledgedID: deletedID,
+	}
+	t.Cleanup(func() {
+		testServer.Backend = originalBackend
+		_, _ = testServer.Delete(context.Background(), &proto.CartographerDeleteRequest{
+			Namespace: namespace,
+			Ids:       []string{deletedID, retainedID},
+		})
+	})
+
+	response, err := testServer.Delete(context.Background(), &proto.CartographerDeleteRequest{
+		Namespace: namespace,
+		Ids:       []string{deletedID, retainedID},
+	})
+	if err == nil {
+		t.Fatal("Delete() error = nil, want partial backend error")
+	}
+	if !slices.Equal(response.GetIds(), []string{deletedID}) {
+		t.Fatalf("Delete() acknowledged IDs = %v, want [%s]", response.GetIds(), deletedID)
+	}
+
+	assertCachedTestNote(t, namespace, deletedID, false)
+	assertCachedTestNote(t, namespace, retainedID, true)
+	backendResponse := originalBackend.Get(backend.NewBackendRequest(namespace, retainedID))
+	if backendResponse.Data[retainedID] == nil {
+		t.Fatalf("partial delete removed unacknowledged durable note %q", retainedID)
+	}
+}
+
+// assertCachedTestNote verifies whether a note is present in the namespace cache.
+func assertCachedTestNote(t *testing.T, namespace, id string, expected bool) {
+	t.Helper()
+
+	testServer.mu.RLock()
+	cachedNamespace := testServer.nsCache[namespace]
+	testServer.mu.RUnlock()
+	exists := false
+	if cachedNamespace != nil {
+		cachedNamespace.mu.RLock()
+		_, exists = cachedNamespace.NoteCache[id]
+		cachedNamespace.mu.RUnlock()
+	}
+	if exists != expected {
+		t.Fatalf("cached note %q existence = %t, want %t", id, exists, expected)
 	}
 }
 
