@@ -1,8 +1,9 @@
-import { Note, RenderMarkdown } from '../cards/notes.js';
+import { Note } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
 import * as query from '../query/query.js';
 import { GetNoteSortMode, NoteSortOptions, SetNoteSortMode, SortNotes, } from '../preferences/noteSort.js';
+import { RenderMarkdown } from '../shared/markdown.js';
 const EncodingHeader = {
     headers: {
         'Accept-Encoding': 'gzip'

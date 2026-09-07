@@ -1,20 +1,6 @@
 import { TagFilter } from "../components/searchBar.js";
 import * as query from "../query/query.js";
-export function RenderMarkdown(markdown) {
-    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-    const rendered = marked.parse(markdown || '');
-    if (typeof rendered !== 'string') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-    return DOMPurify.sanitize(rendered);
-}
-function EscapeHTML(value) {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
-}
+import { RenderMarkdown } from "../shared/markdown.js";
 export class Note {
     id;
     displayname;

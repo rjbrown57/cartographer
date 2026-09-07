@@ -1,14 +1,7 @@
 import * as cards from "./cards";
 import { TagFilter } from "../components/searchBar.js";
 import * as query from "../query/query.js";
-
-declare const marked: {
-    parse(markdown: string): string | Promise<string>;
-};
-
-declare const DOMPurify: {
-    sanitize(html: string): string;
-};
+import { RenderMarkdown } from "../shared/markdown.js";
 
 type CardOverlay = HTMLElement & {
     activeCard?: Note;
@@ -38,27 +31,6 @@ export type TimestampValue = string | {
     seconds?: number | string;
     nanos?: number;
 };
-
-// RenderMarkdown renders markdown text through the configured sanitizer.
-export function RenderMarkdown(markdown: string): string {
-    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-
-    const rendered = marked.parse(markdown || '');
-    if (typeof rendered !== 'string') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-
-    return DOMPurify.sanitize(rendered);
-}
-
-// EscapeHTML escapes plain text when markdown dependencies are unavailable.
-function EscapeHTML(value: string): string {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
-}
 
 // Note implements Card for all Cartographer data, including URL-bearing notes.
 export class Note implements cards.Card {

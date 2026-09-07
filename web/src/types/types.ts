@@ -1,5 +1,5 @@
 import * as cards from '../cards/cards.js';
-import { Note, RenderMarkdown } from '../cards/notes.js';
+import { Note } from '../cards/notes.js';
 import type { TimestampValue } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
@@ -11,6 +11,7 @@ import {
     SortNotes,
     type NoteSortMode,
 } from '../preferences/noteSort.js';
+import { RenderMarkdown } from '../shared/markdown.js';
 
 const EncodingHeader = {
     headers: {
