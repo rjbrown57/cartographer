@@ -62,6 +62,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 
 	g.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
 	g.StaticFS("/scripts/", http.FS(web.GetJSFS()))
+	g.StaticFS("/styles/", http.FS(web.GetCSSFS()))
 
 	// https://github.com/gin-gonic/gin/issues/2809
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies
@@ -106,6 +107,7 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 
 	// HTML Endpoints
 	g.GET("/", indexFunc(o.SiteName))
+	g.GET("/mobile", mobilePageFunc(o.SiteName))
 	g.GET("/note", notePageFunc(o.SiteName))
 	return g
 }
@@ -125,7 +127,7 @@ func GetSkipper() func(c *gin.Context) bool {
 		}
 
 		// Prefix Matches
-		if strings.HasPrefix(c.Request.URL.Path, "/scripts") {
+		if strings.HasPrefix(c.Request.URL.Path, "/scripts") || strings.HasPrefix(c.Request.URL.Path, "/styles") {
 			return true
 		}
 

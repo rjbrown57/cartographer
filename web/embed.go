@@ -19,6 +19,18 @@ func GetJSFS() fs.FS {
 	return f
 }
 
+//go:embed css/*
+var CssFS embed.FS
+
+// GetCSSFS returns the embedded styles directory for HTTP serving.
+func GetCSSFS() fs.FS {
+	f, err := fs.Sub(CssFS, "css")
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
 //go:embed assets/*
 var AssetsFS embed.FS
 

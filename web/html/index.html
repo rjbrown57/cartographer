@@ -4,6 +4,34 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{.sitename}}</title>
+	<script>
+		// Route narrow screens before the desktop shell paints while honoring an explicit override.
+		(() => {
+			const preferenceKey = 'cartographer_view_preference';
+			const current = new URL(window.location.href);
+			const requested = current.searchParams.get('view');
+			let storedPreference = '';
+			try {
+				if (requested === 'desktop' || requested === 'mobile') {
+					localStorage.setItem(preferenceKey, requested);
+				}
+				storedPreference = localStorage.getItem(preferenceKey) || '';
+			} catch {
+				// Storage can be unavailable in private browsing; the explicit and viewport choices still work.
+			}
+			const prefersDesktop = requested === 'desktop' || storedPreference === 'desktop';
+			const useMobile = requested === 'mobile' || (!prefersDesktop && window.matchMedia('(max-width: 720px)').matches);
+			current.searchParams.delete('view');
+			if (useMobile) {
+				current.pathname = '/mobile';
+				window.location.replace(current.toString());
+				return;
+			}
+			if (requested) {
+				window.history.replaceState({}, '', current.toString());
+			}
+		})();
+	</script>
 	<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 	<link rel="apple-touch-icon" href="/favicon.ico" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
@@ -501,6 +529,14 @@
 
 		.nav-action i {
 			font-size: 1rem;
+		}
+
+		.mobile-browser-only {
+			display: none !important;
+		}
+
+		.mobile-browser .mobile-browser-only {
+			display: flex !important;
 		}
 
 		.nav-icon {
@@ -1588,6 +1624,9 @@
 			</button>
 			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
 				<i class="bi bi-braces-asterisk"></i>
+			</a>
+			<a id="mobileViewToggle" class="btn nav-action mobile-browser-only align-items-center justify-content-center" href="/mobile?view=mobile" aria-label="Mobile view" title="Mobile view">
+				<i class="bi bi-phone"></i>
 			</a>
 			<a class="nav-icon" href="https://github.com/rjbrown57/cartographer" aria-label="GitHub">
 				<i class="bi bi-github"></i>

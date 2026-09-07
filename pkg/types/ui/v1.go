@@ -378,6 +378,13 @@ func indexFunc(name string) gin.HandlerFunc {
 	}
 }
 
+// mobilePageFunc serves the independent phone browsing shell.
+func mobilePageFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "mobile.html", gin.H{"sitename": name})
+	}
+}
+
 // notePageFunc serves the standalone note reader shell.
 func notePageFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -1,4 +1,4 @@
-import { RenderMarkdown } from './cards/notes.js';
+import { RenderMarkdown } from './shared/markdown.js';
 import {
     DraftFingerprint,
     FormatData,
@@ -755,15 +755,17 @@ function wireGlobalNavigation(): void {
     });
 }
 
-// updateBackLinkDestination keeps the visible link aligned with editor exit behavior.
+// updateBackLinkDestination keeps the visible link aligned with reader and editor exit behavior.
 function updateBackLinkDestination(): void {
     const backLink = document.getElementById('backLink') as HTMLAnchorElement | null;
     if (!backLink) {
         return;
     }
-    backLink.href = pageMode === 'read'
-        ? getNamespaceURL(activeNamespace)
-        : getEditorExitURL();
+    backLink.href = pageMode === 'read' && activeReturnPath
+        ? new URL(activeReturnPath, window.location.origin).toString()
+        : pageMode === 'read'
+            ? getNamespaceURL(activeNamespace)
+            : getEditorExitURL();
 }
 
 // getEditorExitURL resolves landing-page context before using reader and namespace fallbacks.

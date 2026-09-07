@@ -1,4 +1,4 @@
-import { RenderMarkdown } from './cards/notes.js';
+import { RenderMarkdown } from './shared/markdown.js';
 import { DraftFingerprint, FormatData, IsValidNamespace, NormalizeNamespaceInput, NormalizeTimestamp, ParseCommaList, ParseDataValue, ResolveReturnPath, } from './noteEditor.js';
 const GetEndpoint = '/v1/get';
 const NamespacesEndpoint = '/v1/get/namespaces';
@@ -630,9 +630,11 @@ function updateBackLinkDestination() {
     if (!backLink) {
         return;
     }
-    backLink.href = pageMode === 'read'
-        ? getNamespaceURL(activeNamespace)
-        : getEditorExitURL();
+    backLink.href = pageMode === 'read' && activeReturnPath
+        ? new URL(activeReturnPath, window.location.origin).toString()
+        : pageMode === 'read'
+            ? getNamespaceURL(activeNamespace)
+            : getEditorExitURL();
 }
 function getEditorExitURL() {
     if (activeReturnPath) {
