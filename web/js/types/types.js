@@ -21,6 +21,9 @@ const NamespaceFinderId = 'namespaceFinder';
 const NamespaceSearchThreshold = 16;
 const NoteCacheChangedEvent = 'cartographer:note-cache-changed';
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const NamespaceColorPattern = /^#[0-9a-f]{6}$/;
+const DefaultNamespaceColor = '#38bdf8';
+const NamespaceColorsStorageKey = 'cartographer_namespace_colors';
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
 const LegacyCardDensityStorageKey = 'cartographer_cards_condensed';
@@ -428,7 +431,7 @@ function SetupAdminPanel() {
     };
     const renderAdminPanels = async () => {
         await RenderTemplateList(list, editTemplate, deleteTemplate);
-        await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+        await RenderAdminNamespaceList(namespaceList, deleteNamespace, setNamespaceColor);
     };
     const updateTemplatePreview = () => {
         if (!previewPane) {
@@ -546,7 +549,8 @@ function SetupAdminPanel() {
                 throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
             }
             cache.invalidateCache();
-            await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+            SaveNamespaceColor(namespace, null);
+            await RenderAdminNamespaceList(namespaceList, deleteNamespace, setNamespaceColor);
             await SetupNamespaceSelector();
             if (namespaceStatus) {
                 namespaceStatus.textContent = 'Namespace deleted.';
@@ -563,6 +567,27 @@ function SetupAdminPanel() {
                 namespaceStatus.textContent = 'Unable to delete namespace.';
                 namespaceStatus.className = 'note-form-status text-danger';
             }
+        }
+    };
+    const setNamespaceColor = (namespace, color) => {
+        try {
+            SaveNamespaceColor(namespace, color);
+            ApplyNamespaceColorToTabs(namespace, color);
+            if (namespaceStatus) {
+                namespaceStatus.textContent = color
+                    ? 'Namespace color saved in this browser.'
+                    : 'Namespace color reset in this browser.';
+                namespaceStatus.className = 'note-form-status text-success';
+            }
+            return true;
+        }
+        catch (err) {
+            console.error(err);
+            if (namespaceStatus) {
+                namespaceStatus.textContent = 'Unable to save namespace color in this browser.';
+                namespaceStatus.className = 'note-form-status text-danger';
+            }
+            return false;
         }
     };
     const setAdminOpen = async (open) => {
@@ -830,8 +855,9 @@ async function RenderTemplateList(container, onEdit, onDelete) {
         container.appendChild(card);
     });
 }
-async function RenderAdminNamespaceList(container, onDelete) {
+async function RenderAdminNamespaceList(container, onDelete, onColorChange) {
     const namespaces = await GetNamespaces();
+    const colors = GetNamespaceColors();
     container.innerHTML = '';
     if (namespaces.length === 0) {
         const empty = document.createElement('div');
@@ -850,6 +876,47 @@ async function RenderAdminNamespaceList(container, onDelete) {
         header.appendChild(title);
         const actions = document.createElement('div');
         actions.className = 'admin-template-card__actions';
+        const colorControl = document.createElement('div');
+        colorControl.className = 'namespace-color-control';
+        const colorLabel = document.createElement('label');
+        colorLabel.className = 'namespace-color-control__label';
+        colorLabel.textContent = 'Tab color';
+        const colorInput = document.createElement('input');
+        colorInput.className = 'namespace-color-control__input';
+        colorInput.type = 'color';
+        colorInput.value = colors[namespace] || DefaultNamespaceColor;
+        colorInput.title = `Choose tab color for ${namespace}`;
+        colorInput.setAttribute('aria-label', `Tab color for namespace ${namespace}`);
+        colorLabel.appendChild(colorInput);
+        colorControl.appendChild(colorLabel);
+        const resetColor = document.createElement('button');
+        resetColor.className = 'btn btn-sm btn-outline-secondary';
+        resetColor.type = 'button';
+        resetColor.disabled = !colors[namespace];
+        resetColor.title = 'Use default tab color';
+        resetColor.setAttribute('aria-label', `Reset tab color for namespace ${namespace}`);
+        resetColor.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i>';
+        colorControl.appendChild(resetColor);
+        actions.appendChild(colorControl);
+        colorInput.addEventListener('change', () => {
+            const previousColor = colors[namespace] || DefaultNamespaceColor;
+            const saved = onColorChange(namespace, colorInput.value.toLowerCase());
+            if (saved) {
+                colors[namespace] = colorInput.value.toLowerCase();
+            }
+            else {
+                colorInput.value = previousColor;
+            }
+            resetColor.disabled = !colors[namespace];
+        });
+        resetColor.addEventListener('click', () => {
+            const reset = onColorChange(namespace, null);
+            if (reset) {
+                delete colors[namespace];
+                colorInput.value = DefaultNamespaceColor;
+            }
+            resetColor.disabled = !colors[namespace];
+        });
         const remove = document.createElement('button');
         remove.className = 'btn btn-sm btn-outline-danger';
         remove.type = 'button';
@@ -1041,6 +1108,23 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
     }
     requestAnimationFrame(() => input.focus());
 }
+function ApplyNamespaceColor(tab, color) {
+    const normalizedColor = color?.toLowerCase() || '';
+    const hasCustomColor = NamespaceColorPattern.test(normalizedColor);
+    tab.classList.toggle('namespace-tab--colored', hasCustomColor);
+    if (hasCustomColor) {
+        tab.style.setProperty('--namespace-color', normalizedColor);
+        return;
+    }
+    tab.style.removeProperty('--namespace-color');
+}
+function ApplyNamespaceColorToTabs(namespace, color) {
+    document.querySelectorAll('.namespace-tab[data-namespace]').forEach((tab) => {
+        if (tab.dataset.namespace === namespace) {
+            ApplyNamespaceColor(tab, color);
+        }
+    });
+}
 async function SetupNamespaceSelector(onSwitch) {
     const namespaceList = document.getElementById(NamespaceListId);
     const namespaceFinder = document.getElementById(NamespaceFinderId);
@@ -1048,6 +1132,7 @@ async function SetupNamespaceSelector(onSwitch) {
         return;
     }
     const availableNamespaces = await GetNamespaces();
+    const namespaceColors = GetNamespaceColors();
     const currentNamespace = query.GetSelectedNamespace();
     const noteCreateLink = document.getElementById('noteComposerToggle');
     if (noteCreateLink) {
@@ -1124,9 +1209,11 @@ async function SetupNamespaceSelector(onSwitch) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'namespace-tab';
+        button.dataset.namespace = namespace;
         button.setAttribute('role', 'tab');
         button.setAttribute('aria-selected', String(namespace === currentNamespace));
         button.setAttribute('aria-current', namespace === currentNamespace ? 'page' : 'false');
+        ApplyNamespaceColor(button, namespaceColors[namespace]);
         const namespaceText = document.createElement('span');
         namespaceText.className = 'namespace-tab__text';
         namespaceText.textContent = namespace;
@@ -1323,4 +1410,32 @@ async function GetNamespaces() {
         console.error(err);
         return [];
     }
+}
+export function GetNamespaceColors() {
+    try {
+        const stored = localStorage.getItem(NamespaceColorsStorageKey);
+        if (!stored) {
+            return {};
+        }
+        const colors = JSON.parse(stored);
+        return Object.fromEntries(Object.entries(colors).filter(([namespace, color]) => {
+            return IsValidNamespace(namespace)
+                && typeof color === 'string'
+                && NamespaceColorPattern.test(color);
+        }));
+    }
+    catch (err) {
+        console.error(err);
+        return {};
+    }
+}
+export function SaveNamespaceColor(namespace, color) {
+    const colors = GetNamespaceColors();
+    if (color && NamespaceColorPattern.test(color)) {
+        colors[namespace] = color;
+    }
+    else {
+        delete colors[namespace];
+    }
+    localStorage.setItem(NamespaceColorsStorageKey, JSON.stringify(colors));
 }
