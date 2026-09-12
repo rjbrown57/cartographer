@@ -3,7 +3,9 @@ import { Note } from '../cards/notes.js';
 import type { TimestampValue } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
+import { CreateColorPicker } from '../components/colorPicker.js';
 import * as query from '../query/query.js';
+import { ApplyUserColor, GetColor, SetColor, type ColorScope } from '../preferences/colors.js';
 import {
     GetNoteSortMode,
     NoteSortOptions,
@@ -31,7 +33,9 @@ const NamespaceListId = 'namespaceList'
 const NamespaceFinderId = 'namespaceFinder'
 const NamespaceSearchThreshold = 16;
 const NoteCacheChangedEvent = 'cartographer:note-cache-changed';
+const ColorPreferenceChangedEvent = 'cartographer:color-preference-changed';
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const DefaultNamespaceColor = '#38bdf8';
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
 const LegacyCardDensityStorageKey = 'cartographer_cards_condensed';
@@ -112,6 +116,11 @@ type NoteDeleteEvent = CustomEvent<{
 }>;
 
 type NamespaceSwitchHandler = (namespace: string, nextURL: URL) => Promise<void>;
+type ColorPreferenceChangeEvent = CustomEvent<{
+    scope: ColorScope;
+    key: string;
+    color: string | null;
+}>;
 
 // Cartographer class is used to represent a collection of cards
 // move to it's own file
@@ -132,6 +141,14 @@ export class Cartographer {
         this.SetupNoteDeletion();
         document.addEventListener(NoteCacheChangedEvent, () => {
             void this.LoadCurrentNamespace();
+        });
+        document.addEventListener(ColorPreferenceChangedEvent, (event) => {
+            const detail = (event as ColorPreferenceChangeEvent).detail;
+            if (detail.scope === 'namespace') {
+                ApplyNamespaceColorToTabs(detail.key, detail.color);
+                return;
+            }
+            this.BuildAndRenderCards();
         });
         this.Initialize();
     }
@@ -193,6 +210,10 @@ export class Cartographer {
         RenderNavMetadata(this.Cards);
         this.renderCards();
         this.Cards.forEach(card => card.processFilter(this.SearchBar.filter));
+        const colorList = document.getElementById('adminColorList') as HTMLElement | null;
+        if (colorList) {
+            RenderAdminColorList(colorList, document.getElementById('adminColorStatus'));
+        }
     }
 
     // SetupNoteDeletion wires admin note deletion events from card actions.
@@ -508,10 +529,12 @@ function SetupAdminPanel(): void {
     const list = document.getElementById('adminTemplateList') as HTMLElement | null;
     const namespaceList = document.getElementById('adminNamespaceList') as HTMLElement | null;
     const namespaceStatus = document.getElementById('adminNamespaceStatus') as HTMLElement | null;
+    const colorList = document.getElementById('adminColorList') as HTMLElement | null;
+    const colorStatus = document.getElementById('adminColorStatus') as HTMLElement | null;
     const tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-admin-tab]'));
     const tabPanels = Array.from(document.querySelectorAll<HTMLElement>('[data-admin-panel]'));
 
-    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList) {
+    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList || !colorList) {
         return;
     }
 
@@ -605,7 +628,7 @@ function SetupAdminPanel(): void {
     // renderAdminPanels refreshes the current admin management views.
     const renderAdminPanels = async () => {
         await RenderTemplateList(list, editTemplate, deleteTemplate);
-        await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+        await RenderAdminNamespaceList(namespaceList, deleteNamespace, namespaceStatus);
     };
 
     // updateTemplatePreview renders the authoring preview from the template markdown.
@@ -744,7 +767,12 @@ function SetupAdminPanel(): void {
             }
 
             cache.invalidateCache();
-            await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+            try {
+                SetColor('namespace', namespace, null);
+            } catch (error) {
+                console.error(`Failed to clear the browser color for namespace ${namespace}:`, error);
+            }
+            await RenderAdminNamespaceList(namespaceList, deleteNamespace, namespaceStatus);
             await SetupNamespaceSelector();
             if (namespaceStatus) {
                 namespaceStatus.textContent = 'Namespace deleted.';
@@ -772,6 +800,7 @@ function SetupAdminPanel(): void {
         toggle.classList.toggle('nav-action--active', open);
         if (open) {
             renderCacheTools();
+            RenderAdminColorList(colorList, colorStatus);
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
@@ -1070,10 +1099,49 @@ async function RenderTemplateList(
     });
 }
 
-// RenderAdminNamespaceList redraws the admin namespace deletion panel.
+// DispatchColorPreferenceChange tells rendered UI surfaces to apply a saved color.
+function DispatchColorPreferenceChange(scope: ColorScope, key: string, color: string | null): void {
+    document.dispatchEvent(new CustomEvent(ColorPreferenceChangedEvent, {
+        detail: { scope, key, color },
+    } satisfies CustomEventInit<ColorPreferenceChangeEvent['detail']>));
+}
+
+// CreateManagedColorPicker adds shared status and refresh behavior to a color picker.
+function CreateManagedColorPicker(
+    scope: ColorScope,
+    key: string,
+    label: string,
+    fallback: string,
+    status: HTMLElement | null,
+): HTMLElement {
+    return CreateColorPicker({
+        scope,
+        key,
+        label,
+        fallback,
+        onChange: (color) => {
+            DispatchColorPreferenceChange(scope, key, color);
+            if (status) {
+                status.textContent = color
+                    ? `${label} saved in this browser.`
+                    : `${label} reset in this browser.`;
+                status.className = 'note-form-status text-success';
+            }
+        },
+        onError: () => {
+            if (status) {
+                status.textContent = `Unable to save ${label.toLowerCase()} in this browser.`;
+                status.className = 'note-form-status text-danger';
+            }
+        },
+    });
+}
+
+// RenderAdminNamespaceList redraws namespace color and deletion controls.
 async function RenderAdminNamespaceList(
     container: HTMLElement,
     onDelete: (namespace: string) => void,
+    status: HTMLElement | null,
 ): Promise<void> {
     const namespaces = await GetNamespaces();
     container.innerHTML = '';
@@ -1099,6 +1167,13 @@ async function RenderAdminNamespaceList(
 
         const actions = document.createElement('div');
         actions.className = 'admin-template-card__actions';
+        actions.appendChild(CreateManagedColorPicker(
+            'namespace',
+            namespace,
+            'Tab color',
+            DefaultNamespaceColor,
+            status,
+        ));
 
         const remove = document.createElement('button');
         remove.className = 'btn btn-sm btn-outline-danger';
@@ -1114,6 +1189,75 @@ async function RenderAdminNamespaceList(
         header.appendChild(actions);
         card.appendChild(header);
         container.appendChild(card);
+    });
+}
+
+// RenderAdminColorList renders user-defined colors for sources and note types.
+function RenderAdminColorList(container: HTMLElement, status: HTMLElement | null): void {
+    const notes = CartographerData?.notes || [];
+    const sources = [...new Set(notes.map((note) => note.source).filter((source): source is string => Boolean(source)))]
+        .sort((a, b) => a.localeCompare(b));
+    const groups: Array<{
+        title: string;
+        description: string;
+        scope: ColorScope;
+        fallback: string;
+        items: Array<{ key: string; label: string; fallback?: string }>;
+    }> = [
+        {
+            title: 'Note types',
+            description: 'Controls card rails and type badges.',
+            scope: 'noteType',
+            fallback: '#6366f1',
+            items: [
+                { key: 'Link', label: 'Links', fallback: '#0ea5e9' },
+                { key: 'Note', label: 'Notes', fallback: '#6366f1' },
+                { key: 'Data', label: 'Data', fallback: '#059669' },
+            ],
+        },
+        {
+            title: 'Sources',
+            description: 'Colors source labels without overriding note-type rails.',
+            scope: 'source',
+            fallback: '#64748b',
+            items: sources.map((source) => ({ key: source, label: source })),
+        },
+    ];
+
+    container.replaceChildren();
+    groups.forEach((group) => {
+        const section = document.createElement('section');
+        section.className = 'admin-color-group';
+        const heading = document.createElement('h3');
+        heading.textContent = group.title;
+        const description = document.createElement('p');
+        description.textContent = group.description;
+        section.appendChild(heading);
+        section.appendChild(description);
+
+        if (group.items.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'admin-template-empty';
+            empty.textContent = `No ${group.title.toLowerCase()} in the current namespace.`;
+            section.appendChild(empty);
+        } else {
+            group.items.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'admin-color-row';
+                const label = document.createElement('span');
+                label.textContent = item.label;
+                row.appendChild(label);
+                row.appendChild(CreateManagedColorPicker(
+                    group.scope,
+                    item.key,
+                    'Color',
+                    item.fallback || group.fallback,
+                    status,
+                ));
+                section.appendChild(row);
+            });
+        }
+        container.appendChild(section);
     });
 }
 
@@ -1346,6 +1490,20 @@ function RenderNamespaceFinder(
     requestAnimationFrame(() => input.focus());
 }
 
+// ApplyNamespaceColor styles one namespace tab with its optional custom color.
+function ApplyNamespaceColor(tab: HTMLElement, color?: string | null): void {
+    ApplyUserColor(tab, color || null);
+}
+
+// ApplyNamespaceColorToTabs updates currently rendered tabs for one namespace.
+function ApplyNamespaceColorToTabs(namespace: string, color: string | null): void {
+    document.querySelectorAll<HTMLElement>('.namespace-tab[data-namespace]').forEach((tab) => {
+        if (tab.dataset.namespace === namespace) {
+            ApplyNamespaceColor(tab, color);
+        }
+    });
+}
+
 // SetupNamespaceSelector loads namespaces, applies cached/default selection, and reacts to user changes.
 async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promise<void> {
     const namespaceList = document.getElementById(NamespaceListId) as HTMLElement | null;
@@ -1441,9 +1599,11 @@ async function SetupNamespaceSelector(onSwitch?: NamespaceSwitchHandler): Promis
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'namespace-tab';
+        button.dataset.namespace = namespace;
         button.setAttribute('role', 'tab');
         button.setAttribute('aria-selected', String(namespace === currentNamespace));
         button.setAttribute('aria-current', namespace === currentNamespace ? 'page' : 'false');
+        ApplyNamespaceColor(button, GetColor('namespace', namespace));
 
         const namespaceText = document.createElement('span');
         namespaceText.className = 'namespace-tab__text';

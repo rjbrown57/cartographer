@@ -1,7 +1,9 @@
 import { Note } from '../cards/notes.js';
 import { SearchBar, TagFilter } from '../components/searchBar.js';
 import * as cache from '../components/cache.js';
+import { CreateColorPicker } from '../components/colorPicker.js';
 import * as query from '../query/query.js';
+import { ApplyUserColor, GetColor, SetColor } from '../preferences/colors.js';
 import { GetNoteSortMode, NoteSortOptions, SetNoteSortMode, SortNotes, } from '../preferences/noteSort.js';
 import { RenderMarkdown } from '../shared/markdown.js';
 const EncodingHeader = {
@@ -20,7 +22,9 @@ const NamespaceListId = 'namespaceList';
 const NamespaceFinderId = 'namespaceFinder';
 const NamespaceSearchThreshold = 16;
 const NoteCacheChangedEvent = 'cartographer:note-cache-changed';
+const ColorPreferenceChangedEvent = 'cartographer:color-preference-changed';
 const NamespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const DefaultNamespaceColor = '#38bdf8';
 const TopTagsCollapsedStorageKey = 'cartographer_top_tags_collapsed';
 const CardStyleStorageKey = 'cartographer_card_style';
 const LegacyCardDensityStorageKey = 'cartographer_cards_condensed';
@@ -55,6 +59,14 @@ export class Cartographer {
         this.SetupNoteDeletion();
         document.addEventListener(NoteCacheChangedEvent, () => {
             void this.LoadCurrentNamespace();
+        });
+        document.addEventListener(ColorPreferenceChangedEvent, (event) => {
+            const detail = event.detail;
+            if (detail.scope === 'namespace') {
+                ApplyNamespaceColorToTabs(detail.key, detail.color);
+                return;
+            }
+            this.BuildAndRenderCards();
         });
         this.Initialize();
     }
@@ -95,6 +107,10 @@ export class Cartographer {
         RenderNavMetadata(this.Cards);
         this.renderCards();
         this.Cards.forEach(card => card.processFilter(this.SearchBar.filter));
+        const colorList = document.getElementById('adminColorList');
+        if (colorList) {
+            RenderAdminColorList(colorList, document.getElementById('adminColorStatus'));
+        }
     }
     SetupNoteDeletion() {
         document.addEventListener('cartographer:delete-note', (event) => {
@@ -347,9 +363,11 @@ function SetupAdminPanel() {
     const list = document.getElementById('adminTemplateList');
     const namespaceList = document.getElementById('adminNamespaceList');
     const namespaceStatus = document.getElementById('adminNamespaceStatus');
+    const colorList = document.getElementById('adminColorList');
+    const colorStatus = document.getElementById('adminColorStatus');
     const tabButtons = Array.from(document.querySelectorAll('[data-admin-tab]'));
     const tabPanels = Array.from(document.querySelectorAll('[data-admin-panel]'));
-    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList) {
+    if (!panel || !toggle || !body || !loginForm || !form || !list || !namespaceList || !colorList) {
         return;
     }
     let adminSession = { admin: false, configured: false };
@@ -428,7 +446,7 @@ function SetupAdminPanel() {
     };
     const renderAdminPanels = async () => {
         await RenderTemplateList(list, editTemplate, deleteTemplate);
-        await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+        await RenderAdminNamespaceList(namespaceList, deleteNamespace, namespaceStatus);
     };
     const updateTemplatePreview = () => {
         if (!previewPane) {
@@ -546,7 +564,13 @@ function SetupAdminPanel() {
                 throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
             }
             cache.invalidateCache();
-            await RenderAdminNamespaceList(namespaceList, deleteNamespace);
+            try {
+                SetColor('namespace', namespace, null);
+            }
+            catch (error) {
+                console.error(`Failed to clear the browser color for namespace ${namespace}:`, error);
+            }
+            await RenderAdminNamespaceList(namespaceList, deleteNamespace, namespaceStatus);
             await SetupNamespaceSelector();
             if (namespaceStatus) {
                 namespaceStatus.textContent = 'Namespace deleted.';
@@ -572,6 +596,7 @@ function SetupAdminPanel() {
         toggle.classList.toggle('nav-action--active', open);
         if (open) {
             renderCacheTools();
+            RenderAdminColorList(colorList, colorStatus);
             await loadAdminSession();
             renderAdminSession();
             if (adminSession.admin) {
@@ -830,7 +855,35 @@ async function RenderTemplateList(container, onEdit, onDelete) {
         container.appendChild(card);
     });
 }
-async function RenderAdminNamespaceList(container, onDelete) {
+function DispatchColorPreferenceChange(scope, key, color) {
+    document.dispatchEvent(new CustomEvent(ColorPreferenceChangedEvent, {
+        detail: { scope, key, color },
+    }));
+}
+function CreateManagedColorPicker(scope, key, label, fallback, status) {
+    return CreateColorPicker({
+        scope,
+        key,
+        label,
+        fallback,
+        onChange: (color) => {
+            DispatchColorPreferenceChange(scope, key, color);
+            if (status) {
+                status.textContent = color
+                    ? `${label} saved in this browser.`
+                    : `${label} reset in this browser.`;
+                status.className = 'note-form-status text-success';
+            }
+        },
+        onError: () => {
+            if (status) {
+                status.textContent = `Unable to save ${label.toLowerCase()} in this browser.`;
+                status.className = 'note-form-status text-danger';
+            }
+        },
+    });
+}
+async function RenderAdminNamespaceList(container, onDelete, status) {
     const namespaces = await GetNamespaces();
     container.innerHTML = '';
     if (namespaces.length === 0) {
@@ -850,6 +903,7 @@ async function RenderAdminNamespaceList(container, onDelete) {
         header.appendChild(title);
         const actions = document.createElement('div');
         actions.className = 'admin-template-card__actions';
+        actions.appendChild(CreateManagedColorPicker('namespace', namespace, 'Tab color', DefaultNamespaceColor, status));
         const remove = document.createElement('button');
         remove.className = 'btn btn-sm btn-outline-danger';
         remove.type = 'button';
@@ -863,6 +917,60 @@ async function RenderAdminNamespaceList(container, onDelete) {
         header.appendChild(actions);
         card.appendChild(header);
         container.appendChild(card);
+    });
+}
+function RenderAdminColorList(container, status) {
+    const notes = CartographerData?.notes || [];
+    const sources = [...new Set(notes.map((note) => note.source).filter((source) => Boolean(source)))]
+        .sort((a, b) => a.localeCompare(b));
+    const groups = [
+        {
+            title: 'Note types',
+            description: 'Controls card rails and type badges.',
+            scope: 'noteType',
+            fallback: '#6366f1',
+            items: [
+                { key: 'Link', label: 'Links', fallback: '#0ea5e9' },
+                { key: 'Note', label: 'Notes', fallback: '#6366f1' },
+                { key: 'Data', label: 'Data', fallback: '#059669' },
+            ],
+        },
+        {
+            title: 'Sources',
+            description: 'Colors source labels without overriding note-type rails.',
+            scope: 'source',
+            fallback: '#64748b',
+            items: sources.map((source) => ({ key: source, label: source })),
+        },
+    ];
+    container.replaceChildren();
+    groups.forEach((group) => {
+        const section = document.createElement('section');
+        section.className = 'admin-color-group';
+        const heading = document.createElement('h3');
+        heading.textContent = group.title;
+        const description = document.createElement('p');
+        description.textContent = group.description;
+        section.appendChild(heading);
+        section.appendChild(description);
+        if (group.items.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'admin-template-empty';
+            empty.textContent = `No ${group.title.toLowerCase()} in the current namespace.`;
+            section.appendChild(empty);
+        }
+        else {
+            group.items.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'admin-color-row';
+                const label = document.createElement('span');
+                label.textContent = item.label;
+                row.appendChild(label);
+                row.appendChild(CreateManagedColorPicker(group.scope, item.key, 'Color', item.fallback || group.fallback, status));
+                section.appendChild(row);
+            });
+        }
+        container.appendChild(section);
     });
 }
 function ParseCommaList(value) {
@@ -1041,6 +1149,16 @@ function RenderNamespaceFinder(finder, availableNamespaces, mode, onSelect, onCr
     }
     requestAnimationFrame(() => input.focus());
 }
+function ApplyNamespaceColor(tab, color) {
+    ApplyUserColor(tab, color || null);
+}
+function ApplyNamespaceColorToTabs(namespace, color) {
+    document.querySelectorAll('.namespace-tab[data-namespace]').forEach((tab) => {
+        if (tab.dataset.namespace === namespace) {
+            ApplyNamespaceColor(tab, color);
+        }
+    });
+}
 async function SetupNamespaceSelector(onSwitch) {
     const namespaceList = document.getElementById(NamespaceListId);
     const namespaceFinder = document.getElementById(NamespaceFinderId);
@@ -1124,9 +1242,11 @@ async function SetupNamespaceSelector(onSwitch) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'namespace-tab';
+        button.dataset.namespace = namespace;
         button.setAttribute('role', 'tab');
         button.setAttribute('aria-selected', String(namespace === currentNamespace));
         button.setAttribute('aria-current', namespace === currentNamespace ? 'page' : 'false');
+        ApplyNamespaceColor(button, GetColor('namespace', namespace));
         const namespaceText = document.createElement('span');
         namespaceText.className = 'namespace-tab__text';
         namespaceText.textContent = namespace;
