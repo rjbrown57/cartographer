@@ -1,20 +1,7 @@
 import { TagFilter } from "../components/searchBar.js";
+import { ApplyUserColor, GetColor } from "../preferences/colors.js";
 import * as query from "../query/query.js";
-export function RenderMarkdown(markdown) {
-    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-    const rendered = marked.parse(markdown || '');
-    if (typeof rendered !== 'string') {
-        return EscapeHTML(markdown).replace(/\n/g, '<br>');
-    }
-    return DOMPurify.sanitize(rendered);
-}
-function EscapeHTML(value) {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
-}
+import { RenderMarkdown } from "../shared/markdown.js";
 export class Note {
     id;
     displayname;
@@ -59,6 +46,7 @@ export class Note {
         const noteType = this.getNoteType();
         card.className = `link-card note-card ${noteType.className}`;
         card.dataset.noteType = noteType.label;
+        ApplyUserColor(card, GetColor('noteType', noteType.label));
         card.onclick = (event) => {
             this.handleCardClick(event);
         };
@@ -121,8 +109,9 @@ export class Note {
         }
         if (this.metadata.source) {
             const sourceChip = document.createElement('span');
-            sourceChip.className = 'note-meta-chip';
+            sourceChip.className = 'note-meta-chip note-meta-chip--source';
             sourceChip.textContent = this.metadata.source;
+            ApplyUserColor(sourceChip, GetColor('source', this.metadata.source));
             meta.appendChild(sourceChip);
         }
         return meta;

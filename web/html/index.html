@@ -4,6 +4,34 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{.sitename}}</title>
+	<script>
+		// Route narrow screens before the desktop shell paints while honoring an explicit override.
+		(() => {
+			const preferenceKey = 'cartographer_view_preference';
+			const current = new URL(window.location.href);
+			const requested = current.searchParams.get('view');
+			let storedPreference = '';
+			try {
+				if (requested === 'desktop' || requested === 'mobile') {
+					localStorage.setItem(preferenceKey, requested);
+				}
+				storedPreference = localStorage.getItem(preferenceKey) || '';
+			} catch {
+				// Storage can be unavailable in private browsing; the explicit and viewport choices still work.
+			}
+			const prefersDesktop = requested === 'desktop' || storedPreference === 'desktop';
+			const useMobile = requested === 'mobile' || (!prefersDesktop && window.matchMedia('(max-width: 720px)').matches);
+			current.searchParams.delete('view');
+			if (useMobile) {
+				current.pathname = '/mobile';
+				window.location.replace(current.toString());
+				return;
+			}
+			if (requested) {
+				window.history.replaceState({}, '', current.toString());
+			}
+		})();
+	</script>
 	<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 	<link rel="apple-touch-icon" href="/favicon.ico" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
@@ -239,12 +267,30 @@
 			border-color: rgba(148, 163, 184, 0.2);
 		}
 
+		.namespace-tab.user-colored {
+			background: color-mix(in srgb, var(--user-color) 16%, transparent);
+			border-color: color-mix(in srgb, var(--user-color) 42%, transparent);
+			box-shadow: inset 0 3px 0 var(--user-color);
+		}
+
+		.namespace-tab.user-colored:hover {
+			background: color-mix(in srgb, var(--user-color) 24%, transparent);
+			border-color: color-mix(in srgb, var(--user-color) 62%, transparent);
+		}
+
 		.namespace-tab[aria-selected="true"] {
 			background: var(--app-bg);
 			border-color: rgba(148, 163, 184, 0.34);
 			border-bottom-color: var(--app-bg);
 			box-shadow: inset 0 3px 0 var(--nav-accent);
 			color: var(--text-primary);
+		}
+
+		.namespace-tab.user-colored[aria-selected="true"] {
+			background: color-mix(in srgb, var(--user-color) 12%, var(--app-bg));
+			border-color: color-mix(in srgb, var(--user-color) 52%, transparent);
+			border-bottom-color: var(--app-bg);
+			box-shadow: inset 0 3px 0 var(--user-color);
 		}
 
 		.namespace-tab--loading::after {
@@ -503,6 +549,14 @@
 			font-size: 1rem;
 		}
 
+		.mobile-browser-only {
+			display: none !important;
+		}
+
+		.mobile-browser .mobile-browser-only {
+			display: flex !important;
+		}
+
 		.nav-icon {
 			border-radius: 999px;
 			width: 40px;
@@ -645,6 +699,10 @@
 			--card-rail: #059669;
 		}
 
+		.link-card.user-colored {
+			--card-rail: var(--user-color);
+		}
+
 		.link-card:hover {
 			border-color: #94a3b8;
 			transform: translate3d(0, -2px, 0);
@@ -708,6 +766,11 @@
 		.note-meta-chip {
 			background: #f1f5f9;
 			color: #64748b;
+		}
+
+		.note-meta-chip--source.user-colored {
+			background: color-mix(in srgb, var(--user-color) 14%, white);
+			color: color-mix(in srgb, var(--user-color) 72%, #0f172a);
 		}
 
 		.link-title {
@@ -1140,9 +1203,73 @@
 		}
 
 		.admin-template-card__actions {
+			align-items: center;
 			display: flex;
 			gap: 0.35rem;
 			flex-shrink: 0;
+		}
+
+		.color-control {
+			align-items: center;
+			display: inline-flex;
+			gap: 0.35rem;
+		}
+
+		.color-control__label {
+			align-items: center;
+			color: #475569;
+			display: inline-flex;
+			font-size: 0.78rem;
+			font-weight: 700;
+			gap: 0.4rem;
+			margin: 0;
+		}
+
+		.color-control__input {
+			background: #ffffff;
+			border: 1px solid #cbd5e1;
+			border-radius: 6px;
+			cursor: pointer;
+			height: 2rem;
+			padding: 0.15rem;
+			width: 2.5rem;
+		}
+
+		.admin-color-list,
+		.admin-color-group {
+			display: grid;
+			gap: 0.5rem;
+		}
+
+		.admin-color-list {
+			gap: 1rem;
+			max-height: 560px;
+			overflow-y: auto;
+			padding-right: 0.2rem;
+		}
+
+		.admin-color-group h3 {
+			font-size: 0.95rem;
+			margin: 0;
+		}
+
+		.admin-color-group > p {
+			color: #64748b;
+			font-size: 0.82rem;
+			margin: -0.2rem 0 0;
+		}
+
+		.admin-color-row {
+			align-items: center;
+			background: #ffffff;
+			border: 1px solid #cbd5e1;
+			border-radius: 8px;
+			display: flex;
+			font-size: 0.86rem;
+			font-weight: 700;
+			gap: 0.75rem;
+			justify-content: space-between;
+			padding: 0.55rem 0.7rem;
 		}
 
 		.admin-template-card h3 {
@@ -1589,6 +1716,9 @@
 			<a class="btn nav-action d-flex align-items-center justify-content-center" href="/docs/index.html" target="_blank" rel="noopener noreferrer" aria-label="Swagger Docs">
 				<i class="bi bi-braces-asterisk"></i>
 			</a>
+			<a id="mobileViewToggle" class="btn nav-action mobile-browser-only align-items-center justify-content-center" href="/mobile?view=mobile" aria-label="Mobile view" title="Mobile view">
+				<i class="bi bi-phone"></i>
+			</a>
 			<a class="nav-icon" href="https://github.com/rjbrown57/cartographer" aria-label="GitHub">
 				<i class="bi bi-github"></i>
 			</a>
@@ -1662,6 +1792,12 @@
 							<label class="visually-hidden" for="noteSortSelect">Sort notes</label>
 							<select id="noteSortSelect" class="form-select form-select-sm note-sort-select" aria-label="Sort notes"></select>
 						</div>
+					</section>
+					<section class="admin-cache-card" aria-labelledby="colorToolsTitle">
+						<h2 id="colorToolsTitle" class="h6 mb-1">Color meanings</h2>
+						<p class="admin-cache-card__meta mt-0 mb-3">Stored only in this browser. Labels and icons remain visible so color is never the only cue.</p>
+						<div id="adminColorList" class="admin-color-list"></div>
+						<span id="adminColorStatus" class="note-form-status"></span>
 					</section>
 					<form id="adminLoginForm" class="note-form-grid is-hidden">
 						<div>
