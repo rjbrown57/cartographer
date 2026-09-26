@@ -131,3 +131,11 @@ export function NormalizeTimestamp(value?: TimestampValue): string {
 
     return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
 }
+
+// GetWritingStatistics counts readable prose and estimates time at 200 words per minute.
+export function GetWritingStatistics(text: string): { words: number; readingTime: string } {
+    const words = Array.from(new Intl.Segmenter(undefined, { granularity: 'word' }).segment(text))
+        .filter((segment) => segment.isWordLike).length;
+    const readingTime = words === 0 ? '0 min' : words < 200 ? '< 1 min' : `~${Math.ceil(words / 200)} min`;
+    return { words, readingTime };
+}

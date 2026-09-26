@@ -1,6 +1,7 @@
 import { RenderMarkdown } from './shared/markdown.js';
 import {
     DraftFingerprint,
+    GetWritingStatistics,
     FormatData,
     IsValidNamespace,
     NormalizeNamespaceInput,
@@ -288,6 +289,10 @@ function renderEditor(shell: HTMLElement, note: NoteData | null, namespace: stri
             </section>
             <aside class="note-editor__inspector" aria-label="Note details">
                 <h2 class="note-inspector__title">Note details</h2>
+                <dl class="note-writing-stats" aria-label="Writing statistics">
+                    <div><dt>Words</dt><dd id="editorWordCount">0</dd></div>
+                    <div title="Estimated at 200 words per minute, excluding code blocks"><dt>Reading time</dt><dd id="editorReadingTime">0 min</dd></div>
+                </dl>
                 <label class="note-field" for="editorNamespace">
                     <span class="note-field-label">Namespace</span>
                     <input id="editorNamespace" class="form-control" type="text" autocomplete="off" list="editorNamespaceOptions" required>
@@ -515,6 +520,22 @@ function updateEditorPreview(): void {
     editorElements.preview.innerHTML = markdown.trim()
         ? RenderMarkdown(markdown)
         : '<div class="note-empty">Your rendered note will appear here.</div>';
+    updateWritingDetails();
+}
+
+// updateWritingDetails derives prose statistics from the sanitized preview.
+function updateWritingDetails(): void {
+    if (!editorElements) return;
+    const { preview, body } = editorElements;
+    const prose = preview.cloneNode(true) as HTMLElement;
+    prose.querySelectorAll('pre, script, style, .note-empty').forEach((node) => node.remove());
+    // Block boundaries need spaces: textContent alone joins adjacent paragraphs and cells.
+    prose.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, td, th, br, hr').forEach((node) => {
+        node.appendChild(document.createTextNode(' '));
+    });
+    const stats = GetWritingStatistics(body.value.trim() ? prose.textContent || '' : '');
+    document.getElementById('editorWordCount')!.textContent = stats.words.toLocaleString();
+    document.getElementById('editorReadingTime')!.textContent = stats.readingTime;
 }
 
 // validateDataInput reports structured data syntax without blocking other editing.

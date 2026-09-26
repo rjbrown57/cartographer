@@ -1,5 +1,5 @@
 import { RenderMarkdown } from './shared/markdown.js';
-import { DraftFingerprint, FormatData, IsValidNamespace, NormalizeNamespaceInput, NormalizeTimestamp, ParseCommaList, ParseDataValue, ResolveReturnPath, } from './noteEditor.js';
+import { DraftFingerprint, GetWritingStatistics, FormatData, IsValidNamespace, NormalizeNamespaceInput, NormalizeTimestamp, ParseCommaList, ParseDataValue, ResolveReturnPath, } from './noteEditor.js';
 const GetEndpoint = '/v1/get';
 const NamespacesEndpoint = '/v1/get/namespaces';
 const NotesEndpoint = '/v1/notes';
@@ -196,6 +196,10 @@ function renderEditor(shell, note, namespace) {
             </section>
             <aside class="note-editor__inspector" aria-label="Note details">
                 <h2 class="note-inspector__title">Note details</h2>
+                <dl class="note-writing-stats" aria-label="Writing statistics">
+                    <div><dt>Words</dt><dd id="editorWordCount">0</dd></div>
+                    <div title="Estimated at 200 words per minute, excluding code blocks"><dt>Reading time</dt><dd id="editorReadingTime">0 min</dd></div>
+                </dl>
                 <label class="note-field" for="editorNamespace">
                     <span class="note-field-label">Namespace</span>
                     <input id="editorNamespace" class="form-control" type="text" autocomplete="off" list="editorNamespaceOptions" required>
@@ -405,6 +409,20 @@ function updateEditorPreview() {
     editorElements.preview.innerHTML = markdown.trim()
         ? RenderMarkdown(markdown)
         : '<div class="note-empty">Your rendered note will appear here.</div>';
+    updateWritingDetails();
+}
+function updateWritingDetails() {
+    if (!editorElements)
+        return;
+    const { preview, body } = editorElements;
+    const prose = preview.cloneNode(true);
+    prose.querySelectorAll('pre, script, style, .note-empty').forEach((node) => node.remove());
+    prose.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, td, th, br, hr').forEach((node) => {
+        node.appendChild(document.createTextNode(' '));
+    });
+    const stats = GetWritingStatistics(body.value.trim() ? prose.textContent || '' : '');
+    document.getElementById('editorWordCount').textContent = stats.words.toLocaleString();
+    document.getElementById('editorReadingTime').textContent = stats.readingTime;
 }
 function validateDataInput() {
     if (!editorElements) {

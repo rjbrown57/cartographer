@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
     DraftFingerprint,
+    GetWritingStatistics,
     FormatData,
     IsValidNamespace,
     NormalizeNamespaceInput,
@@ -76,4 +77,12 @@ test('DraftFingerprint ignores incidental field whitespace but preserves markdow
 
     assert.equal(DraftFingerprint(draft), DraftFingerprint(normalized));
     assert.notEqual(DraftFingerprint(draft), DraftFingerprint({ ...draft, body: '# Runbook' }));
+});
+
+test('writing statistics handle empty text, punctuation, Unicode, and reading-time boundaries', () => {
+    assert.deepEqual(GetWritingStatistics(' \n — !!!'), { words: 0, readingTime: '0 min' });
+    assert.deepEqual(GetWritingStatistics('Hello, café world!'), { words: 3, readingTime: '< 1 min' });
+    assert.equal(GetWritingStatistics('word '.repeat(199)).readingTime, '< 1 min');
+    assert.equal(GetWritingStatistics('word '.repeat(200)).readingTime, '~1 min');
+    assert.equal(GetWritingStatistics('word '.repeat(201)).readingTime, '~2 min');
 });
