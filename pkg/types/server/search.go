@@ -90,6 +90,8 @@ func (c *CartographerServer) GetTagMap(in *proto.CartographerGetRequest) (map[st
 
 // Search executes a bleve query and resolves hits against namespace-scoped in-memory note cache.
 func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *SearchOptions) ([]*proto.Note, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	ns, err := proto.GetNamespace(in.Request.GetNamespace())
 	if err != nil {
 		return nil, err
@@ -120,9 +122,7 @@ func (c *CartographerServer) Search(in *proto.CartographerGetRequest, options *S
 	log.Tracef("Search Results(%v): %+v", results.Took, results.Total)
 
 	// Resolve hits to notes using the namespace-scoped cache only.
-	c.mu.RLock()
 	cn, ok := c.nsCache[ns]
-	c.mu.RUnlock()
 	if !ok {
 		return notes, nil
 	}

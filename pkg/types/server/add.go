@@ -19,6 +19,8 @@ import (
 
 // Add writes notes into the live server, applying metadata defaults and indexing them.
 func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddRequest) (*proto.CartographerAddResponse, error) {
+	c.archiveMu.RLock()
+	defer c.archiveMu.RUnlock()
 
 	// record the duration of the add operation
 	defer metrics.Metrics().RecordOperationDuration("add")()

@@ -34,7 +34,9 @@ type CartographerServer struct {
 	config  *config.CartographerConfig
 	nsCache NSCache
 	mu      sync.RWMutex
-	bleve   bleve.Index
+	// archiveMu prevents writes from crossing the restore commit/cache switch.
+	archiveMu sync.RWMutex
+	bleve     bleve.Index
 }
 
 func (c *CartographerServer) Serve() {
@@ -79,10 +81,9 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 	conf := config.NewCartographerConfig(o.ConfigFile)
 
 	c := CartographerServer{
-		Backend:   conf.ServerConfig.Backend.GetBackend(),
-		Options:   o,
-		Notifier:  notifier.NewNotifier(),
-		WebServer: ui.NewCartographerUI(&conf.ServerConfig),
+		Backend:  conf.ServerConfig.Backend.GetBackend(),
+		Options:  o,
+		Notifier: notifier.NewNotifier(),
 
 		config:  conf,
 		nsCache: make(NSCache),
@@ -106,6 +107,8 @@ func NewCartographerServer(o *CartographerServerOptions) *CartographerServer {
 	}
 
 	c.Server = grpc.NewServer()
+
+	c.WebServer = ui.NewCartographerUI(&conf.ServerConfig, &c)
 
 	// handle this better :0)
 	go c.WebServer.Serve()
