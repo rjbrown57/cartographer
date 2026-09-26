@@ -75,3 +75,9 @@ export function NormalizeTimestamp(value) {
     }
     return new Date((seconds * 1000) + Math.floor(nanos / 1_000_000)).toISOString();
 }
+export function GetWritingStatistics(text) {
+    const words = Array.from(new Intl.Segmenter(undefined, { granularity: 'word' }).segment(text))
+        .filter((segment) => segment.isWordLike).length;
+    const readingTime = words === 0 ? '0 min' : words < 200 ? '< 1 min' : `~${Math.ceil(words / 200)} min`;
+    return { words, readingTime };
+}
