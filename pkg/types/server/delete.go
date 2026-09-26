@@ -12,6 +12,8 @@ import (
 
 // Delete removes durably deleted notes from the live cache and search index.
 func (c *CartographerServer) Delete(_ context.Context, in *proto.CartographerDeleteRequest) (*proto.CartographerDeleteResponse, error) {
+	c.archiveMu.RLock()
+	defer c.archiveMu.RUnlock()
 	// record the duration of the delete operation
 	defer metrics.Metrics().RecordOperationDuration("delete")()
 	if in == nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rjbrown57/cartographer/pkg/log"
+	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 	"github.com/rjbrown57/cartographer/web"
@@ -44,9 +45,10 @@ func healthzFunc() gin.HandlerFunc {
 // @BasePath /v1
 // @schemes http,https
 
-var excludePaths = []string{"/healthz", "/metrics", "/v1/ping"}
+var excludePaths = []string{"/healthz", "/metrics", "/v1/ping", "/v1/admin/export"}
 
-func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.Engine {
+// NewGinServer constructs the HTTP router with optional server-coordinated archive operations.
+func NewGinServer(carto *client.CartographerClient, o *config.WebConfig, archives ...backend.ArchiveService) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	g := gin.New()
@@ -87,6 +89,13 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig) *gin.En
 
 	// Global favicon route - browsers automatically request this
 	g.GET("/favicon.ico", faviconFunc())
+
+	var archiveService backend.ArchiveService
+	if len(archives) > 0 {
+		archiveService = archives[0]
+	}
+	g.GET("/v1/admin/export", requireAdmin(auth), exportFunc(archiveService))
+	g.POST("/v1/admin/import", requireAdmin(auth), importFunc(archiveService))
 
 	// Json Endpoints
 	g.GET("/v1/ping", pingFunc(carto))

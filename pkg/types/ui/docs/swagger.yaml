@@ -1,3 +1,13 @@
+definitions:
+  backend.ImportResult:
+    properties:
+      added:
+        type: integer
+      mode:
+        type: string
+      skipped:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
@@ -48,6 +58,85 @@ paths:
       summary: Get application information
       tags:
       - info
+  /v1/admin/export:
+    get:
+      description: Requires an admin session cookie from POST /v1/admin/session. Downloads
+        an uncompressed, versioned tar containing all namespaces, templates and database
+        metadata. Maximum archive size is 256 MiB.
+      produces:
+      - application/x-tar
+      responses:
+        "200":
+          description: Database archive
+          schema:
+            type: file
+        "401":
+          description: Admin authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Export failed
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Export the complete database
+      tags:
+      - admin
+  /v1/admin/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Requires an admin session cookie from POST /v1/admin/session. replace
+        removes existing contents; merge adds missing records and keeps existing namespace/key
+        matches, including templates. Values and lifecycle metadata are preserved.
+        Invalid archives leave the database unchanged. Maximum file size is 256 MiB;
+        multipart overhead is limited to 1 MiB. Counts cover records under data_store;
+        added includes every restored record in replace mode.
+      parameters:
+      - description: Import mode
+        enum:
+        - replace
+        - merge
+        in: query
+        name: mode
+        required: true
+        type: string
+      - description: Tar archive returned by export
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend.ImportResult'
+        "400":
+          description: Invalid archive, upload or mode
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Admin authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "413":
+          description: Upload too large
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Import failed
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Import a database archive
+      tags:
+      - admin
   /v1/get:
     get:
       consumes:

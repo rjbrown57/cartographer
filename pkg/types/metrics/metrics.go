@@ -13,6 +13,7 @@ var instanceMetrics CartoMetrics
 var metricsOnce sync.Once
 
 type CartoMetrics interface {
+	SetObjectCounts(map[string]int)
 	IncrementObjectCount(objectType, namespace string, count float64)
 	DecrementObjectCount(objectType, namespace string, count float64)
 	RecordOperationDuration(operation string) func()
@@ -137,4 +138,13 @@ func (c *CartoPromMetrics) ClearVisitors() {
 	defer c.visitorMutex.Unlock()
 
 	c.seenVisitors = make(map[string]struct{})
+}
+
+// SetObjectCounts replaces note/index gauges after a complete cache rebuild.
+func (c *CartoPromMetrics) SetObjectCounts(counts map[string]int) {
+	c.CartographerObjects.Reset()
+	for ns, count := range counts {
+		c.CartographerObjects.WithLabelValues("note", ns).Set(float64(count))
+		c.CartographerObjects.WithLabelValues("searchIndexCount", ns).Set(float64(count))
+	}
 }

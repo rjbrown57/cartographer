@@ -130,11 +130,106 @@ Common endpoints:
 - `GET /v1/get/namespaces` - list namespaces
 - `GET /v1/admin/templates` - list reusable markdown templates
 - `POST /v1/admin/templates` - create or update templates, admin only
+- `GET /v1/admin/export` - download a database archive, admin only
+- `POST /v1/admin/import?mode=replace|merge` - restore a database archive, admin only
 
 Standalone note pages are available at:
 
 ```text
 /note?id=<note-id>&namespace=<namespace>
+```
+
+### Database export and import
+
+Export downloads an uncompressed `.tar` archive of the entire database: all
+namespaces, notes, reusable admin templates, database metadata, and empty buckets.
+The archive contains `manifest.json` (format version and SHA-256 checksum) and
+`database.json` (a logical snapshot with base64-encoded database keys and values).
+It does not include external configuration files, environment variables, or admin
+session cookies. Keep those separately when moving to another instance.
+
+Both endpoints require an admin session. Configure `CARTOGRAPHER_ADMIN_TOKEN` on
+the server, then log in and save the session cookie locally:
+
+```bash
+export CARTOGRAPHER_URL="http://localhost:8081"
+# Enter the same token configured on the server.
+read -r -s -p "Admin token: " CARTOGRAPHER_ADMIN_TOKEN; echo
+export CARTOGRAPHER_ADMIN_TOKEN
+umask 077
+python3 -c 'import json, os; print(json.dumps({"token": os.environ["CARTOGRAPHER_ADMIN_TOKEN"]}))' | \
+  curl --fail-with-body --silent --show-error \
+    -c cartographer.cookies \
+    -H 'Content-Type: application/json' \
+    --data-binary @- "$CARTOGRAPHER_URL/v1/admin/session"
+```
+
+Export the database:
+
+```bash
+curl --fail --silent --show-error \
+  -b cartographer.cookies \
+  --output cartographer.tar \
+  "$CARTOGRAPHER_URL/v1/admin/export"
+```
+
+Import requires an explicit mode; there is no default:
+
+| Mode | Records present in both databases | Archive-only records | Current database-only records |
+| --- | --- | --- | --- |
+| `replace` | Use the archived record | Add | Delete |
+| `merge` | Keep the current record | Add | Keep |
+
+Records match by **namespace and key**. The same key in different namespaces is
+not a conflict. These rules also apply to admin templates. Import preserves whole
+records, including timestamps, versions, and tags; it does not combine fields,
+choose the newest version, or rerun automatic tagging. Replace restores database
+metadata and bucket sequences; merge preserves existing metadata and sequences
+and adds missing entries.
+
+Replace the current database with the archive:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -b cartographer.cookies \
+  -F 'file=@cartographer.tar;type=application/x-tar' \
+  "$CARTOGRAPHER_URL/v1/admin/import?mode=replace"
+```
+
+Or merge missing records into the current database:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -b cartographer.cookies \
+  -F 'file=@cartographer.tar;type=application/x-tar' \
+  "$CARTOGRAPHER_URL/v1/admin/import?mode=merge"
+```
+
+To import into a different instance, change `CARTOGRAPHER_URL` and log in to that
+instance first. A successful import returns JSON such as
+`{"mode":"merge","added":12,"skipped":3}`. Counts cover stored records, including
+templates, but exclude metadata and buckets. In replace mode, `added` counts all
+restored records and `skipped` is zero.
+
+Archives are limited to **256 MiB**, with an additional 1 MiB allowed for multipart
+upload overhead. Export fails if the generated archive would exceed that limit.
+Only the supported archive format and database schema are accepted. Validation
+and cache/search preparation failures leave the existing database unchanged.
+Import commits atomically; reads and writes wait while the database and derived
+state are rebuilt and switched. Restored content is available immediately,
+without restarting the server. A subsequent restart still reapplies notes from
+the server's configuration files, as it normally does.
+
+Errors return JSON: `400` for invalid modes, uploads or archives, `401` for missing
+admin authentication, `413` for oversized uploads, and `500` for storage or export
+failures. Interactive documentation is available at `/docs/` (log in through the
+admin panel on the same origin to use the authenticated endpoints).
+
+When finished, remove the local session cookie:
+
+```bash
+rm cartographer.cookies
+unset CARTOGRAPHER_ADMIN_TOKEN
 ```
 
 ### MCP

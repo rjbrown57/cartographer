@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rjbrown57/cartographer/pkg/log"
 
+	"github.com/rjbrown57/cartographer/pkg/types/backend"
 	"github.com/rjbrown57/cartographer/pkg/types/client"
 	"github.com/rjbrown57/cartographer/pkg/types/config"
 )
@@ -20,7 +21,8 @@ type CartographerUI struct {
 	sitename string
 }
 
-func NewCartographerUI(o *config.ServerConfig) *CartographerUI {
+// NewCartographerUI connects the UI client and archive service to the HTTP router.
+func NewCartographerUI(o *config.ServerConfig, archives ...backend.ArchiveService) *CartographerUI {
 
 	co := client.CartographerClientOptions{
 		Address: o.Address,
@@ -31,7 +33,7 @@ func NewCartographerUI(o *config.ServerConfig) *CartographerUI {
 
 	c := CartographerUI{
 		Client:   carto,
-		Server:   NewGinServer(carto, &o.WebConfig),
+		Server:   NewGinServer(carto, &o.WebConfig, archives...),
 		Port:     o.WebConfig.Port,
 		Address:  o.WebConfig.Address,
 		sitename: o.WebConfig.SiteName,
