@@ -13,10 +13,16 @@ builds:
       - arm64
     ldflags:
       - "-X github.com/rjbrown57/cartographer/cmd.version={{.Version}} -X github.com/rjbrown57/cartographer/pkg/types/ui.version={{.Version}} -X github.com/rjbrown57/cartographer/pkg/types/ui.commit={{.Commit}} -X github.com/rjbrown57/cartographer/pkg/types/ui.date={{.Date}}"
-dockers:
-  - image_templates:
-    - ghcr.io/rjbrown57/cartographer
-    - ghcr.io/rjbrown57/cartographer:{{ .Tag }}
+# Buildx combines the Linux binaries into a single image index for each tag.
+dockers_v2:
+  - images:
+      - ghcr.io/rjbrown57/cartographer
+    tags:
+      - latest
+      - '{{ .Tag }}'
+    platforms:
+      - linux/amd64
+      - linux/arm64
 archives:
   - formats: ['binary']
 checksum:
