@@ -8,6 +8,9 @@ export type MobileNoteType = {
 
 // GetMobileNoteType returns compact visual metadata for a mobile feed item.
 export function GetMobileNoteType(note: NoteData): MobileNoteType {
+    if (note.data?.kind === 'diagram' && note.data?.version === 1) {
+        return { className: 'mobile-note--diagram', icon: 'bi bi-bezier2', label: 'Diagram' };
+    }
     if (note.data && Object.keys(note.data).length > 0) {
         return { className: 'mobile-note--data', icon: 'bi bi-braces', label: 'Data' };
     }

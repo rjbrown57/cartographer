@@ -8,13 +8,16 @@ import { RenderMarkdown } from '../shared/markdown.js';
 import { GetAdminSession, GetNamespaces, GetNotes, RequestJSON } from './api.js';
 import { GetCurrentNamespace, NoteURL, SetCurrentNamespace } from './navigation.js';
 import { AdminPanel } from './AdminPanel.js';
+import { DiagramPreview } from './DiagramPreview.js';
+import { GetDiagramScene } from './diagram.js';
 
 const cardStyleKey = 'cartographer_card_style';
 const topTagsKey = 'cartographer_top_tags_collapsed';
 const namespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 // NoteType preserves the legacy precedence of data, link, and text cards.
-function NoteType(note: NoteData): 'Data' | 'Link' | 'Note' {
+function NoteType(note: NoteData): 'Diagram' | 'Data' | 'Link' | 'Note' {
+  if (note.data?.kind === 'diagram' && note.data?.version === 1) return 'Diagram';
   return note.data && Object.keys(note.data).length ? 'Data' : note.url ? 'Link' : 'Note';
 }
 
@@ -32,9 +35,9 @@ function NoteCard({ note, namespace, admin, onOpen, onDelete, onTag }: {
   const type = NoteType(note);
   const color = GetColor('noteType', type);
   return <article className={`link-card note-card note-card--${type.toLowerCase()}`} style={color ? { borderColor: color } : undefined} onClick={() => onOpen(note)}>
-    <div className="note-actions"><a href={NoteURL(note.id, namespace)} onClick={event => event.stopPropagation()}>Open</a>
-      {admin && <><a href={NoteURL(note.id, namespace, true)} onClick={event => event.stopPropagation()}>Edit</a>
-        <button type="button" onClick={event => { event.stopPropagation(); onDelete(note); }}>Delete</button></>}</div>
+    <div className="note-actions"><a className="note-action-button" href={NoteURL(note.id, namespace)} title="Open note" aria-label={`Open ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-box-arrow-up-right" /></a>
+      {admin && <><a className="note-action-button" href={NoteURL(note.id, namespace, true)} title="Edit note" aria-label={`Edit ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-pencil" /></a>
+        <button className="note-action-button" type="button" title="Delete note" aria-label={`Delete ${note.title}`} onClick={event => { event.stopPropagation(); onDelete(note); }}><i className="bi bi-trash" /></button></>}</div>
     <div className="card-view"><div className="note-card__content d-flex flex-column gap-2">
       <div className="note-meta-row"><span className="note-type-badge">{type}</span>
         {note.version ? <span className="note-meta-chip">v{note.version}</span> : null}
@@ -42,7 +45,7 @@ function NoteCard({ note, namespace, admin, onOpen, onDelete, onTag }: {
         {note.updated_at ? <span className="note-meta-chip">Updated {typeof note.updated_at === 'string' ? new Date(note.updated_at).toLocaleDateString() : new Date(Number(note.updated_at.seconds || 0) * 1000).toLocaleDateString()}</span> : null}</div>
       <h2 className="link-title note-title">{note.url ? <a href={note.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{note.title}</a> : note.title}</h2>
       <div className="link-description note-markdown note-markdown--preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || '') }} />
-      {note.data && Object.keys(note.data).length > 0 && <details className="data-container" onClick={event => event.stopPropagation()}><summary>Structured data</summary><pre>{JSON.stringify(note.data, null, 2)}</pre></details>}
+      {type === 'Diagram' && GetDiagramScene(note) ? <DiagramPreview scene={GetDiagramScene(note)!} /> : note.data && Object.keys(note.data).length > 0 && <details className="data-container" onClick={event => event.stopPropagation()}><summary>Structured data</summary><pre>{JSON.stringify(note.data, null, 2)}</pre></details>}
       <div className="note-card__footer">{(note.tags || []).map(tag => <button className="nav-tag" type="button" key={tag} onClick={event => { event.stopPropagation(); onTag(tag); }}>{tag}</button>)}</div>
     </div></div>
   </article>;
@@ -66,6 +69,7 @@ export function DesktopApp(): React.JSX.Element {
   const [tagsCollapsed, setTagsCollapsed] = useState(localStorage.getItem(topTagsKey) === 'true');
   const [reloadKey, setReloadKey] = useState(0);
   const [colorVersion, setColorVersion] = useState(0);
+  const [visibleLimit, setVisibleLimit] = useState(100);
 
   useEffect(() => {
     void GetNamespaces().then(setNamespaces).catch(() => setError('Unable to load namespaces.'));
@@ -118,6 +122,8 @@ export function DesktopApp(): React.JSX.Element {
   }, [notes]);
   const visible = useMemo(() => SortNotes(notes.filter(note => (!tag || note.tags?.includes(tag)) && MatchesSearch(note, search)), sort, Boolean(search.trim())), [notes, tag, search, sort]);
 
+  useEffect(() => { setVisibleLimit(100); }, [namespace, submittedSearch, tag, search, sort]);
+
   // ChangeNamespace selects a collection and clears filters from the previous one.
   function ChangeNamespace(value: string): void {
     const url = new URL(location.href);
@@ -159,9 +165,9 @@ export function DesktopApp(): React.JSX.Element {
     } catch { setError('Unable to delete note.'); }
   }
 
-  return <div className={style === 'condensed' ? 'card-style-condensed' : ''} data-color-version={colorVersion}>
+  return <div className={`${style === 'condensed' ? 'card-style-condensed' : ''} ${admin ? 'is-admin' : ''}`} data-color-version={colorVersion}>
     <nav className="navbar top-nav py-3"><div className="container-fluid gap-3 align-items-center">
-      <a className="navbar-brand brand" href="/react-preview"><i className="bi bi-compass" /> {document.getElementById('react-desktop-root')?.dataset.siteName || 'Cartographer'}</a>
+      <a className="navbar-brand brand" href="/"><i className="bi bi-compass" /> {document.getElementById('react-desktop-root')?.dataset.siteName || 'Cartographer'}</a>
       <form className="flex-grow-1" onSubmit={SubmitSearch}><input id="react-search" className="form-control search-input" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search notes and tags..." aria-label="Search notes" /></form>
       {admin && <a className="btn nav-action" href={`/note?mode=create&namespace=${encodeURIComponent(namespace)}`}>Add note</a>}
       <AdminPanel notes={notes} onSessionChange={setAdmin} onNamespaceChange={() => {
@@ -182,13 +188,16 @@ export function DesktopApp(): React.JSX.Element {
       <select className="form-select" value={style} aria-label="Card style" onChange={event => { setStyle(event.target.value); localStorage.setItem(cardStyleKey, event.target.value); }}><option value="comfortable">Comfortable</option><option value="condensed">Condensed</option></select>
     </div></div>{error && <div className="alert alert-danger" role="alert">{error}</div>}
       {!loading && visible.length === 0 && <p>No notes found.</p>}
-      <div id="linkgrid">{visible.slice(0, 100).map(note => <NoteCard key={note.id} note={note} namespace={namespace} admin={admin} onOpen={setOpen} onDelete={note => void DeleteNote(note)} onTag={ToggleTag} />)}</div>
-      {visible.length > 100 && <p>Showing the first 100 notes. Refine your search to see more.</p>}
+      <div id="linkgrid">{visible.slice(0, visibleLimit).map(note => <NoteCard key={note.id} note={note} namespace={namespace} admin={admin} onOpen={setOpen} onDelete={note => void DeleteNote(note)} onTag={ToggleTag} />)}</div>
+      {visible.length > visibleLimit && <button className="btn btn-outline-secondary mt-4" type="button" onClick={() => setVisibleLimit(limit => limit + 100)}>Show more notes ({visible.length - visibleLimit} remaining)</button>}
     </main>
-    {open && <div id="maximized-card-overlay" role="presentation" onClick={() => setOpen(null)}><article className="link-card note-card" role="dialog" aria-modal="true" aria-label={open.title} onClick={event => event.stopPropagation()}>
-      <button type="button" className="btn btn-outline-secondary" onClick={() => setOpen(null)}>Close</button><h2>{open.title}</h2>
+    {open && <div id="maximized-card-overlay" role="presentation" style={{ display: 'flex' }} onClick={() => setOpen(null)}><article className="link-card note-card" role="dialog" aria-modal="true" aria-label={open.title} onClick={event => event.stopPropagation()}>
+      <div className="d-flex justify-content-end gap-2 mb-3"><a className="btn btn-outline-secondary" href={NoteURL(open.id, namespace)}>Open note</a>
+        {admin && <><a className="btn btn-outline-secondary" href={NoteURL(open.id, namespace, true)}>Edit</a><button className="btn btn-outline-danger" type="button" onClick={() => void DeleteNote(open)}>Delete</button></>}
+        <button type="button" className="btn btn-outline-secondary" onClick={() => setOpen(null)}>Close</button></div><h2>{open.title}</h2>
       <div className="note-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(open.body || '') }} />
-      {open.data && <pre>{JSON.stringify(open.data, null, 2)}</pre>}<a href={NoteURL(open.id, namespace)}>Open note</a>
+      {GetDiagramScene(open) ? <DiagramPreview scene={GetDiagramScene(open)!} /> : open.data && <pre>{JSON.stringify(open.data, null, 2)}</pre>}
+      <div className="note-card__footer">{(open.tags || []).map(value => <button className="nav-tag" type="button" key={value} onClick={() => { ToggleTag(value); setOpen(null); }}>{value}</button>)}</div>
     </article></div>}
   </div>;
 }

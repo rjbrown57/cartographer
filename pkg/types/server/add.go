@@ -39,6 +39,9 @@ func (c *CartographerServer) Add(_ context.Context, in *proto.CartographerAddReq
 		if requestedNote == nil {
 			return nil, fmt.Errorf("note at index %d is required", index)
 		}
+		if err := validateDiagramNote(requestedNote); err != nil {
+			return nil, fmt.Errorf("diagram at index %d: %w", index, err)
+		}
 
 		// Work on a clone so metadata and automatic tags are only exposed to
 		// callers after the backend has durably accepted the note.

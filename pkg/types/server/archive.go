@@ -113,6 +113,9 @@ func visitArchiveNotes(snapshot *backend.Snapshot, visit func(string, *proto.Not
 				if err != nil || note.GetKey() == "" || note.GetKey() != string(value.Key) {
 					return fmt.Errorf("%w: invalid note in namespace %q", backend.ErrInvalidArchive, ns)
 				}
+				if err := validateDiagramNote(note); err != nil {
+					return fmt.Errorf("%w: %v", backend.ErrInvalidArchive, err)
+				}
 				if visit != nil {
 					if err := visit(ns, note); err != nil {
 						return err

@@ -1,0 +1,1 @@
+export{t as default,n as en,r as kaa}from"../note.js";

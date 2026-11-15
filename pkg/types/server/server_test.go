@@ -2,6 +2,7 @@ package server
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/rjbrown57/cartographer/pkg/utils"
@@ -16,6 +17,10 @@ var (
 // TestMain runs once before all tests in the package
 func TestMain(m *testing.M) {
 	var err error
+
+	// Use ephemeral gRPC and HTTP ports so tests can run beside a local Cartographer server.
+	utils.TestFullConfig = strings.Replace(utils.TestFullConfig, "  port: 8080", "  port: 0", 1)
+	utils.TestFullConfig = strings.Replace(utils.TestFullConfig, "    port: 8081", "    port: 0", 1)
 
 	// Global setup - write test config once
 	testConfig, err = utils.WriteTestDir()

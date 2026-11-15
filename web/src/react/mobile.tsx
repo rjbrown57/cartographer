@@ -6,6 +6,8 @@ import { GetNoteSortMode, SetNoteSortMode, SortNotes, type NoteSortMode } from '
 import { RenderMarkdown } from '../shared/markdown.js';
 import { GetAdminSession, GetNamespaces, GetNotes } from './api.js';
 import { GetCurrentNamespace, SetCurrentNamespace } from './navigation.js';
+import { DiagramPreview } from './DiagramPreview.js';
+import { GetDiagramScene } from './diagram.js';
 
 // MobileApp provides the distinct phone feed through React.
 export function MobileApp(): React.JSX.Element {
@@ -40,6 +42,11 @@ export function MobileApp(): React.JSX.Element {
     void GetNotes(namespace, filters).then(value => { if (active) { setNotes(value); setLoading(false); } }).catch(() => { if (active) { setError('Unable to load notes.'); setLoading(false); } });
     return () => { active = false; };
   }, [namespace, filters]);
+
+  useEffect(() => {
+    document.body.classList.toggle('mobile-sheet-open', sheet);
+    return () => document.body.classList.remove('mobile-sheet-open');
+  }, [sheet]);
 
   const selectedTags = filters.getAll('tag');
   const visible = useMemo(() => SortNotes(notes.filter(note => MatchesMobileSearch(note, search)), sort, filters.has('term')), [notes, search, sort, filters]);
@@ -82,14 +89,14 @@ export function MobileApp(): React.JSX.Element {
       <button className="mobile-icon-button" type="button" aria-label="Open filters" aria-expanded={sheet} onClick={() => setSheet(true)}><i className="bi bi-sliders2" /></button></div>
       <form className="mobile-search" role="search" onSubmit={SubmitSearch}><i className="bi bi-search" aria-hidden="true" /><input type="search" enterKeyHint="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a note" aria-label="Find a note" />
         {search && <button className="mobile-search__clear is-visible" type="button" onClick={ClearSearch} aria-label="Clear search"><i className="bi bi-x-circle-fill" /></button>}</form>
-      <nav className="mobile-namespaces" aria-label="Namespaces">{[...new Set([...namespaces, namespace])].sort().map(value => <button type="button" key={value} aria-pressed={namespace === value} onClick={() => SelectNamespace(value)}>{value}</button>)}</nav>
+      <nav className="mobile-namespaces" aria-label="Namespaces">{[...new Set([...namespaces, namespace])].sort().map(value => <button className="mobile-namespace" type="button" key={value} aria-pressed={namespace === value} onClick={() => SelectNamespace(value)}>{value}</button>)}</nav>
     </header>
     <main className="mobile-main"><section className="mobile-feed-heading" aria-live="polite"><div><strong>{loading ? 'Loading notes' : `${visible.length} notes`}</strong><span>{namespace}</span></div><button className="mobile-feed-heading__filter" type="button" onClick={() => setSheet(true)}><i className="bi bi-funnel" /><span>Filter</span></button></section>
       <div className={`mobile-active-filters ${selectedTags.length || filters.has('term') ? '' : 'is-empty'}`}>{[...selectedTags.map(value => ({ kind: 'tag', value })), ...filters.getAll('term').map(value => ({ kind: 'term', value }))].map(({ kind, value }) => <button className="mobile-active-filter" type="button" key={`${kind}:${value}`} onClick={() => { if (kind === 'tag') ToggleTag(value); else { const next = new URLSearchParams(filters); const values = next.getAll('term').filter(item => item !== value); next.delete('term'); values.forEach(item => next.append('term', item)); setSearch(values.join(' ')); UpdateURL(next); } }}>{value} <i className="bi bi-x" /></button>)}</div>
       <section className="mobile-feed" aria-label="Notes" aria-busy={loading}>{error && <div className="mobile-empty mobile-empty--error">{error}</div>}{!loading && !error && visible.length === 0 && <div className="mobile-empty"><strong>No notes found</strong><span>Try another search, tag, or namespace.</span></div>}
         {visible.map(note => { const type = GetMobileNoteType(note); const stamp = FormatMobileTimestamp(note.updated_at || note.created_at); return <article className={`mobile-note ${type.className}`} role="link" tabIndex={0} aria-label={`Open ${note.title}`} key={note.id} onClick={() => location.assign(NotePath(note))} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') location.assign(NotePath(note)); }}>
           <div className="mobile-note__meta"><span className="mobile-note__type"><i className={type.icon} />{type.label}</span>{stamp && <span className="mobile-note__date">{stamp}</span>}{note.source && <span className="mobile-note__source">{note.source}</span>}</div>
-          <h2 className="mobile-note__title">{note.title || note.url || note.id}</h2><div className="mobile-note__preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || note.url || '') }} />
+          <h2 className="mobile-note__title">{note.title || note.url || note.id}</h2>{GetDiagramScene(note) ? <DiagramPreview scene={GetDiagramScene(note)!} /> : <div className="mobile-note__preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || note.url || '') }} />}
           <div className="mobile-note__footer"><div className="mobile-note__tags">{(note.tags || []).slice(0, 3).map(value => <button className="mobile-note__tag" type="button" key={value} onClick={event => { event.stopPropagation(); ToggleTag(value); }}>{value}</button>)}{(note.tags || []).length > 3 && <span className="mobile-note__more">+{note.tags.length - 3}</span>}</div><span className="mobile-note__open"><i className="bi bi-chevron-right" /></span></div>
         </article>; })}</section></main>
     {admin && <a className="mobile-add-note is-visible" href={NotePath(null)} aria-label="Add note"><i className="bi bi-plus-lg" /></a>}

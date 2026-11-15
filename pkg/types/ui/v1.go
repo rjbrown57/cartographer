@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -112,12 +113,49 @@ type noteCreateRequest struct {
 	Version     int64             `json:"version"`
 }
 
+const maxDiagramDataBytes = 2 * 1024 * 1024
+
+// validateDiagramData checks diagram shape and limits embedded scene data.
+func validateDiagramData(data map[string]any) (int, string) {
+	if data["kind"] != "diagram" {
+		return 0, ""
+	}
+	if data["version"] != float64(1) {
+		return http.StatusBadRequest, "Unsupported diagram version"
+	}
+	scene, ok := data["scene"].(map[string]any)
+	if !ok {
+		return http.StatusBadRequest, "Invalid diagram scene"
+	}
+	if _, ok := scene["elements"].([]any); !ok {
+		return http.StatusBadRequest, "Invalid diagram elements"
+	}
+	if _, ok := scene["appState"].(map[string]any); !ok {
+		return http.StatusBadRequest, "Invalid diagram app state"
+	}
+	if _, ok := scene["files"].(map[string]any); !ok {
+		return http.StatusBadRequest, "Invalid diagram files"
+	}
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return http.StatusBadRequest, "Invalid diagram data"
+	}
+	if len(encoded) > maxDiagramDataBytes {
+		return http.StatusRequestEntityTooLarge, "Diagram exceeds the 2 MiB limit"
+	}
+	return 0, ""
+}
+
 // postNotesFunc accepts an admin note submission and forwards it through the add path.
 func postNotesFunc(carto *client.CartographerClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var nr noteCreateRequest
 		if err := c.ShouldBindJSON(&nr); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Invalid note payload"})
+			return
+		}
+		if status, message := validateDiagramData(nr.Data); status != 0 {
+			c.JSON(status, gin.H{"status": status, "message": message})
 			return
 		}
 

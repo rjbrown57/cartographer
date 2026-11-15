@@ -833,7 +833,7 @@
 			padding-right: 5.5rem;
 		}
 
-		body.is-admin #linkgrid .note-meta-row {
+		.is-admin #linkgrid .note-meta-row {
 			padding-right: 9rem;
 		}
 
@@ -883,7 +883,7 @@
 			display: none !important;
 		}
 
-		body.is-admin .admin-only {
+		.is-admin .admin-only {
 			display: inline-flex !important;
 		}
 
