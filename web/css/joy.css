@@ -1,0 +1,295 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+}
+
+.joy-desktop {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #f8fafc 0%, #eef2f7 45%, #dde7f5 100%);
+}
+
+.joy-desktop-header {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+}
+
+.joy-desktop-header .joy-header-action {
+  --IconButton-size: 36px;
+  border: 1px solid #475569;
+  border-radius: 50%;
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.joy-desktop-header .joy-header-action:hover {
+  border-color: #67e8f9;
+  background: #24354d;
+  color: #fff;
+}
+
+.joy-desktop-header [role="tab"][aria-selected="true"] {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.joy-top-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.joy-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.joy-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.joy-card-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.joy-card-actions {
+  flex: 0 0 auto;
+  padding: 2px;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
+.joy-card-actions .MuiIconButton-root {
+  --IconButton-size: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+}
+
+.joy-card-footer {
+  flex: 0 0 auto;
+}
+
+.joy-card-markdown {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.joy-card-markdown :first-child { margin-top: 0; }
+.joy-card-markdown :last-child { margin-bottom: 0; }
+
+
+.joy-markdown {
+  color: #334155;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.joy-markdown pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.joy-markdown img { max-width: 100%; }
+
+.joy-note-app {
+  min-height: 100vh;
+  background: #eef2f7;
+}
+
+.joy-note-app--editing {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.joy-note-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.joy-note-details {
+  flex: 0 0 300px;
+  width: 300px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem;
+  border-right: 1px solid var(--joy-palette-divider);
+}
+
+details > summary { cursor: pointer; }
+
+.joy-tools details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--joy-palette-divider);
+}
+.joy-tools details > summary::-webkit-details-marker { display: none; }
+.joy-tools details > summary::after {
+  content: '\F282';
+  font-family: bootstrap-icons;
+  font-size: 0.85rem;
+  margin-left: 1rem;
+}
+.joy-tools details[open] > summary::after { transform: rotate(180deg); }
+
+@media (max-width: 720px) {
+  .joy-note-details {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: min(300px, 90vw);
+    z-index: 10;
+    box-shadow: 8px 0 20px #0003;
+  }
+}
+
+.joy-note-editor-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: #fff;
+}
+
+.joy-note-panes {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.joy-note-panes[data-mode="split"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.joy-note-code, .joy-note-preview { height: 100%; min-height: 0; overflow: auto; }
+.joy-note-code .cm-editor { height: 100%; font-size: 1rem; }
+.joy-note-code .cm-scroller { overflow: auto; }
+.joy-note-code .cm-content { min-height: 100%; padding: 1.5rem clamp(1rem, 3vw, 2.5rem); }
+.joy-note-preview { padding: 1.5rem clamp(1rem, 3vw, 2.5rem); border-left: 1px solid #cbd5e1; }
+
+.joy-note-canvas { flex: 1 1 auto; min-height: 0; }
+.joy-note-canvas .cartographer-diagram { height: 100%; border: 0; border-radius: 0; }
+
+.joy-mobile {
+  min-height: 100vh;
+  background: #f3f5f8;
+}
+
+.joy-mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.22);
+}
+
+.joy-mobile-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.joy-mobile-preview :first-child { margin-top: 0; }
+.joy-mobile-preview :last-child { margin-bottom: 0; }
+
+
+:root[data-joy-color-scheme="dark"] {
+  color-scheme: dark;
+}
+
+[data-joy-color-scheme="dark"] .joy-desktop,
+[data-joy-color-scheme="dark"] .joy-note-app,
+[data-joy-color-scheme="dark"] .joy-mobile {
+  background: #0b1220;
+}
+
+[data-joy-color-scheme="dark"] .joy-card-grid article {
+  border-top-color: #475569;
+  border-right-color: #475569;
+  border-bottom-color: #475569;
+}
+
+[data-joy-color-scheme="dark"] .joy-card-actions {
+  border-color: #475569;
+  background: #202e43;
+}
+
+[data-joy-color-scheme="dark"] .joy-card-footer {
+  border-top-color: #475569;
+}
+
+[data-joy-color-scheme="dark"] .joy-card-tag {
+  background: #314158;
+  color: #e2e8f0;
+}
+
+[data-joy-color-scheme="dark"] .joy-card-tag:hover {
+  background: #475569;
+}
+
+
+[data-joy-color-scheme="dark"] .joy-card-markdown,
+[data-joy-color-scheme="dark"] .joy-markdown {
+  color: #cbd5e1;
+}
+
+[data-joy-color-scheme="dark"] .joy-note-editor-main {
+  background: #172234;
+}
+
+[data-joy-color-scheme="dark"] .joy-note-preview {
+  border-left-color: #475569;
+}
+
+[data-joy-color-scheme="dark"] .joy-note-code .cm-editor,
+[data-joy-color-scheme="dark"] .joy-note-code .cm-gutters {
+  background: #172234;
+  color: #e2e8f0;
+}
+
+[data-joy-color-scheme="dark"] .joy-note-code .cm-activeLine,
+[data-joy-color-scheme="dark"] .joy-note-code .cm-activeLineGutter {
+  background: #202e43;
+}
+
+@media (max-width: 720px) {
+  .joy-note-panes[data-mode="split"] { grid-template-columns: minmax(0, 1fr); }
+  .joy-note-panes[data-mode="split"] .joy-note-preview { display: none; }
+}
+
+.joy-diagram-indicator {
+  min-height: 60px;
+  color: var(--joy-palette-text-secondary);
+}
+.joy-diagram-indicator > i { font-size: 1.5rem; }

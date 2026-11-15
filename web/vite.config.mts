@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 // The React bundle lives under the already embedded /scripts/ tree.
 export default defineConfig({
+  base: '/scripts/react/',
   define: { 'process.env.IS_PREACT': JSON.stringify('true') },
   build: {
     outDir: 'js/react',

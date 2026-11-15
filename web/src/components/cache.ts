@@ -1,4 +1,4 @@
-import type { CartoResponse } from '../types/types.js';
+import type { CartographerData } from '../shared/types.js';
 
 // Cache configuration
 const CACHE_TTL_MS = 480 * 60 * 1000; // 8 hours default TTL
@@ -13,7 +13,7 @@ export interface CacheEntry<T> {
 
 // Cache keyed by query path to handle different query parameters
 // Use in-memory Map for fast access, but persist to localStorage
-const mainDataCache: Map<string, CacheEntry<CartoResponse>> = new Map();
+const mainDataCache: Map<string, CacheEntry<CartographerData>> = new Map();
 
 // Load cache from localStorage on initialization
 function loadCacheFromStorage(): void {
@@ -27,7 +27,7 @@ function loadCacheFromStorage(): void {
         if (stored) {
             const cacheData = JSON.parse(stored);
             Object.entries(cacheData).forEach(([key, value]) => {
-                mainDataCache.set(key, value as CacheEntry<CartoResponse>);
+                mainDataCache.set(key, value as CacheEntry<CartographerData>);
             });
         }
     } catch (err) {
@@ -38,7 +38,7 @@ function loadCacheFromStorage(): void {
 // Save cache to localStorage
 function saveCacheToStorage(): void {
     try {
-        const cacheData: Record<string, CacheEntry<CartoResponse>> = {};
+        const cacheData: Record<string, CacheEntry<CartographerData>> = {};
         mainDataCache.forEach((value, key) => {
             cacheData[key] = value;
         });
@@ -74,7 +74,7 @@ export function setNoteCacheEnabled(enabled: boolean): void {
 }
 
 // getCacheEntry returns a stored note query when note caching is enabled.
-export function getCacheEntry(queryPath: string): CacheEntry<CartoResponse> | undefined {
+export function getCacheEntry(queryPath: string): CacheEntry<CartographerData> | undefined {
     if (!isNoteCacheEnabled()) {
         return undefined;
     }
@@ -88,7 +88,7 @@ export function getCacheEntry(queryPath: string): CacheEntry<CartoResponse> | un
             if (stored) {
                 const cacheData = JSON.parse(stored);
                 if (cacheData[queryPath]) {
-                    cachedEntry = cacheData[queryPath] as CacheEntry<CartoResponse>;
+                    cachedEntry = cacheData[queryPath] as CacheEntry<CartographerData>;
                     // Restore to memory cache
                     mainDataCache.set(queryPath, cachedEntry);
                 }
@@ -102,12 +102,12 @@ export function getCacheEntry(queryPath: string): CacheEntry<CartoResponse> | un
 }
 
 // setCacheEntry stores a note query when note caching is enabled.
-export function setCacheEntry(queryPath: string, data: CartoResponse): void {
+export function setCacheEntry(queryPath: string, data: CartographerData): void {
     if (!isNoteCacheEnabled()) {
         return;
     }
 
-    const cacheEntry: CacheEntry<CartoResponse> = {
+    const cacheEntry: CacheEntry<CartographerData> = {
         data: data,
         timestamp: Date.now(),
         ttl: CACHE_TTL_MS

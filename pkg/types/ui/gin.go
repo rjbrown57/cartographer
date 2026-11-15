@@ -116,12 +116,8 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig, archive
 
 	// HTML Endpoints
 	g.GET("/", reactDesktopPageFunc(o.SiteName))
-	g.GET("/legacy", indexFunc(o.SiteName))
-	g.GET("/react-preview", reactDesktopPageFunc(o.SiteName))
 	g.GET("/mobile", reactMobilePageFunc(o.SiteName))
-	g.GET("/legacy-mobile", mobilePageFunc(o.SiteName))
 	g.GET("/note", reactNotePageFunc(o.SiteName))
-	g.GET("/legacy-note", notePageFunc(o.SiteName))
 	return g
 }
 

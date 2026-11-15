@@ -1,22 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Alert, Autocomplete, Box, Button, Card, Chip, IconButton, Input, Modal, ModalDialog, Sheet, Stack, Tab, TabList, Tabs, Tooltip, Typography } from '@mui/joy';
 import type { NoteData } from '../shared/types.js';
 import { getCacheEntry, invalidateCache, isCacheValid, setCacheEntry } from '../components/cache.js';
 import { GetColor } from '../preferences/colors.js';
-import { GetNoteSortMode, SetNoteSortMode, SortNotes, type NoteSortMode } from '../preferences/noteSort.js';
+import { GetNoteSortMode, SortNotes, type NoteSortMode } from '../preferences/noteSort.js';
 import { RenderMarkdown } from '../shared/markdown.js';
 import { GetAdminSession, GetNamespaces, GetNotes, RequestJSON } from './api.js';
 import { GetCurrentNamespace, NoteURL, SetCurrentNamespace } from './navigation.js';
 import { AdminPanel } from './AdminPanel.js';
-import { DiagramPreview } from './DiagramPreview.js';
+import { DiagramIndicator } from './DiagramIndicator.js';
 import { GetDiagramScene } from './diagram.js';
+import { JoyShell } from './JoyShell.js';
 
 const cardStyleKey = 'cartographer_card_style';
 const topTagsKey = 'cartographer_top_tags_collapsed';
 const namespacePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const typeColors = { Note: '#6558d9', Link: '#1688be', Data: '#138a72', Diagram: '#8b5cf6' };
+const tagButtonSx = { borderRadius: '999px', bgcolor: '#e2e8f0', color: '#1e293b', fontSize: '0.72rem', minHeight: 24, px: 1, '&:hover': { bgcolor: '#cbd5f5' } };
 
 // NoteType preserves the legacy precedence of data, link, and text cards.
-function NoteType(note: NoteData): 'Diagram' | 'Data' | 'Link' | 'Note' {
+function NoteType(note: NoteData): keyof typeof typeColors {
   if (note.data?.kind === 'diagram' && note.data?.version === 1) return 'Diagram';
   return note.data && Object.keys(note.data).length ? 'Data' : note.url ? 'Link' : 'Note';
 }
@@ -27,31 +31,63 @@ function MatchesSearch(note: NoteData, search: string): boolean {
   return search.toLowerCase().split(/\s+/).filter(Boolean).every(term => fields.includes(term));
 }
 
-// NoteCard renders a note with actions, metadata, Markdown, data, and tags.
-function NoteCard({ note, namespace, admin, onOpen, onDelete, onTag }: {
-  note: NoteData; namespace: string; admin: boolean;
+// NoteDate formats either API timestamp representation for compact cards.
+function NoteDate(note: NoteData): string {
+  const stamp = note.updated_at || note.created_at;
+  if (!stamp) return '';
+  const date = typeof stamp === 'string' ? new Date(stamp) : new Date(Number(stamp.seconds || 0) * 1000);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+}
+
+// NoteCard renders one consistently sized Joy card with the original note metadata.
+function NoteCard({ note, namespace, admin, condensed, onOpen, onDelete, onTag }: {
+  note: NoteData; namespace: string; admin: boolean; condensed: boolean;
   onOpen: (note: NoteData) => void; onDelete: (note: NoteData) => void; onTag: (tag: string) => void;
 }): React.JSX.Element {
   const type = NoteType(note);
-  const color = GetColor('noteType', type);
-  return <article className={`link-card note-card note-card--${type.toLowerCase()}`} style={color ? { borderColor: color } : undefined} onClick={() => onOpen(note)}>
-    <div className="note-actions"><a className="note-action-button" href={NoteURL(note.id, namespace)} title="Open note" aria-label={`Open ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-box-arrow-up-right" /></a>
-      {admin && <><a className="note-action-button" href={NoteURL(note.id, namespace, true)} title="Edit note" aria-label={`Edit ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-pencil" /></a>
-        <button className="note-action-button" type="button" title="Delete note" aria-label={`Delete ${note.title}`} onClick={event => { event.stopPropagation(); onDelete(note); }}><i className="bi bi-trash" /></button></>}</div>
-    <div className="card-view"><div className="note-card__content d-flex flex-column gap-2">
-      <div className="note-meta-row"><span className="note-type-badge">{type}</span>
-        {note.version ? <span className="note-meta-chip">v{note.version}</span> : null}
-        {note.source ? <span className="note-meta-chip" style={GetColor('source', note.source) ? { borderColor: GetColor('source', note.source) || undefined } : undefined}>{note.source}</span> : null}
-        {note.updated_at ? <span className="note-meta-chip">Updated {typeof note.updated_at === 'string' ? new Date(note.updated_at).toLocaleDateString() : new Date(Number(note.updated_at.seconds || 0) * 1000).toLocaleDateString()}</span> : null}</div>
-      <h2 className="link-title note-title">{note.url ? <a href={note.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{note.title}</a> : note.title}</h2>
-      <div className="link-description note-markdown note-markdown--preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || '') }} />
-      {type === 'Diagram' && GetDiagramScene(note) ? <DiagramPreview scene={GetDiagramScene(note)!} /> : note.data && Object.keys(note.data).length > 0 && <details className="data-container" onClick={event => event.stopPropagation()}><summary>Structured data</summary><pre>{JSON.stringify(note.data, null, 2)}</pre></details>}
-      <div className="note-card__footer">{(note.tags || []).map(tag => <button className="nav-tag" type="button" key={tag} onClick={event => { event.stopPropagation(); onTag(tag); }}>{tag}</button>)}</div>
-    </div></div>
-  </article>;
+  const accent = GetColor('noteType', type) || typeColors[type];
+  const scene = GetDiagramScene(note);
+  const [copied, setCopied] = useState<'body' | 'link' | null>(null);
+
+  // CopyToClipboard preserves the compact copy actions from the original cards.
+  async function CopyToClipboard(value: string, kind: 'body' | 'link'): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const input = document.createElement('textarea');
+      input.value = value; document.body.appendChild(input); input.select(); document.execCommand('copy'); input.remove();
+    }
+    setCopied(kind); window.setTimeout(() => setCopied(null), 1600);
+  }
+
+  return <Card component="article" variant="outlined" tabIndex={0} onClick={() => onOpen(note)} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpen(note); } }}
+    sx={{ height: condensed ? 144 : 232, minWidth: 0, overflow: 'hidden', cursor: 'pointer', borderColor: '#cbd5e1', borderLeft: `4px solid ${accent}`, boxShadow: 'sm', p: condensed ? 1.25 : 1.5, gap: 0.6, '&:hover': { boxShadow: 'md', borderColor: '#94a3b8', transform: 'translateY(-2px)' }, '&:focus-visible': { outline: `3px solid ${accent}`, outlineOffset: 2 } }}>
+    <Stack direction="row" alignItems="flex-start" spacing={0.5} sx={{ minHeight: 28 }}>
+      <Stack direction="row" spacing={0.4} alignItems="center" sx={{ flex: 1, flexWrap: 'wrap', pr: 0.5 }}>
+        <Chip size="sm" variant="soft" sx={{ borderRadius: '999px', bgcolor: `${accent}20`, color: accent, fontWeight: 700, fontSize: '0.7rem', minHeight: 20 }}>{type}</Chip>
+        {(note.tags || []).length > 0 && <Chip size="sm" variant="soft" color="neutral" sx={{ borderRadius: '999px', minHeight: 20, fontSize: '0.68rem' }}><i className="bi bi-tags" /> {note.tags.length}</Chip>}
+        {note.version ? <Chip size="sm" variant="soft" color="neutral" sx={{ borderRadius: '999px', minHeight: 20, fontSize: '0.68rem' }}>v{note.version}</Chip> : null}
+      </Stack>
+      <Stack direction="row" spacing={0} className="joy-card-actions">
+        <IconButton size="sm" variant="plain" color="neutral" title="Copy note link" aria-label={`Copy link to ${note.title}`} onClick={event => { event.stopPropagation(); void CopyToClipboard(new URL(NoteURL(note.id, namespace), location.origin).toString(), 'link'); }}><i className={`bi bi-${copied === 'link' ? 'check2' : 'link-45deg'}`} /></IconButton>
+        {admin && <><IconButton component="a" href={NoteURL(note.id, namespace, true)} size="sm" variant="plain" color="neutral" title="Edit note" aria-label={`Edit ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-pencil" /></IconButton><IconButton size="sm" variant="plain" color="danger" title="Delete note" aria-label={`Delete ${note.title}`} onClick={event => { event.stopPropagation(); onDelete(note); }}><i className="bi bi-trash" /></IconButton></>}
+      </Stack>
+    </Stack>
+    <Typography level="title-md" className="joy-card-title" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem' }}>{note.title || note.url || note.id}</Typography>
+    {!condensed && <Box className="joy-card-content">
+      {note.body && <Box className="joy-markdown joy-card-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body) }} />}
+      {scene ? <DiagramIndicator /> : note.data && Object.keys(note.data).length > 0 && !note.body ? <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Structured data</Typography> : null}
+      {!note.body && !scene && !note.data && note.url && <Typography component="a" href={note.url} target="_blank" rel="noopener noreferrer" level="body-sm" onClick={event => event.stopPropagation()} sx={{ overflowWrap: 'anywhere' }}>{note.url}</Typography>}
+    </Box>}
+    <Stack direction="row" alignItems="center" spacing={0.5} className="joy-card-footer" sx={{ mt: 'auto', minHeight: 30, overflow: 'hidden', borderTop: '1px solid #dbe3ef', pt: 0.75 }}>
+      <i className="bi bi-tags" style={{ fontSize: '0.75rem', color: '#94a3b8' }} />
+      {(note.tags || []).slice(0, condensed ? 2 : 3).map(tag => <Button key={tag} className="joy-card-tag" size="sm" variant="soft" color="neutral" sx={{ ...tagButtonSx, minWidth: 0, maxWidth: 115, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={event => { event.stopPropagation(); onTag(tag); }}>{tag}</Button>)}
+      {(note.tags || []).length > (condensed ? 2 : 3) && <Typography level="body-xs">+{note.tags.length - (condensed ? 2 : 3)}</Typography>}
+    </Stack>
+  </Card>;
 }
 
-// DesktopApp provides the React browsing preview until admin parity permits cutover.
+// DesktopApp provides namespace browsing, search, cards, and admin access.
 export function DesktopApp(): React.JSX.Element {
   const [namespace, setNamespace] = useState(GetCurrentNamespace);
   const [namespaces, setNamespaces] = useState<string[]>([]);
@@ -66,10 +102,26 @@ export function DesktopApp(): React.JSX.Element {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [finder, setFinder] = useState('');
+  const namespaceTabsRef = useRef<HTMLDivElement>(null);
+  const [namespaceOverflow, setNamespaceOverflow] = useState(false);
   const [tagsCollapsed, setTagsCollapsed] = useState(localStorage.getItem(topTagsKey) === 'true');
   const [reloadKey, setReloadKey] = useState(0);
   const [colorVersion, setColorVersion] = useState(0);
   const [visibleLimit, setVisibleLimit] = useState(100);
+
+  useEffect(() => {
+    const container = namespaceTabsRef.current;
+    if (!container) return;
+    // Keep the finder available when tabs cannot fit in the header.
+    const measure = () => {
+      const list = container.querySelector('[role="tablist"]');
+      setNamespaceOverflow(Boolean(list && list.scrollWidth > list.clientWidth + 2));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    measure();
+    return () => observer.disconnect();
+  }, [namespaces]);
 
   useEffect(() => {
     void GetNamespaces().then(setNamespaces).catch(() => setError('Unable to load namespaces.'));
@@ -83,9 +135,7 @@ export function DesktopApp(): React.JSX.Element {
       const params = new URLSearchParams(location.search);
       const terms = params.getAll('term').join(' ');
       setNamespace(params.get('namespace') || GetCurrentNamespace());
-      setSearch(terms);
-      setSubmittedSearch(terms);
-      setTag(params.get('tag'));
+      setSearch(terms); setSubmittedSearch(terms); setTag(params.get('tag'));
     };
     window.addEventListener('popstate', onHistory);
     return () => { document.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onHistory); };
@@ -103,14 +153,11 @@ export function DesktopApp(): React.JSX.Element {
     const path = `/v1/get?${filters}`;
     const cached = getCacheEntry(path);
     if (isCacheValid(cached)) setNotes(cached!.data.notes);
-    setLoading(!isCacheValid(cached));
-    setError('');
+    setLoading(!isCacheValid(cached)); setError('');
     let active = true;
     void GetNotes(namespace, filters).then(data => {
       if (!active) return;
-      setNotes(data);
-      setCacheEntry(path, { notes: data });
-      setLoading(false);
+      setNotes(data); setCacheEntry(path, { notes: data }); setLoading(false);
     }).catch(() => { if (active) { setError('Unable to load notes.'); setLoading(false); } });
     return () => { active = false; };
   }, [namespace, submittedSearch, tag, reloadKey]);
@@ -118,18 +165,15 @@ export function DesktopApp(): React.JSX.Element {
   const tags = useMemo(() => {
     const counts = new Map<string, number>();
     notes.forEach(note => note.tags?.forEach(value => counts.set(value, (counts.get(value) || 0) + 1)));
-    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 30);
   }, [notes]);
   const visible = useMemo(() => SortNotes(notes.filter(note => (!tag || note.tags?.includes(tag)) && MatchesSearch(note, search)), sort, Boolean(search.trim())), [notes, tag, search, sort]);
-
   useEffect(() => { setVisibleLimit(100); }, [namespace, submittedSearch, tag, search, sort]);
 
   // ChangeNamespace selects a collection and clears filters from the previous one.
   function ChangeNamespace(value: string): void {
     const url = new URL(location.href);
-    url.searchParams.set('namespace', value);
-    url.searchParams.delete('term');
-    url.searchParams.delete('tag');
+    url.searchParams.set('namespace', value); url.searchParams.delete('term'); url.searchParams.delete('tag');
     history.pushState(null, '', url);
     setNamespace(value); setTag(null); setSearch(''); setSubmittedSearch('');
   }
@@ -140,8 +184,7 @@ export function DesktopApp(): React.JSX.Element {
     const url = new URL(location.href);
     url.searchParams.delete('term');
     search.trim().split(/\s+/).filter(Boolean).forEach(term => url.searchParams.append('term', term));
-    history.pushState(null, '', url);
-    setSubmittedSearch(search);
+    history.pushState(null, '', url); setSubmittedSearch(search);
   }
 
   // ToggleTag applies a tag filter and synchronizes the URL.
@@ -149,8 +192,7 @@ export function DesktopApp(): React.JSX.Element {
     const next = tag === value ? null : value;
     setTag(next);
     const url = new URL(location.href);
-    url.searchParams.delete('tag');
-    if (next) url.searchParams.set('tag', next);
+    url.searchParams.delete('tag'); if (next) url.searchParams.set('tag', next);
     history.pushState(null, '', url);
   }
 
@@ -159,50 +201,66 @@ export function DesktopApp(): React.JSX.Element {
     if (!confirm(`Delete “${note.title}”?`)) return;
     try {
       await RequestJSON(`/v1/notes?id=${encodeURIComponent(note.id)}&namespace=${encodeURIComponent(namespace)}`, { method: 'DELETE' });
-      invalidateCache();
-      setNotes(current => current.filter(item => item.id !== note.id));
-      setOpen(null);
+      invalidateCache(); setNotes(current => current.filter(item => item.id !== note.id)); setOpen(null);
     } catch { setError('Unable to delete note.'); }
   }
 
-  return <div className={`${style === 'condensed' ? 'card-style-condensed' : ''} ${admin ? 'is-admin' : ''}`} data-color-version={colorVersion}>
-    <nav className="navbar top-nav py-3"><div className="container-fluid gap-3 align-items-center">
-      <a className="navbar-brand brand" href="/"><i className="bi bi-compass" /> {document.getElementById('react-desktop-root')?.dataset.siteName || 'Cartographer'}</a>
-      <form className="flex-grow-1" onSubmit={SubmitSearch}><input id="react-search" className="form-control search-input" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search notes and tags..." aria-label="Search notes" /></form>
-      {admin && <a className="btn nav-action" href={`/note?mode=create&namespace=${encodeURIComponent(namespace)}`}>Add note</a>}
-      <AdminPanel notes={notes} onSessionChange={setAdmin} onNamespaceChange={() => {
-        void GetNamespaces().then(values => { setNamespaces(values); if (!values.includes(namespace)) setNamespace('default'); });
-        setReloadKey(value => value + 1);
-      }} onColorChange={() => setColorVersion(value => value + 1)} />
-      <a className="btn nav-action" href="/mobile?view=mobile">Mobile view</a>
-    </div><div className="container-fluid nav-meta"><div className="nav-tags namespace-tabs">
-      {[...new Set([...namespaces.slice(0, 16), namespace])].map(value => <button className={`nav-tag ${value === namespace ? 'active' : ''}`} key={value} type="button" style={GetColor('namespace', value) ? { borderColor: GetColor('namespace', value) || undefined } : undefined} onClick={() => ChangeNamespace(value)}>{value}</button>)}
-      <input className="form-control" value={finder} onChange={event => setFinder(event.target.value)} placeholder="Find namespace" aria-label="Find namespace" list="react-namespace-list" />
-      <datalist id="react-namespace-list">{namespaces.filter(value => value.toLowerCase().includes(finder.toLowerCase())).map(value => <option value={value} key={value} />)}</datalist>
-      {finder && namespaces.includes(finder) && <button type="button" onClick={() => { ChangeNamespace(finder); setFinder(''); }}>Open {finder}</button>}
-      {admin && finder && !namespaces.includes(finder) && namespacePattern.test(finder) && <a href={`/note?mode=create&namespace=${encodeURIComponent(finder)}`}>Create {finder}</a>}
-    </div><div className="nav-tags"><button type="button" className="nav-tag" onClick={() => { const next = !tagsCollapsed; setTagsCollapsed(next); localStorage.setItem(topTagsKey, String(next)); }} aria-expanded={!tagsCollapsed}>Tags {tagsCollapsed ? 'Show' : 'Hide'}</button>
-      {!tagsCollapsed && tags.map(([value, count]) => <button type="button" className={`nav-tag ${value === tag ? 'active' : ''}`} key={value} onClick={() => ToggleTag(value)}>{value} {count}</button>)}</div></div></nav>
-    <main className="container-fluid py-4"><div className="d-flex align-items-center justify-content-between gap-3 mb-3"><span>{loading ? 'Loading notes…' : `${visible.length} notes`}</span><div className="d-flex gap-2">
-      <select className="form-select" value={sort} aria-label="Sort notes" onChange={event => { const value = event.target.value as NoteSortMode; setSort(value); SetNoteSortMode(value); }}><option value="smart">Smart</option><option value="title-asc">Title A–Z</option><option value="title-desc">Title Z–A</option></select>
-      <select className="form-select" value={style} aria-label="Card style" onChange={event => { setStyle(event.target.value); localStorage.setItem(cardStyleKey, event.target.value); }}><option value="comfortable">Comfortable</option><option value="condensed">Condensed</option></select>
-    </div></div>{error && <div className="alert alert-danger" role="alert">{error}</div>}
-      {!loading && visible.length === 0 && <p>No notes found.</p>}
-      <div id="linkgrid">{visible.slice(0, visibleLimit).map(note => <NoteCard key={note.id} note={note} namespace={namespace} admin={admin} onOpen={setOpen} onDelete={note => void DeleteNote(note)} onTag={ToggleTag} />)}</div>
-      {visible.length > visibleLimit && <button className="btn btn-outline-secondary mt-4" type="button" onClick={() => setVisibleLimit(limit => limit + 100)}>Show more notes ({visible.length - visibleLimit} remaining)</button>}
-    </main>
-    {open && <div id="maximized-card-overlay" role="presentation" style={{ display: 'flex' }} onClick={() => setOpen(null)}><article className="link-card note-card" role="dialog" aria-modal="true" aria-label={open.title} onClick={event => event.stopPropagation()}>
-      <div className="d-flex justify-content-end gap-2 mb-3"><a className="btn btn-outline-secondary" href={NoteURL(open.id, namespace)}>Open note</a>
-        {admin && <><a className="btn btn-outline-secondary" href={NoteURL(open.id, namespace, true)}>Edit</a><button className="btn btn-outline-danger" type="button" onClick={() => void DeleteNote(open)}>Delete</button></>}
-        <button type="button" className="btn btn-outline-secondary" onClick={() => setOpen(null)}>Close</button></div><h2>{open.title}</h2>
-      <div className="note-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(open.body || '') }} />
-      {GetDiagramScene(open) ? <DiagramPreview scene={GetDiagramScene(open)!} /> : open.data && <pre>{JSON.stringify(open.data, null, 2)}</pre>}
-      <div className="note-card__footer">{(open.tags || []).map(value => <button className="nav-tag" type="button" key={value} onClick={() => { ToggleTag(value); setOpen(null); }}>{value}</button>)}</div>
-    </article></div>}
-  </div>;
+  const siteName = document.getElementById('react-desktop-root')?.dataset.siteName || 'Cartographer';
+  return <JoyShell><Box className="joy-desktop" data-color-version={colorVersion}>
+    <Sheet component="header" className="joy-desktop-header" sx={{ bgcolor: '#0f172a', color: '#f8fafc' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} spacing={1.5} sx={{ px: { xs: 2, md: 3 }, py: 1.5 }}>
+        <Typography component="a" href="/" level="h3" sx={{ color: '#fff', textDecoration: 'none', whiteSpace: 'nowrap', fontFamily: 'display' }}><i className="bi bi-compass" /> {siteName}</Typography>
+        <Box component="form" onSubmit={SubmitSearch} sx={{ flex: 1 }}><Input id="react-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search notes and tags…" aria-label="Search notes" startDecorator={<i className="bi bi-search" />} endDecorator={<Typography level="body-xs" sx={{ whiteSpace: 'nowrap' }}>⌘ K</Typography>} sx={{ width: '100%' }} /></Box>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {admin && <Tooltip title="Add note"><IconButton component="a" href={`/note?mode=create&namespace=${encodeURIComponent(namespace)}`} variant="outlined" className="joy-header-action" aria-label="Add note"><i className="bi bi-plus-lg" /></IconButton></Tooltip>}
+          <AdminPanel notes={notes} noteCount={visible.length} cardStyle={style} onCardStyleChange={value => { setStyle(value); localStorage.setItem(cardStyleKey, value); }} onSortChange={setSort} onSessionChange={setAdmin} onNamespaceChange={() => {
+            void GetNamespaces().then(values => { setNamespaces(values); if (!values.includes(namespace)) setNamespace('default'); });
+            setReloadKey(value => value + 1);
+          }} onColorChange={() => setColorVersion(value => value + 1)} />
+          <Tooltip title="Swagger Docs"><IconButton component="a" href="/docs/index.html" target="_blank" rel="noopener noreferrer" variant="outlined" className="joy-header-action" aria-label="Swagger Docs"><i className="bi bi-braces-asterisk" /></IconButton></Tooltip>
+          <Tooltip title="GitHub"><IconButton component="a" href="https://github.com/rjbrown57/cartographer" target="_blank" rel="noopener noreferrer" variant="outlined" className="joy-header-action" aria-label="GitHub"><i className="bi bi-github" /></IconButton></Tooltip>
+        </Stack>
+      </Stack>
+      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} spacing={1} sx={{ px: { xs: 2, md: 3 } }}>
+        <Box ref={namespaceTabsRef} sx={{ flex: 1, minWidth: 0 }}>
+          <Tabs value={namespace} onChange={(_, value) => { if (typeof value === 'string') ChangeNamespace(value); }} sx={{ bgcolor: 'transparent' }}>
+            <TabList disableUnderline sx={{ overflowX: 'auto', gap: 0.5, borderBottom: '1px solid #475569' }}>
+              {[...new Set([...namespaces.slice(0, 16), namespace])].map(value => <Tab key={value} value={value} variant="plain" sx={{ flex: '0 0 auto', borderRadius: '8px 8px 0 0', borderTop: value === namespace ? `3px solid ${GetColor('namespace', value) || '#22d3ee'}` : '3px solid transparent', px: 2, fontWeight: value === namespace ? 700 : 500, color: value === namespace ? '#0f172a' : '#cbd5e1', bgcolor: value === namespace ? '#f8fafc' : 'transparent', '&:hover': { bgcolor: value === namespace ? '#f8fafc' : '#334155', color: value === namespace ? '#0f172a' : '#fff' } }}>{value}</Tab>)}
+            </TabList>
+          </Tabs>
+        </Box>
+        {(namespaces.length > 16 || namespaceOverflow) && <Stack direction="row" spacing={0.5} sx={{ minWidth: { md: 230 } }}>
+          <Autocomplete freeSolo size="sm" options={namespaces} inputValue={finder} onInputChange={(_, value) => setFinder(value)} onChange={(_, value) => { if (typeof value === 'string' && namespaces.includes(value)) { ChangeNamespace(value); setFinder(''); } }} placeholder="Find namespace" sx={{ flex: 1 }} />
+          {admin && finder && !namespaces.includes(finder) && namespacePattern.test(finder) && <Button component="a" href={`/note?mode=create&namespace=${encodeURIComponent(finder)}`} size="sm">Create</Button>}
+        </Stack>}
+      </Stack>
+      <Stack direction="row" alignItems="flex-start" spacing={0.75} sx={{ px: { xs: 2, md: 3 }, py: 1.25 }}>
+        <Typography level="body-xs" sx={{ flex: '0 0 auto', color: '#94a3b8', letterSpacing: '0.1em', fontWeight: 700, pt: 0.5 }}>TOP TAGS</Typography>
+        <IconButton size="sm" variant="outlined" aria-label={tagsCollapsed ? 'Show top tags' : 'Hide top tags'} onClick={() => { const next = !tagsCollapsed; setTagsCollapsed(next); localStorage.setItem(topTagsKey, String(next)); }} aria-expanded={!tagsCollapsed} sx={{ minWidth: 22, minHeight: 22, borderRadius: '50%', color: '#cbd5e1', borderColor: '#475569', '&:hover': { bgcolor: '#334155' } }}><i className={`bi bi-chevron-${tagsCollapsed ? 'down' : 'up'}`} /></IconButton>
+        {!tagsCollapsed && <Box className="joy-top-tags">
+          {tags.length ? tags.map(([value, count]) => <Button key={value} size="sm" variant="outlined" onClick={() => ToggleTag(value)} sx={{ borderRadius: '999px', minHeight: 22, px: 1, py: 0, fontSize: '0.7rem', fontWeight: 600, color: value === tag ? '#0f172a' : '#cbd5e1', bgcolor: value === tag ? '#67e8f9' : 'transparent', borderColor: value === tag ? '#67e8f9' : '#475569', '&:hover': { bgcolor: value === tag ? '#a5f3fc' : '#334155', borderColor: '#67e8f9' } }}>{value} ({count})</Button>) : <Typography level="body-xs" sx={{ color: '#94a3b8' }}>No tags available yet.</Typography>}
+        </Box>}
+      </Stack>
+    </Sheet>
+    <Box component="main" sx={{ px: { xs: 2, md: 3 }, py: 3 }}>
+      {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
+      {!loading && visible.length === 0 && <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>No notes found.</Typography>}
+      <Box className="joy-card-grid">{visible.slice(0, visibleLimit).map(note => <NoteCard key={note.id} note={note} namespace={namespace} admin={admin} condensed={style === 'condensed'} onOpen={setOpen} onDelete={value => void DeleteNote(value)} onTag={ToggleTag} />)}</Box>
+      {visible.length > visibleLimit && <Button variant="outlined" color="neutral" sx={{ mt: 3 }} onClick={() => setVisibleLimit(limit => limit + 100)}>Show more notes ({visible.length - visibleLimit} remaining)</Button>}
+    </Box>
+    <Modal open={Boolean(open)} onClose={() => setOpen(null)}><ModalDialog layout="center" sx={{ width: 'min(900px, 94vw)', maxHeight: '90vh', overflow: 'auto' }}>
+      {open && <><Stack direction="row" spacing={1} alignItems="center"><Typography level="h2" sx={{ flex: 1 }}>{open.title}</Typography>{admin && <Button component="a" href={NoteURL(open.id, namespace, true)} startDecorator={<i className="bi bi-pencil" />}>Edit</Button>}{admin && <Button variant="outlined" color="danger" onClick={() => void DeleteNote(open)}>Delete</Button>}<IconButton variant="plain" aria-label="Close" onClick={() => setOpen(null)}><i className="bi bi-x-lg" /></IconButton></Stack>
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}><Chip size="sm" variant="soft">{NoteType(open)}</Chip>{open.source && <Chip size="sm" variant="outlined">Source: {open.source}</Chip>}{open.author && <Chip size="sm" variant="outlined">Author: {open.author}</Chip>}{NoteDate(open) && <Chip size="sm" variant="outlined">{NoteDate(open)}</Chip>}</Stack>
+        {open.url && <Button component="a" href={open.url} target="_blank" rel="noopener noreferrer" variant="outlined" color="neutral" startDecorator={<i className="bi bi-box-arrow-up-right" />} sx={{ alignSelf: 'start' }}>Open link</Button>}
+        <Box className="joy-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(open.body || '') }} />
+        {GetDiagramScene(open) ? <Stack spacing={1}><DiagramIndicator /><Button component="a" href={NoteURL(open.id, namespace)} startDecorator={<i className="bi bi-diagram-3" />} sx={{ alignSelf: 'center' }}>Open diagram</Button></Stack> : open.data && <Box component="pre" sx={{ overflow: 'auto', p: 2, bgcolor: 'background.level1', borderRadius: 'sm' }}>{JSON.stringify(open.data, null, 2)}</Box>}
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>{(open.tags || []).map(value => <Button key={value} size="sm" variant="soft" color="neutral" sx={tagButtonSx} onClick={() => { ToggleTag(value); setOpen(null); }}>{value}</Button>)}</Stack>
+      </>}
+    </ModalDialog></Modal>
+  </Box></JoyShell>;
 }
 
-// MountDesktopApp mounts the React preview when its shell is served.
+// MountDesktopApp mounts the Joy desktop browser.
 export function MountDesktopApp(): void {
   const element = document.getElementById('react-desktop-root');
   if (element) createRoot(element).render(<DesktopApp />);

@@ -410,23 +410,10 @@ func getByTagsFunc(carto *client.CartographerClient) gin.HandlerFunc {
 // @Produce html
 // @Success 200 {string} string "HTML page"
 // @Router / [get]
-func indexFunc(name string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{"sitename": name})
-	}
-}
-
-// reactDesktopPageFunc serves the React desktop preview during the page migration.
+// reactDesktopPageFunc serves the React desktop note browser.
 func reactDesktopPageFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "react-desktop.html", gin.H{"sitename": name})
-	}
-}
-
-// mobilePageFunc serves the independent phone browsing shell.
-func mobilePageFunc(name string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "mobile.html", gin.H{"sitename": name})
 	}
 }
 
@@ -434,13 +421,6 @@ func mobilePageFunc(name string) gin.HandlerFunc {
 func reactMobilePageFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "react-mobile.html", gin.H{"sitename": name})
-	}
-}
-
-// notePageFunc serves the standalone note reader shell.
-func notePageFunc(name string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "note.html", gin.H{"sitename": name})
 	}
 }
 
