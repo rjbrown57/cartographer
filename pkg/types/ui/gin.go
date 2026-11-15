@@ -115,9 +115,13 @@ func NewGinServer(carto *client.CartographerClient, o *config.WebConfig, archive
 	g.GET("/v1/about", aboutFunc(o.SiteName))
 
 	// HTML Endpoints
-	g.GET("/", indexFunc(o.SiteName))
-	g.GET("/mobile", mobilePageFunc(o.SiteName))
-	g.GET("/note", notePageFunc(o.SiteName))
+	g.GET("/", reactDesktopPageFunc(o.SiteName))
+	g.GET("/legacy", indexFunc(o.SiteName))
+	g.GET("/react-preview", reactDesktopPageFunc(o.SiteName))
+	g.GET("/mobile", reactMobilePageFunc(o.SiteName))
+	g.GET("/legacy-mobile", mobilePageFunc(o.SiteName))
+	g.GET("/note", reactNotePageFunc(o.SiteName))
+	g.GET("/legacy-note", notePageFunc(o.SiteName))
 	return g
 }
 
