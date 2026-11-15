@@ -106,7 +106,7 @@ export function AdminPanel({ notes, onSessionChange, onNamespaceChange, onColorC
   const colorGroups: Array<[ColorScope, string[]]> = [
     ['namespace', namespaces],
     ['source', [...new Set(notes.map(note => note.source).filter((value): value is string => Boolean(value)))].sort()],
-    ['noteType', ['Note', 'Link', 'Data']],
+    ['noteType', ['Note', 'Link', 'Data', 'Diagram']],
   ];
 
   return <><button className="btn nav-action" type="button" onClick={() => setOpen(true)} aria-label="Open admin panel"><i className="bi bi-gear" /> Tools</button>

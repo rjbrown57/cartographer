@@ -595,3 +595,196 @@
 				padding-right: 1rem;
 			}
 		}
+
+.note-editor__toolbar {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.note-editor__toolbar button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.3rem 0.7rem;
+}
+
+/* Keep the authoring surface in the viewport while metadata opens above it. */
+.note-app--editing {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.note-app--editing .note-topbar {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.note-app--editing .note-page--editor {
+  flex: 1 1 auto;
+  margin: 0;
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+}
+
+.note-app--editing .note-shell--editor {
+  height: 100%;
+  min-height: 0;
+}
+
+.note-app--editing .note-editor {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.note-app--editing .note-editor__main {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.note-app--editing .note-editor__title-wrap {
+  align-items: end;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1rem;
+  padding: 0.75rem clamp(1rem, 2vw, 2rem);
+}
+
+.note-app--editing .note-editor__title-wrap > .note-field:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.note-app--editing .note-editor__type {
+  flex: 0 0 9rem;
+}
+
+.note-app--editing .note-editor__toolbar {
+  flex: 0 0 auto;
+}
+
+.note-editor__toolbar button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.note-editor__stats {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-left: auto;
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .note-editor__stats {
+    display: none;
+  }
+}
+
+.note-app--editing .note-editor__panes {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.note-app--editing .note-editor__textarea,
+.note-app--editing .note-editor__preview {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.note-app--editing .note-editor__code {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.note-editor__code .cm-editor {
+  height: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.98rem;
+}
+
+.note-editor__code .cm-scroller {
+  overflow: auto;
+}
+
+.note-editor__code .cm-content {
+  min-height: 100%;
+  padding: 1.25rem clamp(1rem, 3vw, 2rem);
+}
+
+.note-editor__code .cm-gutters {
+  background: #f8fafc;
+  border-right: 1px solid var(--border);
+}
+
+.note-app--editing .note-editor__canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.note-app--editing .cartographer-diagram--editor {
+  border: 0;
+  border-radius: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.note-app--editing .note-editor__inspector {
+  align-self: stretch;
+  border-radius: 0;
+  bottom: 0;
+  box-shadow: -12px 0 36px rgba(15, 23, 42, 0.18);
+  display: block;
+  height: auto;
+  max-height: none;
+  overflow-y: auto;
+  padding: 1.25rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: min(380px, 100%);
+  z-index: 10;
+}
+
+.note-editor__inspector-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.note-editor__inspector-header h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .note-app--editing .note-editor__title-wrap {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .note-app--editing .note-editor__type {
+    flex-basis: auto;
+  }
+}
