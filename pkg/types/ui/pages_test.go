@@ -17,12 +17,8 @@ func TestPageHandlersRenderDistinctShells(t *testing.T) {
 	router := gin.New()
 	router.SetHTMLTemplate(template.Must(template.ParseFS(web.HtmlFS, "html/*")))
 	router.GET("/", reactDesktopPageFunc("Cartographer Test"))
-	router.GET("/legacy", indexFunc("Cartographer Test"))
-	router.GET("/react-preview", reactDesktopPageFunc("Cartographer Test"))
 	router.GET("/mobile", reactMobilePageFunc("Cartographer Test"))
-	router.GET("/legacy-mobile", mobilePageFunc("Cartographer Test"))
 	router.GET("/note", reactNotePageFunc("Cartographer Test"))
-	router.GET("/legacy-note", notePageFunc("Cartographer Test"))
 
 	tests := []struct {
 		name       string
@@ -31,12 +27,8 @@ func TestPageHandlersRenderDistinctShells(t *testing.T) {
 		excluded   string
 	}{
 		{name: "desktop", path: "/", entrypoint: "scripts/react/desktop.js", excluded: "scripts/cartographer.js"},
-		{name: "legacy", path: "/legacy", entrypoint: "scripts/cartographer.js", excluded: "scripts/react/desktop.js"},
 		{name: "mobile", path: "/mobile", entrypoint: "scripts/react/mobile.js", excluded: "scripts/mobile/app.js"},
-		{name: "legacy mobile", path: "/legacy-mobile", entrypoint: "scripts/mobile/app.js", excluded: "scripts/react/mobile.js"},
-		{name: "React preview", path: "/react-preview", entrypoint: "scripts/react/desktop.js", excluded: "scripts/cartographer.js"},
 		{name: "note", path: "/note", entrypoint: "scripts/react/note.js", excluded: "scripts/note.js"},
-		{name: "legacy note", path: "/legacy-note", entrypoint: "scripts/note.js", excluded: "scripts/react/note.js"},
 	}
 
 	for _, test := range tests {

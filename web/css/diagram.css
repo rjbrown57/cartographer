@@ -1,20 +1,3 @@
-.diagram-preview {
-  display: block;
-  width: 100%;
-  height: 160px;
-  margin: 0.75rem 0;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  object-fit: contain;
-}
-
-.diagram-preview--empty {
-  display: grid;
-  place-items: center;
-  color: #64748b;
-}
-
 .cartographer-diagram {
   width: 100%;
   border: 1px solid #cbd5e1;

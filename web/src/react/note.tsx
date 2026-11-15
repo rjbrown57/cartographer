@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
+import { Alert, Autocomplete, Box, Button, Chip, Divider, FormControl, FormLabel, IconButton, Input, Option, Select, Sheet, Stack, Textarea, Tooltip, Typography } from '@mui/joy';
 import type { NoteData } from '../shared/types.js';
 import { invalidateCache } from '../components/cache.js';
 import { FormatData, GetWritingStatistics, IsValidNamespace, NormalizeTimestamp, ParseCommaList, ParseDataValue, ResolveReturnPath } from '../noteEditor.js';
@@ -9,6 +10,7 @@ import { RenderMarkdown } from '../shared/markdown.js';
 import { GetAdminSession, GetNamespaces, GetNotes, RequestJSON } from './api.js';
 import { DiagramCanvas } from './DiagramCanvas.js';
 import { DiagramData, DiagramSize, GetDiagramScene, MaxDiagramBytes, type DiagramScene } from './diagram.js';
+import { JoyShell } from './JoyShell.js';
 
 type Mode = 'read' | 'create' | 'edit';
 type EditorMode = 'write' | 'split' | 'preview';
@@ -44,7 +46,7 @@ export function NoteApp(): React.JSX.Element {
   const [saving, setSaving] = useState(false);
   const [diagram, setDiagram] = useState(params.get('type') === 'diagram');
   const [diagramDirty, setDiagramDirty] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const sceneRef = useRef<DiagramScene>(emptyScene);
   const sceneBaselineRef = useRef(JSON.stringify(emptyScene));
   const formRef = useRef<HTMLFormElement>(null);
@@ -96,6 +98,16 @@ export function NoteApp(): React.JSX.Element {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [admin, mode]);
+
+  // GoToHeading focuses the corresponding Markdown heading in the writing pane.
+  function GoToHeading(line: number): void {
+    ChangeEditorMode('write');
+    window.setTimeout(() => {
+      const element = document.querySelector('.cm-editor');
+      const view = element ? EditorView.findFromDOM(element as HTMLElement) : null;
+      if (view) { const position = view.state.doc.line(Math.min(line, view.state.doc.lines)).from; view.dispatch({ selection: { anchor: position }, scrollIntoView: true }); view.focus(); }
+    }, 0);
+  }
 
   // ChangeDraft updates one field without mutating the current note.
   function ChangeDraft(key: keyof Draft, value: string): void { setDraft(current => ({ ...current, [key]: value })); }
@@ -151,45 +163,57 @@ export function NoteApp(): React.JSX.Element {
 
   const mayEdit = admin && (mode === 'create' || mode === 'edit');
   const stats = GetWritingStatistics(draft.body);
-  return <div className={`note-app ${mayEdit ? 'note-app--editing' : ''}`}>
-    <header className="note-topbar"><div className="note-topbar__identity"><a className="note-action" href={returnPath} onClick={event => { if (dirty && mode !== 'read' && !confirm('Discard unsaved changes?')) event.preventDefault(); }}>Back</a>
-      <a className="note-brand" href="/">{document.getElementById('react-note-root')?.dataset.siteName || 'Cartographer'}</a><span className="note-context">{mode === 'create' ? 'New note' : mode === 'edit' ? 'Edit note' : 'Note'}</span></div>
-      <div className="note-topbar__actions">{mode === 'read' && note && <><a className="note-action" href={`/v1/get?${new URLSearchParams({ id: note.id, namespace })}`} target="_blank" rel="noopener noreferrer">Raw</a>{admin && <><button className="note-action" type="button" onClick={() => setMode('edit')}>Edit</button><button className="note-action note-action--danger" type="button" onClick={() => void DeleteNote()}>Delete</button></>}</>}
-        {mayEdit && <><span className="note-save-status" role="status">{status || (dirty ? 'Unsaved changes' : 'All changes saved')}</span><button className="note-action" type="button" aria-controls="react-note-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(value => !value)}>Details</button><button className="note-action" type="button" onClick={CancelEditing}>Cancel</button><button className="note-action note-action--primary" type="submit" form="react-note-form" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button></>}</div>
-    </header>
-    <main className={`note-page ${mayEdit ? 'note-page--editor' : ''}`}><article className={`note-shell ${mayEdit ? 'note-shell--editor' : ''}`}>
-      {loading && <p>Loading note…</p>}
-      {!loading && status && mode === 'read' && <p role="alert">{status}</p>}
-      {!loading && mode === 'read' && note && <><div className="note-reader">
-        <div className="note-kicker">{[namespace, note.source, note.author, note.version ? `v${note.version}` : '', note.updated_at ? new Date(NormalizeTimestamp(note.updated_at)).toLocaleDateString() : ''].filter(Boolean).map((value, index) => <span key={index}>{value}</span>)}</div>
-        <h1 className="note-title">{note.title || note.url || note.id}</h1>
-        {note.url && <a className="note-link" href={note.url} target="_blank" rel="noopener noreferrer"><i className="bi bi-box-arrow-up-right" /> {note.url}</a>}
-        {(note.tags || []).length > 0 && <div className="note-tags">{note.tags.map(tag => <a key={tag} className="note-tag" href={`/?namespace=${encodeURIComponent(namespace)}&tag=${encodeURIComponent(tag)}`}>{tag}</a>)}</div>}
-        <div className="note-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || note.url || '') }} />
-        {GetDiagramScene(note) && <DiagramCanvas scene={GetDiagramScene(note)!} readOnly />}
-        {note.data && !GetDiagramScene(note) && <details className="note-data-section"><summary className="note-data-title">Structured data</summary><pre className="note-data-content">{JSON.stringify(note.data, null, 2)}</pre></details>}
-      </div></>}
-      {!loading && mode !== 'read' && !admin && <p role="alert">{configured ? 'Admin access is required to author notes. Unlock admin tools from the notes page first.' : 'Note authoring is unavailable because admin authentication is not configured.'}</p>}
-      {!loading && mayEdit && <form ref={formRef} id="react-note-form" className="note-editor" onSubmit={event => void SaveNote(event)}>
-        <div className="note-editor__main"><div className="note-editor__title-wrap"><label className="note-field"><span className="note-field-label">Title</span><input className="note-editor__title" required value={draft.title} onChange={event => ChangeDraft('title', event.target.value)} placeholder={diagram ? 'Untitled diagram' : 'Untitled note'} /></label>
-          {mode === 'create' && <label className="note-field note-editor__type"><span className="note-field-label">Type</span><select className="form-select" value={diagram ? 'diagram' : 'note'} onChange={event => { setDiagram(event.target.value === 'diagram'); sceneRef.current = emptyScene; sceneBaselineRef.current = JSON.stringify(emptyScene); setDiagramDirty(false); }}><option value="note">Note</option><option value="diagram">Diagram</option></select></label>}</div>
-          {diagram ? <div className="note-editor__canvas"><DiagramCanvas scene={sceneRef.current} readOnly={false} fill onChange={next => { sceneRef.current = next; setDiagramDirty(current => current || JSON.stringify(next) !== sceneBaselineRef.current); }} /></div> : <><div className="note-editor__toolbar" role="group" aria-label="Writing view"><button type="button" aria-pressed={editorMode === 'write'} onClick={() => ChangeEditorMode('write')}>Write</button><button type="button" aria-pressed={editorMode === 'split'} onClick={() => ChangeEditorMode('split')}>Split</button><button type="button" aria-pressed={editorMode === 'preview'} onClick={() => ChangeEditorMode('preview')}>Preview</button><span className="note-editor__stats">{stats.words} words · {stats.readingTime} · ⌘/Ctrl+S to save</span></div>
-          <div className="note-editor__panes" data-mode={editorMode}>{editorMode !== 'preview' && <CodeMirror className="note-editor__code" aria-label="Markdown body" value={draft.body} height="100%" extensions={markdownExtensions} placeholder="Start writing…" onChange={value => ChangeDraft('body', value)} />}
-            {editorMode !== 'write' && <div className="note-markdown note-editor__preview note-preview-pane" dangerouslySetInnerHTML={{ __html: RenderMarkdown(draft.body) }} />}</div></>}
-        </div>
-        {detailsOpen && <aside id="react-note-details" className="note-editor__inspector"><div className="note-editor__inspector-header"><h2>Note details</h2><button className="note-action" type="button" onClick={() => setDetailsOpen(false)} aria-label="Close details">Close</button></div><p>{stats.words} words · {stats.readingTime}</p>
-          <label className="note-field">Namespace<input className="form-control" required disabled={Boolean(note)} value={draft.namespace} onChange={event => ChangeDraft('namespace', event.target.value)} list="react-note-namespaces" /></label><datalist id="react-note-namespaces">{namespaces.map(value => <option key={value} value={value} />)}</datalist>
-          <label className="note-field">Template<select className="form-select" value="" onChange={event => ApplyTemplate(event.target.value)}><option value="">Choose a template…</option>{templates.map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
-          <label className="note-field">URL<input className="form-control" type="url" value={draft.url} onChange={event => ChangeDraft('url', event.target.value)} /></label>
-          <label className="note-field">Tags<input className="form-control" value={draft.tags} onChange={event => ChangeDraft('tags', event.target.value)} /></label><div className="note-tag-preview">{ParseCommaList(draft.tags).map(tag => <button className="note-tag-chip" type="button" key={tag} onClick={() => ChangeDraft('tags', ParseCommaList(draft.tags).filter(value => value !== tag).join(', '))}>{tag} ×</button>)}</div>
-          <label className="note-field">Source<input className="form-control" value={draft.source} onChange={event => ChangeDraft('source', event.target.value)} /></label>
-          <label className="note-field">Author<input className="form-control" value={draft.author} onChange={event => ChangeDraft('author', event.target.value)} /></label>
-          {diagram ? <label className="note-field">Description<textarea className="form-control note-data-textarea" aria-label="Markdown description" rows={8} value={draft.body} onChange={event => ChangeDraft('body', event.target.value)} /></label> : <details className="note-data-details"><summary>Structured data</summary><textarea className="form-control note-data-textarea" aria-label="Structured data JSON" value={draft.data} onChange={event => ChangeDraft('data', event.target.value)} /></details>}
-          {status && <p role="status">{status}</p>}
-        </aside>}
-      </form>}
-    </article></main>
-  </div>;
+  const outline = draft.body.split("\n").map((text, line) => ({ match: /^(#{1,6})\s+(.+)/.exec(text), line: line + 1 })).filter(item => item.match).map(item => ({ line: item.line, level: item.match![1].length, title: item.match![2] }));
+  const siteName = document.getElementById('react-note-root')?.dataset.siteName || 'Cartographer';
+  return <JoyShell><Box className={`joy-note-app ${mayEdit ? 'joy-note-app--editing' : ''}`}>
+    <Sheet component="header" variant="outlined" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, px: { xs: 1.5, md: 2.5 }, py: 1, borderLeft: 0, borderTop: 0, borderRight: 0, boxShadow: 'sm', zIndex: 2 }}>
+      <Tooltip title="Back to notes"><IconButton component="a" href={returnPath} variant="plain" color="neutral" aria-label="Back to notes" onClick={event => { if (dirty && mode !== 'read' && !confirm('Discard unsaved changes?')) event.preventDefault(); }}><i className="bi bi-arrow-left" /></IconButton></Tooltip>
+      <Typography component="a" href="/" level="title-lg" sx={{ color: 'text.primary', textDecoration: 'none', fontFamily: 'display' }}>{siteName}</Typography>
+      <Typography level="body-sm" sx={{ color: 'text.secondary', borderLeft: '1px solid #cbd5e1', pl: 1.5 }}>{mode === 'create' ? 'New note' : mode === 'edit' ? 'Edit note' : 'Note'}</Typography>
+      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 'auto' }}>
+        {mode === 'read' && note && <><Tooltip title="Raw JSON"><IconButton component="a" href={`/v1/get?${new URLSearchParams({ id: note.id, namespace })}`} target="_blank" rel="noopener noreferrer" variant="outlined" color="neutral" aria-label="Raw JSON"><i className="bi bi-code-slash" /></IconButton></Tooltip>{admin && <><Tooltip title="Edit note"><IconButton onClick={() => setMode('edit')} aria-label="Edit note"><i className="bi bi-pencil" /></IconButton></Tooltip><Tooltip title="Delete note"><IconButton variant="outlined" color="danger" onClick={() => void DeleteNote()} aria-label="Delete note"><i className="bi bi-trash" /></IconButton></Tooltip></>}</>}
+        {mayEdit && <><Typography level="body-xs" role="status" sx={{ display: { xs: 'none', sm: 'block' }, color: dirty ? 'warning.700' : 'text.tertiary' }}>{status || (dirty ? 'Unsaved changes' : 'All changes saved')}</Typography><Tooltip title="Note details"><IconButton variant="outlined" color="neutral" aria-label="Note details" aria-controls="react-note-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(value => !value)}><i className="bi bi-sliders2" /></IconButton></Tooltip><Tooltip title="Cancel editing"><IconButton variant="plain" color="neutral" aria-label="Cancel editing" onClick={CancelEditing}><i className="bi bi-x-lg" /></IconButton></Tooltip><Tooltip title={saving ? 'Saving…' : 'Save note'}><IconButton type="submit" form="react-note-form" disabled={saving} aria-label={saving ? 'Saving note' : 'Save note'}><i className="bi bi-check2" /></IconButton></Tooltip></>}
+      </Stack>
+    </Sheet>
+    {loading && <Typography sx={{ p: 3 }}>Loading note…</Typography>}
+    {!loading && status && mode === 'read' && <Alert color="danger" sx={{ m: 3 }}>{status}</Alert>}
+    {!loading && mode === 'read' && note && <Box component="main" sx={{ maxWidth: 960, mx: 'auto', px: { xs: 1.5, md: 3 }, py: 3 }}><Sheet component="article" variant="outlined" sx={{ p: { xs: 2, md: 4 }, borderRadius: 'md', boxShadow: 'sm' }}>
+      <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', mb: 1.5 }}>{[namespace, note.source, note.author, note.version ? `v${note.version}` : '', note.updated_at ? new Date(NormalizeTimestamp(note.updated_at)).toLocaleDateString() : ''].filter(Boolean).map((value, index) => <Chip key={index} size="sm" variant="soft" color="neutral" sx={{ borderRadius: 'sm' }}>{value}</Chip>)}</Stack>
+      <Typography level="h1" sx={{ mb: 2, overflowWrap: 'anywhere' }}>{note.title || note.url || note.id}</Typography>
+      {note.url && <Typography component="a" href={note.url} target="_blank" rel="noopener noreferrer" sx={{ display: 'block', mb: 2, overflowWrap: 'anywhere' }}><i className="bi bi-box-arrow-up-right" /> {note.url}</Typography>}
+      {(note.tags || []).length > 0 && <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', mb: 2 }}>{note.tags.map(tag => <Button component="a" key={tag} size="sm" variant="soft" color="neutral" sx={{ borderRadius: 'sm', bgcolor: 'background.level1', color: 'text.primary', '&:hover': { bgcolor: 'background.level2' } }} href={`/?namespace=${encodeURIComponent(namespace)}&tag=${encodeURIComponent(tag)}`}>{tag}</Button>)}</Stack>}
+      <Box className="joy-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body || note.url || '') }} />
+      {GetDiagramScene(note) && <DiagramCanvas scene={GetDiagramScene(note)!} readOnly />}
+      {note.data && !GetDiagramScene(note) && <Box component="details" sx={{ mt: 2 }}><Typography component="summary" level="title-sm">Structured data</Typography><Box component="pre" sx={{ overflow: 'auto', bgcolor: '#0f172a', color: '#e2e8f0', p: 2, borderRadius: 'sm' }}>{JSON.stringify(note.data, null, 2)}</Box></Box>}
+    </Sheet></Box>}
+    {!loading && mode !== 'read' && !admin && <Alert color="warning" sx={{ m: 3 }}>{configured ? 'Admin access is required to author notes. Unlock admin tools from the notes page first.' : 'Note authoring is unavailable because admin authentication is not configured.'}</Alert>}
+    {!loading && mayEdit && <Box component="form" ref={formRef} id="react-note-form" className="joy-note-editor" onSubmit={event => void SaveNote(event)}>
+      {detailsOpen && <Sheet component="aside" id="react-note-details" className="joy-note-details"><Stack direction="row" alignItems="center" sx={{ mb: 1 }}><Typography level="h2" sx={{ flex: 1 }}>Note details</Typography><IconButton variant="plain" aria-label="Close details" onClick={() => setDetailsOpen(false)}><i className="bi bi-x-lg" /></IconButton></Stack><Typography level="body-sm" sx={{ mb: 2 }}>{stats.words} words · {stats.readingTime}</Typography><Divider sx={{ mb: 2 }} /><Typography level="title-md">Outline</Typography><Stack sx={{ mb: 2 }}>{outline.length ? outline.map(item => <Button key={item.line} variant="plain" color="neutral" size="sm" sx={{ justifyContent: 'start', pl: item.level }} onClick={() => GoToHeading(item.line)}>{item.title}</Button>) : <Typography level="body-sm">Add Markdown headings to build an outline.</Typography>}</Stack>
+      <Stack spacing={2}>
+        <FormControl><FormLabel>Namespace</FormLabel><Autocomplete freeSolo options={namespaces} inputValue={draft.namespace} onInputChange={(_, value) => ChangeDraft('namespace', value)} disabled={Boolean(note)} /></FormControl>
+        <FormControl><FormLabel>Template</FormLabel><Select<string> value={null} placeholder="Choose a template…" onChange={(_, value) => { if (value) ApplyTemplate(value); }}>{templates.map(value => <Option key={value.id} value={value.id}>{value.name}</Option>)}</Select></FormControl>
+        <FormControl><FormLabel>URL</FormLabel><Input type="url" value={draft.url} onChange={event => ChangeDraft('url', event.target.value)} /></FormControl>
+        <FormControl><FormLabel>Tags</FormLabel><Input value={draft.tags} onChange={event => ChangeDraft('tags', event.target.value)} placeholder="Comma separated" /></FormControl>
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>{ParseCommaList(draft.tags).map(tag => <Button size="sm" variant="soft" color="neutral" key={tag} onClick={() => ChangeDraft('tags', ParseCommaList(draft.tags).filter(value => value !== tag).join(', '))}>{tag} ×</Button>)}</Stack>
+        <FormControl><FormLabel>Source</FormLabel><Input value={draft.source} onChange={event => ChangeDraft('source', event.target.value)} /></FormControl>
+        <FormControl><FormLabel>Author</FormLabel><Input value={draft.author} onChange={event => ChangeDraft('author', event.target.value)} /></FormControl>
+        {diagram ? <FormControl><FormLabel>Markdown description</FormLabel><Textarea minRows={8} value={draft.body} onChange={event => ChangeDraft('body', event.target.value)} /></FormControl> : <FormControl><FormLabel>Structured data (JSON)</FormLabel><Textarea minRows={8} value={draft.data} onChange={event => ChangeDraft('data', event.target.value)} /></FormControl>}
+        {status && <Alert color={status.startsWith('Unable') || status.startsWith('Diagram exceeds') ? 'danger' : 'neutral'}>{status}</Alert>}
+      </Stack>
+    </Sheet>}
+      <Box className="joy-note-editor-main">
+        <Sheet variant="outlined" sx={{ display: 'flex', alignItems: 'end', gap: 1.5, flexWrap: 'wrap', p: { xs: 1, md: 1.5 }, borderLeft: 0, borderTop: 0, borderRight: 0 }}>
+          <FormControl sx={{ flex: 1, minWidth: 190 }}><FormLabel>Title</FormLabel><Input required size="lg" value={draft.title} onChange={event => ChangeDraft('title', event.target.value)} placeholder={diagram ? 'Untitled diagram' : 'Untitled note'} /></FormControl>
+          {mode === 'create' && <FormControl sx={{ minWidth: 140 }}><FormLabel>Type</FormLabel><Select value={diagram ? 'diagram' : 'note'} onChange={(_, value) => { setDiagram(value === 'diagram'); sceneRef.current = emptyScene; sceneBaselineRef.current = JSON.stringify(emptyScene); setDiagramDirty(false); }}><Option value="note">Note</Option><Option value="diagram">Diagram</Option></Select></FormControl>}
+        </Sheet>
+        {diagram ? <Box className="joy-note-canvas"><DiagramCanvas scene={sceneRef.current} readOnly={false} fill onChange={(next, initial) => { sceneRef.current = next; if (initial) sceneBaselineRef.current = JSON.stringify(next); else setDiagramDirty(current => current || JSON.stringify(next) !== sceneBaselineRef.current); }} /></Box> : <>
+          <Sheet variant="soft" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: '1px solid #cbd5e1' }}><Button size="sm" variant={editorMode === 'write' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('write')}>Write</Button><Button size="sm" variant={editorMode === 'split' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('split')}>Split</Button><Button size="sm" variant={editorMode === 'preview' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('preview')}>Preview</Button><Typography level="body-xs" sx={{ ml: 'auto', display: { xs: 'none', sm: 'block' } }}>{stats.words} words · {stats.readingTime} · ⌘/Ctrl+S</Typography></Sheet>
+          <Box className="joy-note-panes" data-mode={editorMode}>{editorMode !== 'preview' && <CodeMirror className="joy-note-code" aria-label="Markdown body" value={draft.body} height="100%" extensions={markdownExtensions} placeholder="Start writing…" onChange={value => ChangeDraft('body', value)} />}{editorMode !== 'write' && <Box className="joy-markdown joy-note-preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(draft.body) }} />}</Box>
+        </>}
+      </Box>
+    </Box>}
+
+  </Box></JoyShell>;
 }
 
 // MountNoteApp mounts the standalone React note entry.
