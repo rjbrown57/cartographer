@@ -6,7 +6,11 @@ export default defineConfig({
     outDir: 'js/react',
     emptyOutDir: true,
     rollupOptions: {
-      input: 'src/react/desktop.tsx',
+      input: {
+        desktop: 'src/react/desktop.tsx',
+        note: 'src/react/note.tsx',
+        mobile: 'src/react/mobile.tsx',
+      },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',

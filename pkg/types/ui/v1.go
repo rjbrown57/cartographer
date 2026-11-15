@@ -378,6 +378,13 @@ func indexFunc(name string) gin.HandlerFunc {
 	}
 }
 
+// reactDesktopPageFunc serves the React desktop preview during the page migration.
+func reactDesktopPageFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "react-desktop.html", gin.H{"sitename": name})
+	}
+}
+
 // mobilePageFunc serves the independent phone browsing shell.
 func mobilePageFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -385,10 +392,24 @@ func mobilePageFunc(name string) gin.HandlerFunc {
 	}
 }
 
+// reactMobilePageFunc serves the separate React phone feed.
+func reactMobilePageFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "react-mobile.html", gin.H{"sitename": name})
+	}
+}
+
 // notePageFunc serves the standalone note reader shell.
 func notePageFunc(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "note.html", gin.H{"sitename": name})
+	}
+}
+
+// reactNotePageFunc serves the standalone React note reader and editor.
+func reactNotePageFunc(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "react-note.html", gin.H{"sitename": name})
 	}
 }
 
