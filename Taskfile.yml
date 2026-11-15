@@ -19,7 +19,7 @@ tasks:
   ts:
     desc: "Run typescript"
     cmds:
-    - cd web && npx tsc && cd ../
+    - cd web && npx tsc && npx tsc -p tsconfig.react.json && npx vite build && cd ../
   build:
     desc: "Build all"
     cmds:
