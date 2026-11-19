@@ -115,10 +115,31 @@ export function NoteApp(): React.JSX.Element {
   // ChangeEditorMode persists the user's preferred writing view.
   function ChangeEditorMode(next: EditorMode): void { setEditorMode(next); localStorage.setItem('cartographer_note_editor_mode', next); }
 
+  // ChangeNoteMode keeps the return URL in sync when switching views in place.
+  function ChangeNoteMode(next: 'read' | 'edit'): void {
+    const url = new URL(location.href);
+    if (next === 'read') url.searchParams.delete('mode');
+    else url.searchParams.set('mode', next);
+    history.replaceState(null, '', url);
+    setMode(next);
+  }
+
+  // ChangeNoteType preserves the editor choice when returning to an unsaved note.
+  function ChangeNoteType(value: string | null): void {
+    const url = new URL(location.href);
+    if (value === 'diagram') url.searchParams.set('type', 'diagram');
+    else url.searchParams.delete('type');
+    history.replaceState(null, '', url);
+    setDiagram(value === 'diagram');
+    sceneRef.current = emptyScene;
+    sceneBaselineRef.current = JSON.stringify(emptyScene);
+    setDiagramDirty(false);
+  }
+
   // CancelEditing protects unsaved changes and returns to the reader or list.
   function CancelEditing(): void {
     if (dirty && !confirm('Discard unsaved changes?')) return;
-    if (note) { const next = ToDraft(note, namespace); setDraft(next); setBaseline(JSON.stringify(next)); sceneRef.current = GetDiagramScene(note) || emptyScene; sceneBaselineRef.current = JSON.stringify(sceneRef.current); setDiagramDirty(false); setMode('read'); }
+    if (note) { const next = ToDraft(note, namespace); setDraft(next); setBaseline(JSON.stringify(next)); sceneRef.current = GetDiagramScene(note) || emptyScene; sceneBaselineRef.current = JSON.stringify(sceneRef.current); setDiagramDirty(false); ChangeNoteMode('read'); }
     else location.assign(returnPath);
   }
 
@@ -171,7 +192,7 @@ export function NoteApp(): React.JSX.Element {
       <Typography component="a" href="/" level="title-lg" sx={{ color: 'text.primary', textDecoration: 'none', fontFamily: 'display' }}>{siteName}</Typography>
       <Typography level="body-sm" sx={{ color: 'text.secondary', borderLeft: '1px solid #cbd5e1', pl: 1.5 }}>{mode === 'create' ? 'New note' : mode === 'edit' ? 'Edit note' : 'Note'}</Typography>
       <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 'auto' }}>
-        {mode === 'read' && note && <><Tooltip title="Raw JSON"><IconButton component="a" href={`/v1/get?${new URLSearchParams({ id: note.id, namespace })}`} target="_blank" rel="noopener noreferrer" variant="outlined" color="neutral" aria-label="Raw JSON"><i className="bi bi-code-slash" /></IconButton></Tooltip>{admin && <><Tooltip title="Edit note"><IconButton onClick={() => setMode('edit')} aria-label="Edit note"><i className="bi bi-pencil" /></IconButton></Tooltip><Tooltip title="Delete note"><IconButton variant="outlined" color="danger" onClick={() => void DeleteNote()} aria-label="Delete note"><i className="bi bi-trash" /></IconButton></Tooltip></>}</>}
+        {mode === 'read' && note && <><Tooltip title="Raw JSON"><IconButton component="a" href={`/v1/get?${new URLSearchParams({ id: note.id, namespace })}`} target="_blank" rel="noopener noreferrer" variant="outlined" color="neutral" aria-label="Raw JSON"><i className="bi bi-code-slash" /></IconButton></Tooltip>{admin && <><Tooltip title="Edit note"><IconButton onClick={() => ChangeNoteMode('edit')} aria-label="Edit note"><i className="bi bi-pencil" /></IconButton></Tooltip><Tooltip title="Delete note"><IconButton variant="outlined" color="danger" onClick={() => void DeleteNote()} aria-label="Delete note"><i className="bi bi-trash" /></IconButton></Tooltip></>}</>}
         {mayEdit && <><Typography level="body-xs" role="status" sx={{ display: { xs: 'none', sm: 'block' }, color: dirty ? 'warning.700' : 'text.tertiary' }}>{status || (dirty ? 'Unsaved changes' : 'All changes saved')}</Typography><Tooltip title="Note details"><IconButton variant="outlined" color="neutral" aria-label="Note details" aria-controls="react-note-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(value => !value)}><i className="bi bi-sliders2" /></IconButton></Tooltip><Tooltip title="Cancel editing"><IconButton variant="plain" color="neutral" aria-label="Cancel editing" onClick={CancelEditing}><i className="bi bi-x-lg" /></IconButton></Tooltip><Tooltip title={saving ? 'Saving…' : 'Save note'}><IconButton type="submit" form="react-note-form" disabled={saving} aria-label={saving ? 'Saving note' : 'Save note'}><i className="bi bi-check2" /></IconButton></Tooltip></>}
       </Stack>
     </Sheet>
@@ -204,7 +225,7 @@ export function NoteApp(): React.JSX.Element {
       <Box className="joy-note-editor-main">
         <Sheet variant="outlined" sx={{ display: 'flex', alignItems: 'end', gap: 1.5, flexWrap: 'wrap', p: { xs: 1, md: 1.5 }, borderLeft: 0, borderTop: 0, borderRight: 0 }}>
           <FormControl sx={{ flex: 1, minWidth: 190 }}><FormLabel>Title</FormLabel><Input required size="lg" value={draft.title} onChange={event => ChangeDraft('title', event.target.value)} placeholder={diagram ? 'Untitled diagram' : 'Untitled note'} /></FormControl>
-          {mode === 'create' && <FormControl sx={{ minWidth: 140 }}><FormLabel>Type</FormLabel><Select value={diagram ? 'diagram' : 'note'} onChange={(_, value) => { setDiagram(value === 'diagram'); sceneRef.current = emptyScene; sceneBaselineRef.current = JSON.stringify(emptyScene); setDiagramDirty(false); }}><Option value="note">Note</Option><Option value="diagram">Diagram</Option></Select></FormControl>}
+          {mode === 'create' && <FormControl sx={{ minWidth: 140 }}><FormLabel>Type</FormLabel><Select value={diagram ? 'diagram' : 'note'} onChange={(_, value) => ChangeNoteType(value)}><Option value="note">Note</Option><Option value="diagram">Diagram</Option></Select></FormControl>}
         </Sheet>
         {diagram ? <Box className="joy-note-canvas"><DiagramCanvas scene={sceneRef.current} readOnly={false} fill onChange={(next, initial) => { sceneRef.current = next; if (initial) sceneBaselineRef.current = JSON.stringify(next); else setDiagramDirty(current => current || JSON.stringify(next) !== sceneBaselineRef.current); }} /></Box> : <>
           <Sheet variant="soft" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: '1px solid #cbd5e1' }}><Button size="sm" variant={editorMode === 'write' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('write')}>Write</Button><Button size="sm" variant={editorMode === 'split' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('split')}>Split</Button><Button size="sm" variant={editorMode === 'preview' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('preview')}>Preview</Button><Typography level="body-xs" sx={{ ml: 'auto', display: { xs: 'none', sm: 'block' } }}>{stats.words} words · {stats.readingTime} · ⌘/Ctrl+S</Typography></Sheet>
