@@ -1,33 +1,42 @@
-# AGENTS.md
+# Working on Cartographer
 
-# Project information
-- Cartographer is a single binary webapp with a Go backend, and a Gin-served/TypeScript-based web UI. Cartographer is used to aggregate information either by configuration file or by injection via gRPC.
-- Cartographer UI is meant to serve large amounts of data, but with a human focus, and make it instantly filterable for a user. The goal is to open the site, and find the information you need in a minimum amount of time.
+Cartographer is a single-binary Go application that collects notes from configuration files and gRPC clients. Its React UI helps readers find information quickly across large collections. Preserve that workflow when changing search, namespace navigation or how much information a card displays.
 
-# task
-- this repo uses https://github.com/go-task/task for common workflows. See the descriptions of the workflows in Taskfile.yml. task is a make alternative written in golang.
-- Go binary can be rebuilt with task snapshot
-- task ts for TypeScript build
-- task serve to run cartographer with sample config
-- task build will run all build commands.
+## Where a request goes
 
-# Project structure
-- `cmd/`, `main.go`: Go entrypoint and wiring.
-- `pkg/`: Go packages (types, handlers, etc).
-- `web/html/`: Served HTML shell (embedded). 
-- `web/src/`: TypeScript source for UI; `web/js/` holds the built output embedded by Go. See web/embed.go for embedding code. Rebuild with task ts.
-- `web/assets/`: Static assets (favicon, etc).
-- `example/`: Sample configs and data. Can be read for common ports and configuration style.
-- `charts/`: Helm chart.
-- `Taskfile.yml`: Common tasks (buf/ts/build/serve).
-- `proto`: protobuf definitions buf config.
+- `main.go` and `cmd/` expose the CLI. Start in `cmd/serve/` for service startup, `cmd/client/` for CLI note operations and `cmd/mcp/` for the MCP command.
+- `pkg/types/ui/gin.go` registers the browser routes, static assets, HTTP API and admin middleware. Follow a note request into `pkg/types/ui/v1.go`. Session handling, admin operations and archive endpoints have their own files in the same package. Enforce permissions on the server even when the UI hides an action.
+- `pkg/types/server/` implements the gRPC service and owns note operations, search, caching and archive handling. For a change that affects every writer, follow the operation here as well as through the HTTP handler. For persistence, see the interfaces in `pkg/types/backend/` and the BoltDB implementation in `pkg/backends/boltdb/`.
+- `proto/cartographer/v1/` holds the protobuf definitions. `task buf` regenerates the Go bindings in `pkg/proto/`. HTTP documentation is generated separately by `task swagger` into `pkg/types/ui/docs/`.
+- `example/` contains sample configuration and data. `explorer/basic/` and `explorer/k8s/` are explorer programs. The deployment chart is in `charts/cartographer/`.
 
-# development guidelines
-- comment extensively but not pedantically, you do not need to explain anything that would be considered 'basic'.
-- always comment the line before a function with the name and a brief description of it's function.
-- generate sample data with task generate. This requires a running cartographer.
-- use gofmt for golang formatting
+## React UI
 
-# Pull Requests
-- always run `task test-cartographer` before PRs. This must pass.
-- use conventional git commits. https://www.conventionalcommits.org/en/v1.0.0/.
+Gin serves three HTML shells from `web/html/`. Each loads its own Vite entry point. Start with the route that owns the interaction.
+
+| Route | Entry point | Responsibilities |
+| --- | --- | --- |
+| `/` | `web/src/react/desktop.tsx` | Namespace navigation, search and tag filters, card grid, expanded details and note actions. `AdminPanel.tsx` owns the Tools drawer, preferences, sessions and admin controls. |
+| `/mobile` | `web/src/react/mobile.tsx` | Phone feed, filter sheet, sorting and links back to the filtered feed. `web/src/mobile/model.ts` contains the feed’s presentation and search helpers. |
+| `/note` | `web/src/react/note.tsx` | Standalone reader and full-page create/edit workspace, Markdown editing with CodeMirror, templates, metadata, save and dirty-state handling. `web/src/noteEditor.ts` contains editor helpers used independently of React. |
+
+**Shared behavior.** Use `web/src/react/api.ts` for same-origin requests and response envelopes, and `navigation.ts` in the same directory for note URLs and namespace selection. Shared note types and Markdown rendering live in `web/src/shared/`. Color and sort preferences live in `web/src/preferences/`, and the browser note cache lives in `web/src/components/cache.ts`. When changing a filter or link, check desktop and mobile entry points as well as opening the resulting URL directly.
+
+**Presentation.** `web/src/react/JoyShell.tsx` supplies the shared Joy UI theme. Page layout and shared CSS live in `web/css/joy.css`, with canvas-specific rules in `web/css/diagram.css`. Keep desktop card and mobile feed layouts independent where they serve different interactions.
+
+**Diagram notes.** The editable Excalidraw scene is stored in the existing note data field. `web/src/react/diagram.ts` recognizes and serializes that shape. `DiagramIndicator.tsx` identifies diagrams in browsing views, while `DiagramCanvas.tsx` owns the interactive canvas and library integration. A scene format change also touches validation in `pkg/types/ui/v1.go` and `pkg/types/server/diagram.go`, including the archive import path. For library or navigation changes, check the return trip with both a saved diagram and an unsaved draft.
+
+## Build and verification
+
+Use the repository’s Go Task workflows from the root. See `Taskfile.yml` for their definitions.
+
+- **Build frontend assets** with `task ts`. Edit TypeScript and TSX under `web/src/`. The compiler emits shared JavaScript into `web/js/`, and `web/vite.config.mts` builds the three React entries and their assets into `web/js/react/`. Include the resulting tracked build changes with the source.
+- **Run the updated UI locally** with `go build -o cartographer .` after building the frontend, then `task serve`. The serve task runs the existing binary with the sample configuration. Rebuilding matters because `web/embed.go` embeds the HTML, JavaScript, CSS and static assets at Go build time. Use `task generate` against a running instance to populate sample notes.
+- **Test the frontend** with `npm test` from `web/`. It builds the UI and runs the helper suites in `web/test/`. Gin route coverage lives in `pkg/types/ui/pages_test.go`, and embedded asset checks live in `web/embed_test.go`.
+- **Build a release snapshot** with `task snapshot`. For the full protobuf, frontend, Swagger and snapshot sequence, run `task build`.
+
+## Development and pull requests
+
+Use gofmt for Go changes. Place a comment immediately before each function with its name and a brief description of its purpose. Explain domain decisions and non-obvious behavior in the surrounding code.
+
+Follow the repository’s conventional commit style. Run `task test-cartographer` before opening a pull request. It must pass.
