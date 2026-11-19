@@ -189,6 +189,26 @@ details > summary { cursor: pointer; }
 }
 .joy-tools details[open] > summary::after { transform: rotate(180deg); }
 
+.joy-preferences > details {
+  padding-inline: 0.9rem;
+  border: 1px solid var(--joy-palette-divider);
+  border-radius: 8px;
+  background: var(--joy-palette-background-surface);
+}
+
+.joy-preferences > details > summary {
+  padding-block: 0.9rem;
+  border-bottom: 0;
+}
+
+.joy-preferences > details[open] {
+  padding-bottom: 0.9rem;
+}
+
+.joy-preferences > details[open] > summary {
+  border-bottom: 1px solid var(--joy-palette-divider);
+}
+
 @media (max-width: 720px) {
   .joy-note-details {
     position: absolute;
