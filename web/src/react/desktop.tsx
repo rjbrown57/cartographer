@@ -224,8 +224,14 @@ export function DesktopApp(): React.JSX.Element {
       <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} spacing={1} sx={{ px: { xs: 2, md: 3 } }}>
         <Box ref={namespaceTabsRef} sx={{ flex: 1, minWidth: 0 }}>
           <Tabs value={namespace} onChange={(_, value) => { if (typeof value === 'string') ChangeNamespace(value); }} sx={{ bgcolor: 'transparent' }}>
-            <TabList disableUnderline sx={{ overflowX: 'auto', gap: 0.5, borderBottom: '1px solid #475569' }}>
-              {[...new Set([...namespaces.slice(0, 16), namespace])].map(value => <Tab key={value} value={value} variant="plain" sx={{ flex: '0 0 auto', borderRadius: '8px 8px 0 0', borderTop: value === namespace ? `3px solid ${GetColor('namespace', value) || '#22d3ee'}` : '3px solid transparent', px: 2, fontWeight: value === namespace ? 700 : 500, color: value === namespace ? '#0f172a' : '#cbd5e1', bgcolor: value === namespace ? '#f8fafc' : 'transparent', '&:hover': { bgcolor: value === namespace ? '#f8fafc' : '#334155', color: value === namespace ? '#0f172a' : '#fff' } }}>{value}</Tab>)}
+            <TabList disableUnderline sx={{ overflowX: 'auto', gap: 0, bgcolor: 'transparent', borderBottom: '1px solid rgba(148, 163, 184, 0.26)' }}>
+              {[...new Set([...namespaces.slice(0, 16), namespace])].map(value => {
+                const color = GetColor('namespace', value);
+                return <Tab key={value} value={value} variant="plain" disableIndicator
+                  className="joy-namespace-tab" sx={color ? { '--namespace-color': color } : undefined}>
+                  {value}
+                </Tab>;
+              })}
             </TabList>
           </Tabs>
         </Box>
