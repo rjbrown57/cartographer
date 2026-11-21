@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
+import { autocompletion, startCompletion } from '@codemirror/autocomplete';
+import { CreateNoteLinkSource, type LinkSearchStatus } from './noteLinks.js';
 import { markdown } from '@codemirror/lang-markdown';
 import { Alert, Autocomplete, Box, Button, Chip, Divider, FormControl, FormLabel, IconButton, Input, Option, Select, Sheet, Stack, Textarea, Tooltip, Typography } from '@mui/joy';
 import type { NoteData } from '../shared/types.js';
@@ -22,7 +24,7 @@ const initialMode: Mode = params.get('mode') === 'create' ? 'create' : params.ge
 const initialNamespace = params.get('namespace') || 'default';
 const returnPath = ResolveReturnPath(params.get('returnTo'), location.origin) || `/?namespace=${encodeURIComponent(initialNamespace)}`;
 const emptyScene: DiagramScene = { elements: [], appState: { viewBackgroundColor: '#ffffff' }, files: {} };
-const markdownExtensions = [markdown(), EditorView.lineWrapping];
+
 
 // ToDraft converts a stored note into editable form values.
 function ToDraft(note: NoteData | null, namespace: string): Draft {
@@ -50,6 +52,11 @@ export function NoteApp(): React.JSX.Element {
   const sceneRef = useRef<DiagramScene>(emptyScene);
   const sceneBaselineRef = useRef(JSON.stringify(emptyScene));
   const formRef = useRef<HTMLFormElement>(null);
+  const [linkStatus, setLinkStatus] = useState<LinkSearchStatus>({ message: '', retry: false });
+  const linkIdentity = useRef({ id: note?.id, namespace });
+  linkIdentity.current = { id: note?.id, namespace };
+  const linkSearch = useMemo(() => CreateNoteLinkSource(() => linkIdentity.current, setLinkStatus), []);
+  const markdownExtensions = useMemo(() => [markdown(), EditorView.lineWrapping, autocompletion({ override: [linkSearch.source] })], [linkSearch]);
   const dirty = JSON.stringify(draft) !== baseline || diagramDirty;
 
   useEffect(() => {
@@ -229,6 +236,7 @@ export function NoteApp(): React.JSX.Element {
         </Sheet>
         {diagram ? <Box className="joy-note-canvas"><DiagramCanvas scene={sceneRef.current} readOnly={false} fill onChange={(next, initial) => { sceneRef.current = next; if (initial) sceneBaselineRef.current = JSON.stringify(next); else setDiagramDirty(current => current || JSON.stringify(next) !== sceneBaselineRef.current); }} /></Box> : <>
           <Sheet variant="soft" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: '1px solid #cbd5e1' }}><Button size="sm" variant={editorMode === 'write' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('write')}>Write</Button><Button size="sm" variant={editorMode === 'split' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('split')}>Split</Button><Button size="sm" variant={editorMode === 'preview' ? 'solid' : 'plain'} onClick={() => ChangeEditorMode('preview')}>Preview</Button><Typography level="body-xs" sx={{ ml: 'auto', display: { xs: 'none', sm: 'block' } }}>{stats.words} words · {stats.readingTime} · ⌘/Ctrl+S</Typography></Sheet>
+          {linkStatus.message && <Stack direction="row" spacing={1} sx={{ px: 1.5 }}><Typography role="status" level="body-sm">{linkStatus.message}</Typography>{linkStatus.retry && <Button size="sm" variant="plain" onClick={async () => { await linkSearch.retry(); const element = document.querySelector('.cm-editor'); const view = element ? EditorView.findFromDOM(element as HTMLElement) : null; if (view) { view.focus(); startCompletion(view); } }}>Retry</Button>}</Stack>}
           <Box className="joy-note-panes" data-mode={editorMode}>{editorMode !== 'preview' && <CodeMirror className="joy-note-code" aria-label="Markdown body" value={draft.body} height="100%" extensions={markdownExtensions} placeholder="Start writing…" onChange={value => ChangeDraft('body', value)} />}{editorMode !== 'write' && <Box className="joy-markdown joy-note-preview" dangerouslySetInnerHTML={{ __html: RenderMarkdown(draft.body) }} />}</Box>
         </>}
       </Box>
