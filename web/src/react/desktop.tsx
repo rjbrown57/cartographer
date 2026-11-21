@@ -73,7 +73,8 @@ function NoteCard({ note, namespace, admin, condensed, onOpen, onDelete, onTag }
         {admin && <><IconButton component="a" href={NoteURL(note.id, namespace, true)} size="sm" variant="plain" color="neutral" title="Edit note" aria-label={`Edit ${note.title}`} onClick={event => event.stopPropagation()}><i className="bi bi-pencil" /></IconButton><IconButton size="sm" variant="plain" color="danger" title="Delete note" aria-label={`Delete ${note.title}`} onClick={event => { event.stopPropagation(); onDelete(note); }}><i className="bi bi-trash" /></IconButton></>}
       </Stack>
     </Stack>
-    <Typography level="title-md" className="joy-card-title" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem' }}>{note.title || note.url || note.id}</Typography>
+    {type === 'Link' ? <Typography component="a" href={note.url} target="_blank" rel="noopener noreferrer" level="title-md" className="joy-card-title" onClick={event => event.stopPropagation()} sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>{note.title || note.url || note.id}</Typography>
+      : <Typography level="title-md" className="joy-card-title" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem' }}>{note.title || note.url || note.id}</Typography>}
     {!condensed && <Box className="joy-card-content">
       {note.body && <Box className="joy-markdown joy-card-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body) }} />}
       {scene ? <DiagramIndicator /> : note.data && Object.keys(note.data).length > 0 && !note.body ? <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Structured data</Typography> : null}
