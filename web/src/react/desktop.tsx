@@ -76,7 +76,7 @@ function NoteCard({ note, namespace, admin, condensed, onOpen, onDelete, onTag }
     {type === 'Link' ? <Typography component="a" href={note.url} target="_blank" rel="noopener noreferrer" level="title-md" className="joy-card-title" onClick={event => event.stopPropagation()} sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>{note.title || note.url || note.id}</Typography>
       : <Typography level="title-md" className="joy-card-title" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1rem' }}>{note.title || note.url || note.id}</Typography>}
     {!condensed && <Box className="joy-card-content">
-      {note.body && <Box className="joy-markdown joy-card-markdown" dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body) }} />}
+      {note.body && <Box className="joy-markdown joy-card-markdown" onClick={event => { if ((event.target as Element).closest('a')) event.stopPropagation(); }} dangerouslySetInnerHTML={{ __html: RenderMarkdown(note.body) }} />}
       {scene ? <DiagramIndicator /> : note.data && Object.keys(note.data).length > 0 && !note.body ? <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Structured data</Typography> : null}
       {!note.body && !scene && !note.data && note.url && <Typography component="a" href={note.url} target="_blank" rel="noopener noreferrer" level="body-sm" onClick={event => event.stopPropagation()} sx={{ overflowWrap: 'anywhere' }}>{note.url}</Typography>}
     </Box>}
